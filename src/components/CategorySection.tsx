@@ -2,12 +2,7 @@ import { motion } from "framer-motion";
 import { Scissors, Sparkles, Heart, Hand, Palette, Crown } from "lucide-react";
 
 const categories = [
-  { name: "Haircare", icon: Scissors, color: "from-primary/20 to-primary/5" },
-  { name: "Skincare", icon: Sparkles, color: "from-accent/20 to-accent/5" },
-  { name: "Spa & Wellness", icon: Heart, color: "from-primary/15 to-accent/10" },
-  { name: "Nails", icon: Hand, color: "from-accent/20 to-primary/5" },
-  { name: "Makeup", icon: Palette, color: "from-primary/20 to-primary/5" },
-  { name: "Bridal", icon: Crown, color: "from-accent/25 to-accent/5" },
+  { name: "Haircut", icon: Scissors, color: "from-primary/20 to-primary/5" },
 ];
 
 const CategorySection = () => {
