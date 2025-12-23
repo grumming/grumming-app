@@ -1,1 +1,7 @@
 project_id = "bxrvutconietinhrngvg"
+
+[functions.send-sms-otp]
+verify_jwt = false
+
+[functions.verify-sms-otp]
+verify_jwt = false
