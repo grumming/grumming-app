@@ -5,13 +5,13 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { PushNotificationSetup } from "@/components/PushNotificationSetup";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
 import SalonDetail from "./pages/SalonDetail";
 import BookingConfirmation from "./pages/BookingConfirmation";
 import NotFound from "./pages/NotFound";
-
 const App = () => {
   const [queryClient] = useState(() => new QueryClient());
 
@@ -19,6 +19,7 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
+          <PushNotificationSetup />
           <Toaster />
           <Sonner />
           <BrowserRouter>
