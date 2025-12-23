@@ -22,21 +22,6 @@ const Header = () => {
           </span>
         </div>
         
-        {/* Desktop Nav */}
-        <nav className="hidden md:flex items-center gap-8">
-          <a href="#" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-            Services
-          </a>
-          <a href="#" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-            Salons
-          </a>
-          <a href="#" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-            Offers
-          </a>
-          <a href="#" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-            About
-          </a>
-        </nav>
         
         {/* Actions */}
         <div className="flex items-center gap-2">
