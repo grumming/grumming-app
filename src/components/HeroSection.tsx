@@ -79,21 +79,6 @@ const HeroSection = () => {
               </Button>
             </div>
           </div>
-          
-          {/* Quick tags */}
-          <div className="flex flex-wrap justify-center gap-2 mt-6">
-            {["Haircut", "Facial", "Massage", "Bridal Makeup", "Nail Art"].map((tag, index) => (
-              <motion.button
-                key={tag}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3, delay: 0.5 + index * 0.1 }}
-                className="px-4 py-2 rounded-full bg-secondary text-secondary-foreground text-sm font-medium hover:bg-primary hover:text-primary-foreground transition-all duration-300"
-              >
-                {tag}
-              </motion.button>
-            ))}
-          </div>
         </motion.div>
       </div>
     </section>
