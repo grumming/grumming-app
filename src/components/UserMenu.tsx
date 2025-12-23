@@ -63,13 +63,13 @@ const UserMenu = () => {
           </div>
         </div>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => navigate('/bookings')}>
+        <DropdownMenuItem onClick={() => navigate('/profile')}>
+          <User className="mr-2 h-4 w-4" />
+          <span>My Profile</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => navigate('/profile')}>
           <Calendar className="mr-2 h-4 w-4" />
           <span>My Bookings</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => navigate('/settings')}>
-          <Settings className="mr-2 h-4 w-4" />
-          <span>Settings</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
