@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, User, Mail, Phone, Calendar, Clock, Edit2, Save, X, Loader2, Camera } from 'lucide-react';
+import { ArrowLeft, User, Mail, Phone, Calendar, Clock, Edit2, Save, X, Loader2, Camera, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -316,7 +316,16 @@ const Profile = () => {
             <p className="text-sm text-muted-foreground">{user?.email || user?.phone}</p>
           </div>
 
-          <div className="flex justify-end mb-4">
+          <div className="flex justify-between items-center mb-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/notification-settings')}
+              className="text-muted-foreground"
+            >
+              <Bell className="w-4 h-4 mr-2" />
+              Notifications
+            </Button>
             {!isEditing ? (
               <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
                 <Edit2 className="w-4 h-4 mr-2" />
