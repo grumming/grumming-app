@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Bell, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import UserMenu from "@/components/UserMenu";
 
 const Header = () => {
   return (
@@ -43,9 +44,7 @@ const Header = () => {
             <Bell className="w-5 h-5" />
             <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full" />
           </Button>
-          <Button variant="default" className="hidden sm:flex">
-            Sign In
-          </Button>
+          <UserMenu />
           <Button variant="ghost" size="icon" className="md:hidden">
             <Menu className="w-5 h-5" />
           </Button>
