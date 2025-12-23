@@ -17,7 +17,7 @@ const Header = () => {
             <span className="text-primary-foreground font-display font-bold text-lg">G</span>
           </div>
           <span className="font-display font-bold text-xl text-foreground">
-            Glamour
+            Grumming
           </span>
         </div>
         
