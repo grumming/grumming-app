@@ -12,6 +12,10 @@ const TWILIO_PHONE_NUMBER = Deno.env.get('TWILIO_PHONE_NUMBER');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
+// Rate limit: max 3 OTP sends per phone per minute
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const MAX_SEND_ATTEMPTS = 3;
+
 // Generate a 6-digit OTP
 function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -24,7 +28,7 @@ serve(async (req) => {
   }
 
   try {
-    const { phone, action } = await req.json();
+    const { phone } = await req.json();
 
     if (!phone) {
       return new Response(
@@ -50,12 +54,46 @@ serve(async (req) => {
       );
     }
 
+    // Create Supabase client with service role
+    const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+
+    // Check rate limit
+    const rateLimitCutoff = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString();
+    const { data: recentAttempts, error: rateLimitError } = await supabase
+      .from('otp_rate_limits')
+      .select('*')
+      .eq('phone', phone)
+      .eq('attempt_type', 'send')
+      .gte('attempted_at', rateLimitCutoff);
+
+    if (rateLimitError) {
+      console.error('Rate limit check error:', rateLimitError);
+    }
+
+    if (recentAttempts && recentAttempts.length >= MAX_SEND_ATTEMPTS) {
+      console.log(`Rate limit exceeded for ${phone}: ${recentAttempts.length} attempts in last minute`);
+      return new Response(
+        JSON.stringify({ error: 'Too many OTP requests. Please wait 1 minute before trying again.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Record this attempt
+    const { error: recordError } = await supabase
+      .from('otp_rate_limits')
+      .insert({
+        phone,
+        attempt_type: 'send',
+        ip_address: req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown',
+      });
+
+    if (recordError) {
+      console.error('Failed to record rate limit attempt:', recordError);
+    }
+
     // Generate OTP
     const otp = generateOTP();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiry
-
-    // Create Supabase client to store OTP
-    const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
     // Store OTP in database (upsert to handle resends)
     const { error: dbError } = await supabase
@@ -102,6 +140,13 @@ serve(async (req) => {
     }
 
     console.log(`OTP sent successfully to ${phone}`);
+
+    // Cleanup old rate limit records (older than 1 hour)
+    const cleanupCutoff = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    await supabase
+      .from('otp_rate_limits')
+      .delete()
+      .lt('attempted_at', cleanupCutoff);
 
     return new Response(
       JSON.stringify({ success: true, message: 'OTP sent successfully' }),
