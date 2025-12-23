@@ -216,6 +216,7 @@ const Auth = () => {
     }
   };
 
+  const handleVerifyEmailOTP = async () => {
     if (!validateField('otp', otp)) return;
     
     setIsLoading(true);
