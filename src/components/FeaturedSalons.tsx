@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Star, MapPin, Clock, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const salons = [
   {
@@ -56,11 +57,17 @@ const salons = [
 
 const FeaturedSalons = () => {
   const [favorites, setFavorites] = useState<number[]>([]);
+  const navigate = useNavigate();
 
-  const toggleFavorite = (id: number) => {
+  const toggleFavorite = (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
     setFavorites(prev => 
       prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]
     );
+  };
+
+  const handleSalonClick = (id: number) => {
+    navigate(`/salon/${id}`);
   };
 
   return (
@@ -95,7 +102,10 @@ const FeaturedSalons = () => {
               viewport={{ once: true }}
               transition={{ duration: 0.4, delay: index * 0.1 }}
             >
-              <div className="group bg-card rounded-2xl overflow-hidden shadow-soft hover:shadow-card transition-all duration-300 hover:-translate-y-1">
+              <div 
+                onClick={() => handleSalonClick(salon.id)}
+                className="group bg-card rounded-2xl overflow-hidden shadow-soft hover:shadow-card transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+              >
                 {/* Image */}
                 <div className="relative h-48 overflow-hidden">
                   <img
@@ -104,7 +114,7 @@ const FeaturedSalons = () => {
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <button
-                    onClick={() => toggleFavorite(salon.id)}
+                    onClick={(e) => toggleFavorite(salon.id, e)}
                     className="absolute top-3 right-3 w-9 h-9 rounded-full bg-card/80 backdrop-blur-sm flex items-center justify-center hover:bg-card transition-colors"
                   >
                     <Heart
@@ -159,7 +169,14 @@ const FeaturedSalons = () => {
                     </div>
                   </div>
                   
-                  <Button variant="default" className="w-full">
+                  <Button 
+                    variant="default" 
+                    className="w-full"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSalonClick(salon.id);
+                    }}
+                  >
                     Book Now
                   </Button>
                 </div>
