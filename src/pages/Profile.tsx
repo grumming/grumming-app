@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, User, Mail, Phone, Calendar, Clock, MapPin, Edit2, Save, X, Loader2 } from 'lucide-react';
+import { ArrowLeft, User, Mail, Phone, Calendar, Clock, Edit2, Save, X, Loader2, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
@@ -36,16 +36,20 @@ const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [profile, setProfile] = useState<Profile | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   
   // Editable fields
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -75,7 +79,9 @@ const Profile = () => {
       setProfile(data);
       setFullName(data.full_name || '');
       setPhone(data.phone || '');
+      setAvatarUrl(data.avatar_url);
     }
+    setEmail(user.email || '');
     setIsLoading(false);
   };
 
@@ -103,29 +109,112 @@ const Profile = () => {
     if (!user) return;
     
     setIsSaving(true);
-    const { error } = await supabase
+    
+    // Update profile in database
+    const { error: profileError } = await supabase
       .from('profiles')
       .update({
         full_name: fullName,
         phone: phone,
+        avatar_url: avatarUrl,
       })
       .eq('user_id', user.id);
 
-    setIsSaving(false);
-    if (error) {
+    if (profileError) {
+      setIsSaving(false);
       toast({
         title: 'Error',
         description: 'Failed to update profile. Please try again.',
         variant: 'destructive',
       });
-    } else {
-      setProfile(prev => prev ? { ...prev, full_name: fullName, phone } : null);
-      setIsEditing(false);
-      toast({
-        title: 'Profile updated',
-        description: 'Your profile has been saved successfully.',
-      });
+      return;
     }
+
+    // Update email if changed
+    if (email !== user.email) {
+      const { error: emailError } = await supabase.auth.updateUser({ email });
+      if (emailError) {
+        setIsSaving(false);
+        toast({
+          title: 'Email update pending',
+          description: 'Check your new email for a confirmation link.',
+        });
+      }
+    }
+
+    setIsSaving(false);
+    setProfile(prev => prev ? { ...prev, full_name: fullName, phone, avatar_url: avatarUrl } : null);
+    setIsEditing(false);
+    toast({
+      title: 'Profile updated',
+      description: 'Your profile has been saved successfully.',
+    });
+  };
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: 'Invalid file',
+        description: 'Please upload an image file.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: 'File too large',
+        description: 'Please upload an image smaller than 2MB.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+
+    const fileExt = file.name.split('.').pop();
+    const filePath = `${user.id}/avatar.${fileExt}`;
+
+    // Upload file to storage
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(filePath, file, { upsert: true });
+
+    if (uploadError) {
+      console.error('Upload error:', uploadError);
+      setIsUploadingAvatar(false);
+      toast({
+        title: 'Upload failed',
+        description: 'Failed to upload avatar. Please try again.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('avatars')
+      .getPublicUrl(filePath);
+
+    const newAvatarUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+    setAvatarUrl(newAvatarUrl);
+
+    // Update profile with new avatar URL
+    await supabase
+      .from('profiles')
+      .update({ avatar_url: newAvatarUrl })
+      .eq('user_id', user.id);
+
+    setIsUploadingAvatar(false);
+    toast({
+      title: 'Avatar updated',
+      description: 'Your profile picture has been updated.',
+    });
   };
 
   const handleCancelBooking = async (bookingId: string) => {
@@ -194,31 +283,54 @@ const Profile = () => {
           animate={{ opacity: 1, y: 0 }}
           className="bg-card rounded-2xl shadow-elegant p-6"
         >
-          <div className="flex items-start justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <Avatar className="w-16 h-16">
-                <AvatarFallback className="bg-gradient-primary text-primary-foreground text-xl font-bold">
+          <div className="flex flex-col items-center mb-6">
+            <div className="relative">
+              <Avatar className="w-24 h-24">
+                <AvatarImage src={avatarUrl || undefined} alt={fullName} />
+                <AvatarFallback className="bg-gradient-primary text-primary-foreground text-2xl font-bold">
                   {initials}
                 </AvatarFallback>
               </Avatar>
-              <div>
-                <h2 className="font-display text-xl font-bold text-foreground">
-                  {fullName || 'Guest User'}
-                </h2>
-                <p className="text-sm text-muted-foreground">{user?.email || user?.phone}</p>
-              </div>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingAvatar}
+                className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                {isUploadingAvatar ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Camera className="w-4 h-4" />
+                )}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarUpload}
+                className="hidden"
+              />
             </div>
+            <h2 className="font-display text-xl font-bold text-foreground mt-4">
+              {fullName || 'Guest User'}
+            </h2>
+            <p className="text-sm text-muted-foreground">{user?.email || user?.phone}</p>
+          </div>
+
+          <div className="flex justify-end mb-4">
             {!isEditing ? (
-              <Button variant="ghost" size="icon" onClick={() => setIsEditing(true)}>
-                <Edit2 className="w-4 h-4" />
+              <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                <Edit2 className="w-4 h-4 mr-2" />
+                Edit Profile
               </Button>
             ) : (
               <div className="flex gap-2">
-                <Button variant="ghost" size="icon" onClick={() => setIsEditing(false)}>
-                  <X className="w-4 h-4" />
+                <Button variant="outline" size="sm" onClick={() => setIsEditing(false)}>
+                  <X className="w-4 h-4 mr-2" />
+                  Cancel
                 </Button>
-                <Button variant="ghost" size="icon" onClick={handleSaveProfile} disabled={isSaving}>
-                  {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                <Button size="sm" onClick={handleSaveProfile} disabled={isSaving}>
+                  {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                  Save
                 </Button>
               </div>
             )}
@@ -234,6 +346,21 @@ const Profile = () => {
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="Enter your full name"
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email"
+                />
+                {email !== user?.email && (
+                  <p className="text-xs text-muted-foreground">
+                    You'll receive a confirmation email at your new address.
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone Number</Label>
