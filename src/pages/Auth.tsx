@@ -270,11 +270,16 @@ const Auth = () => {
 
       toast({
         title: data.isNewUser ? 'Account Created!' : 'Welcome Back!',
-        description: 'You have successfully logged in.',
+        description: 'Logging you in...',
       });
       
-      // Redirect and let auth state listener pick up the session
-      window.location.href = '/';
+      // Use the verification URL to establish a proper session
+      if (data.verificationUrl) {
+        window.location.href = data.verificationUrl;
+      } else {
+        // Fallback to home if no verification URL
+        window.location.href = '/';
+      }
     } catch (error: any) {
       toast({
         title: 'Invalid OTP',
