@@ -17,7 +17,7 @@ const otpSchema = z.string().length(6, 'OTP must be 6 digits');
 const nameSchema = z.string().min(2, 'Name must be at least 2 characters');
 
 type AuthMethod = 'email' | 'phone';
-type AuthStep = 'method' | 'credentials' | 'otp' | 'signup';
+type AuthStep = 'method' | 'credentials' | 'otp' | 'signup' | 'email-otp';
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -173,6 +173,59 @@ const Auth = () => {
     }
   };
 
+  const handleEmailOTP = async () => {
+    if (!validateField('email', email)) return;
+    
+    setIsLoading(true);
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/`,
+      },
+    });
+
+    setIsLoading(false);
+    if (error) {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } else {
+      setStep('email-otp');
+      toast({
+        title: 'OTP Sent!',
+        description: 'Please check your email for the verification code.',
+      });
+    }
+  };
+
+  const handleVerifyEmailOTP = async () => {
+    if (!validateField('otp', otp)) return;
+    
+    setIsLoading(true);
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token: otp,
+      type: 'email',
+    });
+
+    setIsLoading(false);
+    if (error) {
+      toast({
+        title: 'Invalid OTP',
+        description: 'The code you entered is incorrect. Please try again.',
+        variant: 'destructive',
+      });
+    } else {
+      toast({
+        title: 'Welcome!',
+        description: 'You have successfully logged in.',
+      });
+      navigate('/');
+    }
+  };
+
   const handleVerifyOTP = async () => {
     if (!validateField('otp', otp)) return;
     
@@ -203,6 +256,7 @@ const Auth = () => {
 
   const goBack = () => {
     if (step === 'otp') setStep('credentials');
+    else if (step === 'email-otp') setStep('credentials');
     else if (step === 'credentials' || step === 'signup') setStep('method');
     else navigate('/');
   };
@@ -335,6 +389,25 @@ const Auth = () => {
               >
                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 Sign In
+              </Button>
+
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">Or</span>
+                </div>
+              </div>
+
+              <Button
+                variant="outline"
+                className="w-full h-12"
+                onClick={handleEmailOTP}
+                disabled={isLoading || !email}
+              >
+                {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Send OTP to Email
               </Button>
 
               <div className="text-center">
@@ -481,7 +554,7 @@ const Auth = () => {
             </motion.div>
           )}
 
-          {/* Step 3: OTP Verification */}
+          {/* Step 3: Phone OTP Verification */}
           {step === 'otp' && (
             <motion.div
               key="otp"
@@ -519,6 +592,53 @@ const Auth = () => {
               <div className="text-center">
                 <button
                   onClick={handlePhoneOTP}
+                  className="text-sm text-primary font-medium hover:underline"
+                  disabled={isLoading}
+                >
+                  Resend OTP
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Email OTP Verification */}
+          {step === 'email-otp' && (
+            <motion.div
+              key="email-otp"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="w-full max-w-sm space-y-4"
+            >
+              <h2 className="text-xl font-semibold text-center mb-2">Verify Email OTP</h2>
+              <p className="text-sm text-center text-muted-foreground mb-6">
+                Enter the 6-digit code sent to {email}
+              </p>
+              
+              <div className="space-y-2">
+                <Input
+                  type="text"
+                  placeholder="Enter 6-digit OTP"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  className={`text-center text-2xl tracking-widest h-14 ${errors.otp ? 'border-destructive' : ''}`}
+                  maxLength={6}
+                />
+                {errors.otp && <p className="text-xs text-destructive text-center">{errors.otp}</p>}
+              </div>
+
+              <Button
+                className="w-full h-12"
+                onClick={handleVerifyEmailOTP}
+                disabled={isLoading || otp.length !== 6}
+              >
+                {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Verify & Continue
+              </Button>
+
+              <div className="text-center">
+                <button
+                  onClick={handleEmailOTP}
                   className="text-sm text-primary font-medium hover:underline"
                   disabled={isLoading}
                 >
