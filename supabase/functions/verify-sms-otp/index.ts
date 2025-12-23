@@ -68,33 +68,11 @@ serve(async (req) => {
     const { data: existingUsers } = await supabase.auth.admin.listUsers();
     const existingUser = existingUsers?.users.find(u => u.phone === phone);
 
+    let userId: string;
+    let isNewUser = false;
+
     if (existingUser) {
-      // Generate a magic link token for existing user
-      const { data: signInData, error: signInError } = await supabase.auth.admin.generateLink({
-        type: 'magiclink',
-        email: existingUser.email || `${phone.replace('+', '')}@phone.grumming.app`,
-      });
-
-      if (signInError) {
-        console.error('Sign in error:', signInError);
-        return new Response(
-          JSON.stringify({ error: 'Failed to sign in' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Delete used OTP
-      await supabase.from('phone_otps').delete().eq('phone', phone);
-
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          isNewUser: false,
-          accessToken: signInData.properties?.access_token,
-          refreshToken: signInData.properties?.refresh_token,
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      userId = existingUser.id;
     } else {
       // Create new user with phone
       const tempEmail = `${phone.replace('+', '')}@phone.grumming.app`;
@@ -119,30 +97,23 @@ serve(async (req) => {
         );
       }
 
-      // Generate session for new user
-      const { data: signInData, error: signInError } = await supabase.auth.admin.generateLink({
-        type: 'magiclink',
-        email: tempEmail,
-      });
-
-      if (signInError) {
-        console.error('Sign in error:', signInError);
-      }
-
-      // Delete used OTP
-      await supabase.from('phone_otps').delete().eq('phone', phone);
-
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          isNewUser: true,
-          userId: newUser.user?.id,
-          accessToken: signInData?.properties?.access_token,
-          refreshToken: signInData?.properties?.refresh_token,
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      userId = newUser.user!.id;
+      isNewUser = true;
     }
+
+    // Delete used OTP
+    await supabase.from('phone_otps').delete().eq('phone', phone);
+
+    // Return success with user info - client will handle session
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        isNewUser,
+        userId,
+        phone,
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   } catch (error) {
     console.error('Error in verify-sms-otp:', error);
     return new Response(

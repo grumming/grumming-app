@@ -153,23 +153,39 @@ const Auth = () => {
     if (!validateField('phone', formattedPhone)) return;
     
     setIsLoading(true);
-    const { error } = await supabase.auth.signInWithOtp({
-      phone: formattedPhone,
-    });
+    
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-sms-otp`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ phone: formattedPhone }),
+        }
+      );
 
-    setIsLoading(false);
-    if (error) {
-      toast({
-        title: 'Error',
-        description: error.message,
-        variant: 'destructive',
-      });
-    } else {
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send OTP');
+      }
+
       setStep('otp');
       toast({
         title: 'OTP Sent!',
         description: 'Please check your phone for the verification code.',
       });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to send OTP',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -200,7 +216,6 @@ const Auth = () => {
     }
   };
 
-  const handleVerifyEmailOTP = async () => {
     if (!validateField('otp', otp)) return;
     
     setIsLoading(true);
@@ -232,25 +247,41 @@ const Auth = () => {
     const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
     
     setIsLoading(true);
-    const { error } = await supabase.auth.verifyOtp({
-      phone: formattedPhone,
-      token: otp,
-      type: 'sms',
-    });
+    
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-sms-otp`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ phone: formattedPhone, otp }),
+        }
+      );
 
-    setIsLoading(false);
-    if (error) {
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to verify OTP');
+      }
+
       toast({
-        title: 'Invalid OTP',
-        description: 'The code you entered is incorrect. Please try again.',
-        variant: 'destructive',
-      });
-    } else {
-      toast({
-        title: 'Welcome!',
+        title: data.isNewUser ? 'Account Created!' : 'Welcome Back!',
         description: 'You have successfully logged in.',
       });
-      navigate('/');
+      
+      // Redirect and let auth state listener pick up the session
+      window.location.href = '/';
+    } catch (error: any) {
+      toast({
+        title: 'Invalid OTP',
+        description: error.message || 'The code you entered is incorrect.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
