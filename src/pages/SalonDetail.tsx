@@ -226,15 +226,19 @@ const SalonDetail = () => {
         variant: 'destructive',
       });
     } else {
-      toast({
-        title: 'Booking confirmed!',
-        description: `Your appointment at ${salon.name} is scheduled for ${format(selectedDate, 'MMM dd, yyyy')} at ${selectedTime}.`,
-      });
       setShowBookingModal(false);
       setSelectedServices([]);
-      setSelectedDate(null);
-      setSelectedTime(null);
-      navigate('/profile');
+      
+      // Navigate to confirmation page with booking details
+      const params = new URLSearchParams({
+        salon: salon.name,
+        service: selectedServicesData.map((s: any) => s.name).join(', '),
+        price: totalPrice.toString(),
+        date: format(selectedDate, 'yyyy-MM-dd'),
+        time: selectedTime,
+      });
+      
+      navigate(`/booking-confirmation?${params.toString()}`);
     }
   };
 
