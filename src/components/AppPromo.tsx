@@ -27,7 +27,7 @@ const AppPromo = () => {
               </div>
               
               <h2 className="font-display text-3xl md:text-4xl font-bold text-white mb-4">
-                Get the Glamour App
+                Get the Grumming App
               </h2>
               <p className="text-white/80 text-lg mb-6 max-w-md">
                 Book appointments on the go, get exclusive offers, and manage your beauty routine from anywhere.
