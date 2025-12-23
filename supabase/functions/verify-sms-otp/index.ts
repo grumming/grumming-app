@@ -111,9 +111,14 @@ serve(async (req) => {
       .update({ verified: true })
       .eq('phone', phone);
 
-    // Check if user exists with this phone
+    // Check if user exists with this phone or temp email
+    const tempEmail = `${phone.replace('+', '')}@phone.grumming.app`;
     const { data: existingUsers } = await supabase.auth.admin.listUsers();
-    const existingUser = existingUsers?.users.find(u => u.phone === phone);
+    
+    // Look for user by phone OR by the temp email we would create
+    const existingUser = existingUsers?.users.find(u => 
+      u.phone === phone || u.email === tempEmail
+    );
 
     let userId: string;
     let isNewUser = false;
@@ -121,10 +126,10 @@ serve(async (req) => {
 
     if (existingUser) {
       userId = existingUser.id;
-      userEmail = existingUser.email || `${phone.replace('+', '')}@phone.grumming.app`;
+      userEmail = existingUser.email || tempEmail;
+      console.log(`Found existing user: ${userId} with email: ${userEmail}`);
     } else {
       // Create new user with phone
-      const tempEmail = `${phone.replace('+', '')}@phone.grumming.app`;
       const tempPassword = crypto.randomUUID();
 
       const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
@@ -149,6 +154,7 @@ serve(async (req) => {
       userId = newUser.user!.id;
       userEmail = tempEmail;
       isNewUser = true;
+      console.log(`Created new user: ${userId}`);
     }
 
     // Generate a magic link that the client can use to establish a session
