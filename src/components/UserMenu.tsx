@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, LogOut, Calendar, Settings } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -10,12 +10,39 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { supabase } from '@/integrations/supabase/client';
 
 const UserMenu = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [fullName, setFullName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      fetchProfile();
+    } else {
+      setAvatarUrl(null);
+      setFullName(null);
+    }
+  }, [user]);
+
+  const fetchProfile = async () => {
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('avatar_url, full_name')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (!error && data) {
+      setAvatarUrl(data.avatar_url);
+      setFullName(data.full_name);
+    }
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -36,8 +63,9 @@ const UserMenu = () => {
     );
   }
 
-  const initials = user.user_metadata?.full_name
-    ? user.user_metadata.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase()
+  const displayName = fullName || user.user_metadata?.full_name;
+  const initials = displayName
+    ? displayName.split(' ').map((n: string) => n[0]).join('').toUpperCase()
     : user.email?.charAt(0).toUpperCase() || 'U';
 
   return (
@@ -45,6 +73,7 @@ const UserMenu = () => {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-9 w-9 rounded-full">
           <Avatar className="h-9 w-9">
+            <AvatarImage src={avatarUrl || undefined} alt={displayName || 'User'} />
             <AvatarFallback className="bg-gradient-primary text-primary-foreground font-medium">
               {initials}
             </AvatarFallback>
@@ -53,11 +82,17 @@ const UserMenu = () => {
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <div className="flex items-center justify-start gap-2 p-2">
+          <Avatar className="h-10 w-10">
+            <AvatarImage src={avatarUrl || undefined} alt={displayName || 'User'} />
+            <AvatarFallback className="bg-gradient-primary text-primary-foreground font-medium">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
           <div className="flex flex-col space-y-1 leading-none">
-            {user.user_metadata?.full_name && (
-              <p className="font-medium">{user.user_metadata.full_name}</p>
+            {displayName && (
+              <p className="font-medium">{displayName}</p>
             )}
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground truncate max-w-[150px]">
               {user.email || user.phone}
             </p>
           </div>
