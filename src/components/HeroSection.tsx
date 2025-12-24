@@ -1,13 +1,17 @@
 import { motion } from "framer-motion";
 import { Search, MapPin, Locate, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useGeolocation } from "@/hooks/useGeolocation";
+import { getFilteredCities } from "@/data/indianCities";
 
 const HeroSection = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [location, setLocation] = useState("Mumbai, India");
+  const [location, setLocation] = useState("Mumbai, Maharashtra");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const { loading: detectingLocation, detectLocation, location: detectedLocation } = useGeolocation();
+  const locationInputRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (detectedLocation) {
@@ -15,9 +19,36 @@ const HeroSection = () => {
     }
   }, [detectedLocation]);
 
+  useEffect(() => {
+    const filtered = getFilteredCities(location);
+    setSuggestions(filtered);
+  }, [location]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (locationInputRef.current && !locationInputRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const handleDetectLocation = async () => {
     await detectLocation();
   };
+
+  const handleLocationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLocation(e.target.value);
+    setShowSuggestions(true);
+  };
+
+  const handleSelectCity = (city: string) => {
+    setLocation(city);
+    setShowSuggestions(false);
+  };
+
   return (
     <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden">
       {/* Background gradient */}
@@ -60,28 +91,47 @@ const HeroSection = () => {
           {/* Search Card */}
           <div className="glass rounded-2xl p-2 shadow-card">
             <div className="flex flex-col sm:flex-row gap-2">
-              {/* Location Input */}
-              <div className="flex items-center gap-2 px-4 py-3 bg-background rounded-xl flex-1">
-                <MapPin className="w-5 h-5 text-primary" />
-                <input
-                  type="text"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="Enter location"
-                  className="bg-transparent outline-none w-full text-foreground placeholder:text-muted-foreground font-body"
-                />
-                <button
-                  onClick={handleDetectLocation}
-                  disabled={detectingLocation}
-                  className="p-1.5 rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
-                  title="Detect my location"
-                >
-                  {detectingLocation ? (
-                    <Loader2 className="w-4 h-4 text-primary animate-spin" />
-                  ) : (
-                    <Locate className="w-4 h-4 text-primary" />
-                  )}
-                </button>
+              {/* Location Input with Autocomplete */}
+              <div ref={locationInputRef} className="relative flex-1">
+                <div className="flex items-center gap-2 px-4 py-3 bg-background rounded-xl">
+                  <MapPin className="w-5 h-5 text-primary flex-shrink-0" />
+                  <input
+                    type="text"
+                    value={location}
+                    onChange={handleLocationChange}
+                    onFocus={() => setShowSuggestions(true)}
+                    placeholder="Enter city name"
+                    className="bg-transparent outline-none w-full text-foreground placeholder:text-muted-foreground font-body"
+                  />
+                  <button
+                    onClick={handleDetectLocation}
+                    disabled={detectingLocation}
+                    className="p-1.5 rounded-lg hover:bg-muted transition-colors disabled:opacity-50 flex-shrink-0"
+                    title="Detect my location"
+                  >
+                    {detectingLocation ? (
+                      <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                    ) : (
+                      <Locate className="w-4 h-4 text-primary" />
+                    )}
+                  </button>
+                </div>
+                
+                {/* City Suggestions Dropdown */}
+                {showSuggestions && suggestions.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto">
+                    {suggestions.map((city, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleSelectCity(city)}
+                        className="w-full px-4 py-3 text-left hover:bg-muted transition-colors flex items-center gap-2 first:rounded-t-xl last:rounded-b-xl"
+                      >
+                        <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                        <span className="text-foreground font-body">{city}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               
               {/* Search Input */}
