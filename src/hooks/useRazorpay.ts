@@ -52,7 +52,12 @@ export const useRazorpay = () => {
         throw new Error('Failed to load payment gateway');
       }
 
-      // Create order
+      // Validate bookingId is required for secure payment
+      if (!options.bookingId) {
+        throw new Error('Booking ID is required for payment');
+      }
+
+      // Create order with booking_id for server-side amount validation
       const orderResponse = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-razorpay-order`,
         {
@@ -64,7 +69,8 @@ export const useRazorpay = () => {
           body: JSON.stringify({
             amount: options.amount,
             currency: 'INR',
-            receipt: `booking_${options.bookingId || Date.now()}`,
+            booking_id: options.bookingId, // Required for server-side validation
+            receipt: `booking_${options.bookingId}`,
             notes: {
               salon: options.salonName,
               service: options.serviceName,
