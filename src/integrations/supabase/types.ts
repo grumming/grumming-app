@@ -20,6 +20,7 @@ export type Database = {
           booking_time: string
           created_at: string
           id: string
+          reminder_sent: boolean
           salon_name: string
           service_name: string
           service_price: number
@@ -32,6 +33,7 @@ export type Database = {
           booking_time: string
           created_at?: string
           id?: string
+          reminder_sent?: boolean
           salon_name: string
           service_name: string
           service_price: number
@@ -44,6 +46,7 @@ export type Database = {
           booking_time?: string
           created_at?: string
           id?: string
+          reminder_sent?: boolean
           salon_name?: string
           service_name?: string
           service_price?: number
@@ -133,6 +136,47 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      reviews: {
+        Row: {
+          booking_id: string | null
+          created_at: string
+          id: string
+          rating: number
+          review_text: string | null
+          salon_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          booking_id?: string | null
+          created_at?: string
+          id?: string
+          rating: number
+          review_text?: string | null
+          salon_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          booking_id?: string | null
+          created_at?: string
+          id?: string
+          rating?: number
+          review_text?: string | null
+          salon_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
