@@ -27,7 +27,7 @@ const HeroSection = () => {
         >
           <h1 className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-foreground mb-4 leading-tight">
             Book Your Perfect
-            <span className="block gradient-text">Beauty Experience</span>
+            <span className="block gradient-text">Haircut</span>
           </h1>
         </motion.div>
         
