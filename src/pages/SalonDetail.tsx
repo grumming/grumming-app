@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, Star, MapPin, Clock, Phone, Heart, Share2, 
-  ChevronRight, Calendar, Check, User, MessageSquare 
+  ChevronRight, Calendar, Check, User, MessageSquare, CreditCard 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { useRazorpay } from '@/hooks/useRazorpay';
 import { supabase } from '@/integrations/supabase/client';
 import { format, addDays } from 'date-fns';
 
@@ -152,6 +153,7 @@ const SalonDetail = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { initiatePayment, isLoading: isPaymentLoading } = useRazorpay();
   
   const [isFavorite, setIsFavorite] = useState(false);
   const [selectedServices, setSelectedServices] = useState<number[]>([]);
@@ -159,6 +161,7 @@ const SalonDetail = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [isBooking, setIsBooking] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'online' | 'salon'>('online');
 
   const salon = id ? salonsData[id] : null;
 
@@ -207,32 +210,86 @@ const SalonDetail = () => {
 
     const serviceNames = selectedServicesData.map((s: any) => s.name).join(', ');
 
-    const { error } = await supabase.from('bookings').insert({
-      user_id: user.id,
-      salon_name: salon.name,
-      service_name: serviceNames,
-      service_price: totalPrice,
-      booking_date: format(selectedDate, 'yyyy-MM-dd'),
-      booking_time: selectedTime,
-      status: 'upcoming',
-    });
+    // Create booking first
+    const { data: bookingData, error: bookingError } = await supabase
+      .from('bookings')
+      .insert({
+        user_id: user.id,
+        salon_name: salon.name,
+        service_name: serviceNames,
+        service_price: totalPrice,
+        booking_date: format(selectedDate, 'yyyy-MM-dd'),
+        booking_time: selectedTime,
+        status: paymentMethod === 'online' ? 'pending_payment' : 'upcoming',
+      })
+      .select()
+      .single();
 
-    setIsBooking(false);
-
-    if (error) {
+    if (bookingError) {
+      setIsBooking(false);
       toast({
         title: 'Booking failed',
         description: 'Unable to complete booking. Please try again.',
         variant: 'destructive',
       });
+      return;
+    }
+
+    // If online payment selected, initiate Razorpay
+    if (paymentMethod === 'online') {
+      const paymentResult = await initiatePayment({
+        amount: totalPrice,
+        bookingId: bookingData.id,
+        salonName: salon.name,
+        serviceName: serviceNames,
+        customerPhone: user.phone || '',
+      });
+
+      setIsBooking(false);
+
+      if (paymentResult.success) {
+        setShowBookingModal(false);
+        setSelectedServices([]);
+        
+        toast({
+          title: 'Payment Successful!',
+          description: 'Your booking has been confirmed.',
+        });
+
+        const params = new URLSearchParams({
+          salon: salon.name,
+          service: serviceNames,
+          price: totalPrice.toString(),
+          date: format(selectedDate, 'yyyy-MM-dd'),
+          time: selectedTime,
+          paymentId: paymentResult.paymentId || '',
+        });
+        
+        navigate(`/booking-confirmation?${params.toString()}`);
+      } else {
+        // Payment failed or cancelled, update booking status
+        await supabase
+          .from('bookings')
+          .update({ status: 'payment_failed' })
+          .eq('id', bookingData.id);
+
+        if (paymentResult.error !== 'Payment cancelled') {
+          toast({
+            title: 'Payment Failed',
+            description: paymentResult.error || 'Please try again.',
+            variant: 'destructive',
+          });
+        }
+      }
     } else {
+      // Pay at salon
+      setIsBooking(false);
       setShowBookingModal(false);
       setSelectedServices([]);
-      
-      // Navigate to confirmation page with booking details
+
       const params = new URLSearchParams({
         salon: salon.name,
-        service: selectedServicesData.map((s: any) => s.name).join(', '),
+        service: serviceNames,
         price: totalPrice.toString(),
         date: format(selectedDate, 'yyyy-MM-dd'),
         time: selectedTime,
@@ -586,13 +643,48 @@ const SalonDetail = () => {
             </div>
           </div>
 
+          {/* Payment Method Selection */}
+          <div className="space-y-3">
+            <h4 className="font-medium text-sm">Payment Method</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setPaymentMethod('online')}
+                className={`flex items-center gap-3 p-4 rounded-xl border transition-colors ${
+                  paymentMethod === 'online'
+                    ? 'bg-primary/10 border-primary'
+                    : 'border-border hover:border-primary'
+                }`}
+              >
+                <CreditCard className={`w-5 h-5 ${paymentMethod === 'online' ? 'text-primary' : 'text-muted-foreground'}`} />
+                <div className="text-left">
+                  <p className={`text-sm font-medium ${paymentMethod === 'online' ? 'text-primary' : ''}`}>Pay Online</p>
+                  <p className="text-xs text-muted-foreground">Cards, UPI, Wallets</p>
+                </div>
+              </button>
+              <button
+                onClick={() => setPaymentMethod('salon')}
+                className={`flex items-center gap-3 p-4 rounded-xl border transition-colors ${
+                  paymentMethod === 'salon'
+                    ? 'bg-primary/10 border-primary'
+                    : 'border-border hover:border-primary'
+                }`}
+              >
+                <MapPin className={`w-5 h-5 ${paymentMethod === 'salon' ? 'text-primary' : 'text-muted-foreground'}`} />
+                <div className="text-left">
+                  <p className={`text-sm font-medium ${paymentMethod === 'salon' ? 'text-primary' : ''}`}>Pay at Salon</p>
+                  <p className="text-xs text-muted-foreground">Cash or Card</p>
+                </div>
+              </button>
+            </div>
+          </div>
+
           <Button
             className="w-full mt-4"
             size="lg"
             onClick={handleBooking}
-            disabled={!selectedDate || !selectedTime || isBooking}
+            disabled={!selectedDate || !selectedTime || isBooking || isPaymentLoading}
           >
-            {isBooking ? 'Booking...' : `Confirm Booking - ₹${totalPrice}`}
+            {isBooking || isPaymentLoading ? 'Processing...' : paymentMethod === 'online' ? `Pay ₹${totalPrice}` : `Confirm Booking - ₹${totalPrice}`}
           </Button>
         </DialogContent>
       </Dialog>
