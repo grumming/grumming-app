@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,19 +13,75 @@ serve(async (req) => {
   }
 
   try {
-    const { amount, currency = 'INR', receipt, notes } = await req.json();
+    const { amount, currency = 'INR', receipt, notes, booking_id } = await req.json();
+
+    // Validate booking_id is required for payment security
+    if (!booking_id) {
+      console.error('Missing booking_id in payment request');
+      return new Response(JSON.stringify({ error: 'Booking ID is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     const keyId = Deno.env.get('RAZORPAY_KEY_ID');
     const keySecret = Deno.env.get('RAZORPAY_KEY_SECRET');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
     if (!keyId || !keySecret) {
       console.error('Razorpay credentials not configured');
       throw new Error('Payment gateway not configured');
     }
 
-    console.log(`Creating order for amount: ${amount} ${currency}`);
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Supabase credentials not configured');
+      throw new Error('Server configuration error');
+    }
 
-    // Create Razorpay order
+    // Initialize Supabase client with service role for validation
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Fetch booking to validate amount server-side
+    const { data: booking, error: bookingError } = await supabase
+      .from('bookings')
+      .select('service_price, status, user_id')
+      .eq('id', booking_id)
+      .single();
+
+    if (bookingError || !booking) {
+      console.error('Invalid booking:', bookingError?.message || 'Booking not found');
+      return new Response(JSON.stringify({ error: 'Invalid booking' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Validate booking is in pending_payment status
+    if (booking.status !== 'pending_payment') {
+      console.error('Booking status mismatch:', booking.status);
+      return new Response(JSON.stringify({ error: 'Booking is not pending payment' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Validate amount matches booking price (use server-side value)
+    const expectedAmount = parseFloat(booking.service_price);
+    if (Math.abs(amount - expectedAmount) > 0.01) {
+      console.error(`Amount mismatch detected: client sent ${amount}, expected ${expectedAmount}`);
+      return new Response(JSON.stringify({ error: 'Invalid payment amount' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Use validated amount from database (not client-supplied)
+    const validatedAmount = expectedAmount;
+
+    console.log(`Creating order for validated amount: ${validatedAmount} ${currency} for booking: ${booking_id}`);
+
+    // Create Razorpay order with validated amount
     const auth = btoa(`${keyId}:${keySecret}`);
     
     const orderResponse = await fetch('https://api.razorpay.com/v1/orders', {
@@ -34,10 +91,10 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        amount: amount * 100, // Razorpay expects amount in paise
+        amount: Math.round(validatedAmount * 100), // Razorpay expects amount in paise
         currency,
         receipt: receipt || `receipt_${Date.now()}`,
-        notes: notes || {},
+        notes: { ...notes, booking_id },
       }),
     });
 
@@ -54,13 +111,13 @@ serve(async (req) => {
       orderId: order.id,
       amount: order.amount,
       currency: order.currency,
-      keyId: keyId, // Send key ID to frontend for checkout
+      keyId: keyId,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error: any) {
-    console.error('Error in create-razorpay-order:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error('Error in create-razorpay-order:', error.message);
+    return new Response(JSON.stringify({ error: 'Payment processing failed' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
