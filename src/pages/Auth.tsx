@@ -164,10 +164,17 @@ const Auth = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="p-4 flex items-center border-b border-border">
+      <header className="p-4 flex items-center justify-between border-b border-border">
         <button onClick={goBack} className="p-2 rounded-full hover:bg-muted transition-colors">
           <ArrowLeft className="w-6 h-6 text-foreground" />
         </button>
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+            <span className="text-primary-foreground font-bold text-sm">G</span>
+          </div>
+          <span className="font-bold text-lg text-foreground">Grumming</span>
+        </div>
+        <div className="w-10" />
       </header>
 
       <div className="flex-1 flex flex-col px-6 py-8">
