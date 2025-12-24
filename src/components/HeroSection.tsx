@@ -77,9 +77,9 @@ const HeroSection = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="text-foreground text-lg md:text-xl max-w-2xl mx-auto mb-10 font-bold"
+          className="text-muted-foreground text-lg md:text-xl max-w-2xl mx-auto mb-10"
         >
-          Book appointments instantly
+          Discover top-rated salons & spas near you. <span className="font-bold text-foreground">Book appointments instantly</span> with India's most trusted beauty platform.
         </motion.p>
         
         <motion.div
