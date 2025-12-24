@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, Calendar, Clock, MapPin, 
-  Loader2, AlertCircle, CheckCircle2, XCircle 
+  Loader2, AlertCircle, CheckCircle2, XCircle, Star 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -23,6 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { format, parseISO, isPast, isToday } from 'date-fns';
+import { ReviewDialog } from '@/components/ReviewDialog';
 
 interface Booking {
   id: string;
@@ -33,6 +34,7 @@ interface Booking {
   booking_time: string;
   status: string;
   created_at: string;
+  has_review?: boolean;
 }
 
 const MyBookings = () => {
@@ -45,6 +47,8 @@ const MyBookings = () => {
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [showReviewDialog, setShowReviewDialog] = useState(false);
+  const [reviewBooking, setReviewBooking] = useState<Booking | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -62,21 +66,39 @@ const MyBookings = () => {
     if (!user) return;
     
     setLoading(true);
-    const { data, error } = await supabase
+    
+    // Fetch bookings
+    const { data: bookingsData, error: bookingsError } = await supabase
       .from('bookings')
       .select('*')
       .eq('user_id', user.id)
       .order('booking_date', { ascending: true });
 
-    if (error) {
+    if (bookingsError) {
       toast({
         title: 'Error',
         description: 'Failed to fetch bookings',
         variant: 'destructive',
       });
-    } else {
-      setBookings(data || []);
+      setLoading(false);
+      return;
     }
+
+    // Fetch reviews to check which bookings have been reviewed
+    const { data: reviewsData } = await supabase
+      .from('reviews')
+      .select('booking_id')
+      .eq('user_id', user.id);
+
+    const reviewedBookingIds = new Set(reviewsData?.map(r => r.booking_id) || []);
+
+    // Mark bookings that have reviews
+    const bookingsWithReviewStatus = (bookingsData || []).map(b => ({
+      ...b,
+      has_review: reviewedBookingIds.has(b.id),
+    }));
+
+    setBookings(bookingsWithReviewStatus);
     setLoading(false);
   };
 
@@ -295,15 +317,37 @@ const MyBookings = () => {
                             <span className="font-semibold text-lg text-primary">
                               ₹{booking.service_price}
                             </span>
-                            {booking.status !== 'cancelled' && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => navigate('/')}
-                              >
-                                Book Again
-                              </Button>
-                            )}
+                            <div className="flex gap-2">
+                              {booking.status !== 'cancelled' && !booking.has_review && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setReviewBooking(booking);
+                                    setShowReviewDialog(true);
+                                  }}
+                                  className="gap-1"
+                                >
+                                  <Star className="w-4 h-4" />
+                                  Review
+                                </Button>
+                              )}
+                              {booking.status !== 'cancelled' && booking.has_review && (
+                                <Badge variant="secondary" className="gap-1">
+                                  <Star className="w-3 h-3 fill-primary text-primary" />
+                                  Reviewed
+                                </Badge>
+                              )}
+                              {booking.status !== 'cancelled' && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => navigate('/')}
+                                >
+                                  Book Again
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         </CardContent>
                       </Card>
@@ -336,11 +380,24 @@ const MyBookings = () => {
               onClick={handleCancelBooking}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Cancel Booking
+            Cancel Booking
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Review Dialog */}
+      {reviewBooking && user && (
+        <ReviewDialog
+          open={showReviewDialog}
+          onOpenChange={setShowReviewDialog}
+          bookingId={reviewBooking.id}
+          salonId={reviewBooking.salon_name.toLowerCase().replace(/\s+/g, '-')}
+          salonName={reviewBooking.salon_name}
+          userId={user.id}
+          onReviewSubmitted={fetchBookings}
+        />
+      )}
     </div>
   );
 };

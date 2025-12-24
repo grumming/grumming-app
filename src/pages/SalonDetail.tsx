@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -15,7 +15,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useRazorpay } from '@/hooks/useRazorpay';
 import { supabase } from '@/integrations/supabase/client';
-import { format, addDays } from 'date-fns';
+import { format, addDays, parseISO } from 'date-fns';
+import { SalonReviews } from '@/components/SalonReviews';
 
 // Mock salon data - in production this would come from database
 const salonsData: Record<string, any> = {
@@ -448,6 +449,7 @@ const SalonDetail = () => {
 
           {/* Reviews Tab */}
           <TabsContent value="reviews" className="space-y-4">
+            {/* Show mock reviews + real reviews from database */}
             <div className="flex items-center justify-between mb-4">
               <div>
                 <div className="flex items-center gap-2">
@@ -465,10 +467,11 @@ const SalonDetail = () => {
                     ))}
                   </div>
                 </div>
-                <p className="text-sm text-muted-foreground">{salon.reviews} reviews</p>
+                <p className="text-sm text-muted-foreground">{salon.reviews}+ reviews</p>
               </div>
             </div>
 
+            {/* Mock reviews from salon data */}
             {salon.reviewsList.map((review: any) => (
               <Card key={review.id}>
                 <CardContent className="p-4">
@@ -502,6 +505,9 @@ const SalonDetail = () => {
                 </CardContent>
               </Card>
             ))}
+
+            {/* Real reviews from database */}
+            <SalonReviews salonId={id || ''} />
           </TabsContent>
 
           {/* Location Tab */}
