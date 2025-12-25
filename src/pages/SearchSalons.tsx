@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
-  ArrowLeft, Search, Star, MapPin, SlidersHorizontal, X, Scissors 
+  ArrowLeft, Search, Star, MapPin, SlidersHorizontal, X, Scissors, Clock 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { getFilteredSalons, SalonBasic } from '@/data/salonsData';
+import { useRecentSearches } from '@/hooks/useRecentSearches';
 
 interface Salon {
   id: number;
@@ -163,6 +164,7 @@ const SearchSalons = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [salonSuggestions, setSalonSuggestions] = useState<SalonBasic[]>([]);
   const searchInputRef = useRef<HTMLDivElement>(null);
+  const { recentSearches, addRecentSearch, clearRecentSearches } = useRecentSearches();
 
   useEffect(() => {
     const filtered = getFilteredSalons(searchQuery);
@@ -186,6 +188,7 @@ const SearchSalons = () => {
   };
 
   const handleSelectSalon = (salon: SalonBasic) => {
+    addRecentSearch(salon);
     setShowSuggestions(false);
     navigate(`/salon/${salon.id}`);
   };
@@ -257,8 +260,41 @@ const SearchSalons = () => {
             />
             
             {/* Salon Suggestions Dropdown */}
-            {showSuggestions && salonSuggestions.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto">
+            {showSuggestions && (salonSuggestions.length > 0 || (searchQuery === '' && recentSearches.length > 0)) && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-xl shadow-lg z-50 max-h-72 overflow-y-auto">
+                {/* Recent Searches */}
+                {searchQuery === '' && recentSearches.length > 0 && (
+                  <>
+                    <div className="px-4 py-2 flex items-center justify-between border-b border-border">
+                      <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> Recent Searches
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          clearRecentSearches();
+                        }}
+                        className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                    {recentSearches.map((salon) => (
+                      <button
+                        key={salon.id}
+                        onClick={() => handleSelectSalon(salon)}
+                        className="w-full px-4 py-3 text-left hover:bg-muted transition-colors flex items-center gap-3"
+                      >
+                        <Clock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                        <div>
+                          <p className="text-foreground font-medium">{salon.name}</p>
+                          <p className="text-xs text-muted-foreground">{salon.location}, {salon.city}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </>
+                )}
+                {/* Search Suggestions */}
                 {salonSuggestions.map((salon) => (
                   <button
                     key={salon.id}
