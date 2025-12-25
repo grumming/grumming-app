@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Copy, Share2, Gift, Users, Check, Sparkles } from 'lucide-react';
+import { ArrowLeft, Copy, Share2, Gift, Users, Check, Sparkles, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -65,6 +65,11 @@ const Referrals = () => {
     }
   };
 
+  const handleWhatsAppShare = () => {
+    const message = encodeURIComponent(`${getShareText()}\n\n${getShareUrl()}`);
+    window.open(`https://wa.me/?text=${message}`, '_blank');
+  };
+
   const successfulReferrals = referrals?.filter(r => r.status === 'completed').length || 0;
 
   return (
@@ -117,10 +122,20 @@ const Referrals = () => {
                 </div>
               </div>
 
-              <Button onClick={handleShare} className="w-full" size="lg">
-                <Share2 className="w-5 h-5 mr-2" />
-                Share with Friends
-              </Button>
+              <div className="flex gap-3">
+                <Button 
+                  onClick={handleWhatsAppShare} 
+                  className="flex-1 bg-[#25D366] hover:bg-[#20BD5A] text-white" 
+                  size="lg"
+                >
+                  <MessageCircle className="w-5 h-5 mr-2" />
+                  WhatsApp
+                </Button>
+                <Button onClick={handleShare} variant="outline" className="flex-1" size="lg">
+                  <Share2 className="w-5 h-5 mr-2" />
+                  Share
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </motion.div>
