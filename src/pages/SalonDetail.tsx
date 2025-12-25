@@ -444,6 +444,46 @@ const salonsData: Record<string, any> = {
       { id: 2, name: "Sanjay Mehta", avatar: null, rating: 5, date: "2024-01-16", comment: "Best men's salon in Patna. Worth every rupee." },
     ],
   },
+  // Bihar - Chakia
+  '15': {
+    id: 15,
+    name: "Expert Hair and Skin Salon",
+    image: "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&auto=format&fit=crop&q=80",
+    gallery: [
+      "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1633681926022-84c23e8cb2d6?w=800&auto=format&fit=crop&q=80",
+    ],
+    rating: 4.8,
+    reviews: 156,
+    location: "Main Road, Chakia",
+    address: "Near Bus Stand, Main Road, Chakia, East Champaran, Bihar 845412",
+    distance: "0.5 km",
+    timing: "9 AM - 8 PM",
+    phone: "+91 98520 15151",
+    description: "Expert Hair and Skin Salon is Chakia's leading beauty destination. We specialize in premium hair treatments, advanced skincare, and professional grooming services using top-quality products.",
+    services: [
+      { id: 1, name: "Men's Haircut", duration: "30 min", price: 100, category: "Haircut" },
+      { id: 2, name: "Women's Haircut", duration: "45 min", price: 180, category: "Haircut" },
+      { id: 3, name: "Hair Coloring", duration: "2 hrs", price: 600, category: "Hair" },
+      { id: 4, name: "Hair Spa", duration: "1 hr", price: 400, category: "Hair" },
+      { id: 5, name: "Keratin Treatment", duration: "3 hrs", price: 2500, category: "Hair" },
+      { id: 6, name: "Gold Facial", duration: "1 hr", price: 500, category: "Skincare" },
+      { id: 7, name: "Diamond Facial", duration: "1.5 hrs", price: 800, category: "Skincare" },
+      { id: 8, name: "Anti-Tan Treatment", duration: "45 min", price: 350, category: "Skincare" },
+      { id: 9, name: "Acne Treatment", duration: "1 hr", price: 450, category: "Skincare" },
+      { id: 10, name: "Beard Styling", duration: "20 min", price: 80, category: "Grooming" },
+      { id: 11, name: "Bridal Makeup", duration: "3 hrs", price: 5000, category: "Makeup" },
+      { id: 12, name: "Party Makeup", duration: "1.5 hrs", price: 1500, category: "Makeup" },
+      { id: 13, name: "Full Body Waxing", duration: "2 hrs", price: 800, category: "Waxing" },
+      { id: 14, name: "Manicure & Pedicure", duration: "1.5 hrs", price: 400, category: "Nails" },
+    ],
+    amenities: ["AC", "WiFi", "Card Payment", "Parking", "Bridal Room"],
+    reviewsList: [
+      { id: 1, name: "Rajan Kumar", avatar: null, rating: 5, date: "2024-01-22", comment: "Best salon in Chakia! The hair spa treatment was excellent and staff is very professional." },
+      { id: 2, name: "Priya Devi", avatar: null, rating: 5, date: "2024-01-18", comment: "Amazing skincare services. My skin looks so fresh after the diamond facial." },
+      { id: 3, name: "Amit Singh", avatar: null, rating: 4, date: "2024-01-14", comment: "Great haircut and beard styling. Very affordable prices for such quality." },
+    ],
+  },
 };
 
 const timeSlots = [
