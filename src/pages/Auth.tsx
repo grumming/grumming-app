@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Phone, ArrowLeft, Loader2, Gift, CheckCircle2 } from 'lucide-react';
@@ -30,8 +30,9 @@ const Auth = () => {
   
   // Form fields
   const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
+  const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [referralCode, setReferralCode] = useState(referralCodeFromUrl || '');
+  const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   
   // Errors
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -134,6 +135,7 @@ const Auth = () => {
   };
 
   const handleVerifyOTP = async () => {
+    const otp = otpDigits.join('');
     if (!validateField('otp', otp)) return;
     
     const formattedPhone = `+91${phone}`;
@@ -183,7 +185,7 @@ const Auth = () => {
   const goBack = () => {
     if (step === 'otp') {
       setStep('phone');
-      setOtp('');
+      setOtpDigits(['', '', '', '', '', '']);
     } else {
       navigate('/');
     }
@@ -339,93 +341,169 @@ const Auth = () => {
               </p>
               
               <div className="space-y-6">
-                <div className="space-y-2">
-                  <div className="relative">
-                    <Input
-                      type="text"
-                      placeholder="Enter 6-digit OTP"
-                      value={otp}
-                      onChange={(e) => {
-                        const newOtp = e.target.value.replace(/\D/g, '').slice(0, 6);
-                        setOtp(newOtp);
-                        
-                        // Light haptic on each digit
-                        if (newOtp.length > otp.length) {
-                          triggerHaptic('light');
-                        }
-                        
-                        if (newOtp.length === 6) {
-                          setOtpComplete(true);
-                          triggerHaptic('success');
-                          
-                          setTimeout(() => {
-                            const formattedPhone = `+91${phone}`;
-                            setIsLoading(true);
-                            fetch(
-                              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-sms-otp`,
-                              {
-                                method: 'POST',
-                                headers: {
-                                  'Content-Type': 'application/json',
-                                  'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-                                },
-                                body: JSON.stringify({ phone: formattedPhone, otp: newOtp }),
+                <div className="space-y-4">
+                  {/* Individual OTP digit boxes */}
+                  <div className="flex justify-center gap-2 sm:gap-3">
+                    {otpDigits.map((digit, index) => (
+                      <motion.div
+                        key={index}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                      >
+                        <input
+                          ref={(el) => (otpInputRefs.current[index] = el)}
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={1}
+                          value={digit}
+                          autoFocus={index === 0}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/\D/g, '');
+                            if (value.length <= 1) {
+                              const newDigits = [...otpDigits];
+                              newDigits[index] = value;
+                              setOtpDigits(newDigits);
+                              
+                              // Haptic on digit entry
+                              if (value) {
+                                triggerHaptic('light');
                               }
-                            ).then(res => res.json()).then(data => {
-                              if (data.error) throw new Error(data.error);
-                              triggerHaptic('success');
-                              toast({
-                                title: data.isNewUser ? 'Account Created!' : 'Welcome Back!',
-                                description: 'Logging you in...',
+                              
+                              // Auto-focus next input
+                              if (value && index < 5) {
+                                otpInputRefs.current[index + 1]?.focus();
+                              }
+                              
+                              // Check if all digits are filled
+                              const fullOtp = newDigits.join('');
+                              if (fullOtp.length === 6) {
+                                setOtpComplete(true);
+                                triggerHaptic('success');
+                                
+                                setTimeout(() => {
+                                  const formattedPhone = `+91${phone}`;
+                                  setIsLoading(true);
+                                  fetch(
+                                    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-sms-otp`,
+                                    {
+                                      method: 'POST',
+                                      headers: {
+                                        'Content-Type': 'application/json',
+                                        'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+                                      },
+                                      body: JSON.stringify({ phone: formattedPhone, otp: fullOtp }),
+                                    }
+                                  ).then(res => res.json()).then(data => {
+                                    if (data.error) throw new Error(data.error);
+                                    triggerHaptic('success');
+                                    toast({
+                                      title: data.isNewUser ? 'Account Created!' : 'Welcome Back!',
+                                      description: 'Logging you in...',
+                                    });
+                                    window.location.href = data.verificationUrl || '/';
+                                  }).catch((error) => {
+                                    triggerHaptic('error');
+                                    setOtpComplete(false);
+                                    setOtpDigits(['', '', '', '', '', '']);
+                                    otpInputRefs.current[0]?.focus();
+                                    toast({
+                                      title: 'Invalid OTP',
+                                      description: error.message || 'The code you entered is incorrect.',
+                                      variant: 'destructive',
+                                    });
+                                  }).finally(() => setIsLoading(false));
+                                }, 300);
+                              } else {
+                                setOtpComplete(false);
+                              }
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            // Handle backspace
+                            if (e.key === 'Backspace' && !digit && index > 0) {
+                              otpInputRefs.current[index - 1]?.focus();
+                            }
+                          }}
+                          onPaste={(e) => {
+                            e.preventDefault();
+                            const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+                            if (pastedData) {
+                              const newDigits = [...otpDigits];
+                              pastedData.split('').forEach((char, i) => {
+                                if (i < 6) newDigits[i] = char;
                               });
-                              window.location.href = data.verificationUrl || '/';
-                            }).catch((error) => {
-                              triggerHaptic('error');
-                              setOtpComplete(false);
-                              toast({
-                                title: 'Invalid OTP',
-                                description: error.message || 'The code you entered is incorrect.',
-                                variant: 'destructive',
-                              });
-                            }).finally(() => setIsLoading(false));
-                          }, 300);
-                        } else {
-                          setOtpComplete(false);
-                        }
-                      }}
-                      className={`text-center text-2xl tracking-[0.5em] h-14 font-mono transition-all duration-300 ${
-                        errors.otp ? 'border-destructive' : ''
-                      } ${otpComplete ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : ''}`}
-                      maxLength={6}
-                      autoFocus
-                    />
-                    
-                    {/* Success indicator */}
-                    <AnimatePresence>
-                      {otpComplete && (
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.5 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.5 }}
-                          className="absolute right-3 top-1/2 -translate-y-1/2"
-                        >
-                          <CheckCircle2 className="w-6 h-6 text-primary" />
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                              setOtpDigits(newDigits);
+                              triggerHaptic('light');
+                              
+                              // Focus last filled or next empty
+                              const focusIndex = Math.min(pastedData.length, 5);
+                              otpInputRefs.current[focusIndex]?.focus();
+                              
+                              if (pastedData.length === 6) {
+                                setOtpComplete(true);
+                                triggerHaptic('success');
+                                
+                                setTimeout(() => {
+                                  const formattedPhone = `+91${phone}`;
+                                  setIsLoading(true);
+                                  fetch(
+                                    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-sms-otp`,
+                                    {
+                                      method: 'POST',
+                                      headers: {
+                                        'Content-Type': 'application/json',
+                                        'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+                                      },
+                                      body: JSON.stringify({ phone: formattedPhone, otp: pastedData }),
+                                    }
+                                  ).then(res => res.json()).then(data => {
+                                    if (data.error) throw new Error(data.error);
+                                    triggerHaptic('success');
+                                    toast({
+                                      title: data.isNewUser ? 'Account Created!' : 'Welcome Back!',
+                                      description: 'Logging you in...',
+                                    });
+                                    window.location.href = data.verificationUrl || '/';
+                                  }).catch((error) => {
+                                    triggerHaptic('error');
+                                    setOtpComplete(false);
+                                    setOtpDigits(['', '', '', '', '', '']);
+                                    otpInputRefs.current[0]?.focus();
+                                    toast({
+                                      title: 'Invalid OTP',
+                                      description: error.message || 'The code you entered is incorrect.',
+                                      variant: 'destructive',
+                                    });
+                                  }).finally(() => setIsLoading(false));
+                                }, 300);
+                              }
+                            }
+                          }}
+                          className={`w-11 h-14 sm:w-12 sm:h-16 text-center text-xl sm:text-2xl font-mono font-bold 
+                            border-2 rounded-xl bg-background transition-all duration-200
+                            focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary
+                            ${digit ? 'border-primary/50 bg-primary/5' : 'border-border'}
+                            ${otpComplete ? 'border-primary bg-primary/10 scale-105' : ''}
+                            ${errors.otp ? 'border-destructive' : ''}
+                          `}
+                        />
+                      </motion.div>
+                    ))}
                   </div>
                   
-                  {/* Visual feedback text */}
+                  {/* Success indicator */}
                   <AnimatePresence>
-                    {otpComplete && !errors.otp && (
-                      <motion.p
-                        initial={{ opacity: 0, y: -5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -5 }}
-                        className="text-xs text-primary text-center font-medium"
+                    {otpComplete && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        className="flex items-center justify-center gap-2 text-primary"
                       >
-                        ✓ Verifying automatically...
-                      </motion.p>
+                        <CheckCircle2 className="w-5 h-5" />
+                        <span className="text-sm font-medium">Verifying automatically...</span>
+                      </motion.div>
                     )}
                   </AnimatePresence>
                   
@@ -435,7 +513,7 @@ const Auth = () => {
                 <Button
                   className="w-full h-14 text-base font-semibold"
                   onClick={handleVerifyOTP}
-                  disabled={isLoading || otp.length !== 6}
+                  disabled={isLoading || otpDigits.join('').length !== 6}
                 >
                   {isLoading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
                   Verify
