@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, Star, MapPin, Clock, Phone, Heart, Share2, 
-  ChevronRight, Calendar, Check, User, MessageSquare, CreditCard 
+  ChevronRight, Calendar, Check, User, MessageSquare, CreditCard, Gift, X 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +18,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format, addDays, parseISO } from 'date-fns';
 import { SalonReviews } from '@/components/SalonReviews';
 import StylistsList from '@/components/StylistsList';
+import { useReferral } from '@/hooks/useReferral';
 
 // Mock salon data - in production this would come from database
 const salonsData: Record<string, any> = {
@@ -156,6 +157,7 @@ const SalonDetail = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { initiatePayment, isLoading: isPaymentLoading } = useRazorpay();
+  const { userReward } = useReferral();
   
   const [isFavorite, setIsFavorite] = useState(false);
   const [selectedServices, setSelectedServices] = useState<number[]>([]);
@@ -164,6 +166,7 @@ const SalonDetail = () => {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [isBooking, setIsBooking] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'online' | 'salon'>('online');
+  const [applyReward, setApplyReward] = useState(false);
 
   const salon = id ? salonsData[id] : null;
 
@@ -187,7 +190,10 @@ const SalonDetail = () => {
   };
 
   const selectedServicesData = salon.services.filter((s: any) => selectedServices.includes(s.id));
-  const totalPrice = selectedServicesData.reduce((sum: number, s: any) => sum + s.price, 0);
+  const subtotalPrice = selectedServicesData.reduce((sum: number, s: any) => sum + s.price, 0);
+  const availableReward = userReward?.available || 0;
+  const rewardDiscount = applyReward ? Math.min(availableReward, subtotalPrice) : 0;
+  const totalPrice = Math.max(0, subtotalPrice - rewardDiscount);
   const totalDuration = selectedServicesData.reduce((sum: string, s: any) => {
     const match = s.duration.match(/(\d+\.?\d*)/);
     return match ? sum + parseFloat(match[0]) : sum;
@@ -250,12 +256,20 @@ const SalonDetail = () => {
       setIsBooking(false);
 
       if (paymentResult.success) {
+        // Mark reward as used if applied
+        if (applyReward && rewardDiscount > 0) {
+          await markRewardAsUsed();
+        }
+
         setShowBookingModal(false);
         setSelectedServices([]);
+        setApplyReward(false);
         
         toast({
           title: 'Payment Successful!',
-          description: 'Your booking has been confirmed.',
+          description: rewardDiscount > 0 
+            ? `Your booking is confirmed! You saved ₹${rewardDiscount} with your referral reward.`
+            : 'Your booking has been confirmed.',
         });
 
         const params = new URLSearchParams({
@@ -265,6 +279,7 @@ const SalonDetail = () => {
           date: format(selectedDate, 'yyyy-MM-dd'),
           time: selectedTime,
           paymentId: paymentResult.paymentId || '',
+          discount: rewardDiscount.toString(),
         });
         
         navigate(`/booking-confirmation?${params.toString()}`);
@@ -284,10 +299,22 @@ const SalonDetail = () => {
         }
       }
     } else {
-      // Pay at salon
+      // Pay at salon - mark reward as used if applied
+      if (applyReward && rewardDiscount > 0) {
+        await markRewardAsUsed();
+      }
+
       setIsBooking(false);
       setShowBookingModal(false);
       setSelectedServices([]);
+      setApplyReward(false);
+
+      toast({
+        title: 'Booking Confirmed!',
+        description: rewardDiscount > 0 
+          ? `You saved ₹${rewardDiscount} with your referral reward. Pay ₹${totalPrice} at the salon.`
+          : 'Your appointment is booked.',
+      });
 
       const params = new URLSearchParams({
         salon: salon.name,
@@ -295,9 +322,50 @@ const SalonDetail = () => {
         price: totalPrice.toString(),
         date: format(selectedDate, 'yyyy-MM-dd'),
         time: selectedTime,
+        discount: rewardDiscount.toString(),
       });
       
       navigate(`/booking-confirmation?${params.toString()}`);
+    }
+  };
+
+  // Function to mark referral reward as used
+  const markRewardAsUsed = async () => {
+    if (!user) return;
+
+    // First try to mark referrer reward
+    const { data: referrerReward } = await supabase
+      .from('referrals')
+      .select('id')
+      .eq('referrer_id', user.id)
+      .eq('status', 'completed')
+      .eq('referrer_reward_used', false)
+      .limit(1)
+      .maybeSingle();
+
+    if (referrerReward) {
+      await supabase
+        .from('referrals')
+        .update({ referrer_reward_used: true })
+        .eq('id', referrerReward.id);
+      return;
+    }
+
+    // Then try referee reward
+    const { data: refereeReward } = await supabase
+      .from('referrals')
+      .select('id')
+      .eq('referee_id', user.id)
+      .eq('status', 'completed')
+      .eq('referee_reward_used', false)
+      .limit(1)
+      .maybeSingle();
+
+    if (refereeReward) {
+      await supabase
+        .from('referrals')
+        .update({ referee_reward_used: true })
+        .eq('id', refereeReward.id);
     }
   };
 
@@ -608,9 +676,53 @@ const SalonDetail = () => {
                 <span className="text-muted-foreground">₹{service.price}</span>
               </div>
             ))}
+            <div className="flex justify-between text-sm pt-2 border-t">
+              <span>Subtotal</span>
+              <span>₹{subtotalPrice}</span>
+            </div>
+
+            {/* Referral Reward Discount */}
+            {availableReward > 0 && (
+              <div className="space-y-2">
+                {!applyReward ? (
+                  <button
+                    onClick={() => setApplyReward(true)}
+                    className="w-full flex items-center justify-between p-3 rounded-lg border border-dashed border-primary/50 bg-primary/5 hover:bg-primary/10 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Gift className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-medium text-primary">Apply ₹{availableReward} Reward</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">Tap to apply</span>
+                  </button>
+                ) : (
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                    <div className="flex items-center gap-2">
+                      <Gift className="w-4 h-4 text-green-600 dark:text-green-400" />
+                      <span className="text-sm font-medium text-green-700 dark:text-green-300">Reward Applied!</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-green-600 dark:text-green-400">-₹{rewardDiscount}</span>
+                      <button 
+                        onClick={() => setApplyReward(false)}
+                        className="p-1 hover:bg-green-100 dark:hover:bg-green-800 rounded"
+                      >
+                        <X className="w-4 h-4 text-green-600 dark:text-green-400" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="flex justify-between font-semibold pt-2 border-t">
               <span>Total</span>
-              <span className="text-primary">₹{totalPrice}</span>
+              <div className="flex items-center gap-2">
+                {rewardDiscount > 0 && (
+                  <span className="text-sm text-muted-foreground line-through">₹{subtotalPrice}</span>
+                )}
+                <span className="text-primary">₹{totalPrice}</span>
+              </div>
             </div>
           </div>
 
