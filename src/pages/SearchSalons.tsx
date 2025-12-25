@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
-  ArrowLeft, Search, Star, MapPin, SlidersHorizontal, X 
+  ArrowLeft, Search, Star, MapPin, SlidersHorizontal, X, Scissors 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/sheet";
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { getFilteredSalons, SalonBasic } from '@/data/salonsData';
 
 interface Salon {
   id: number;
@@ -159,6 +160,35 @@ const SearchSalons = () => {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
   const [minRating, setMinRating] = useState(0);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [salonSuggestions, setSalonSuggestions] = useState<SalonBasic[]>([]);
+  const searchInputRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const filtered = getFilteredSalons(searchQuery);
+    setSalonSuggestions(filtered);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchInputRef.current && !searchInputRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    setShowSuggestions(true);
+  };
+
+  const handleSelectSalon = (salon: SalonBasic) => {
+    setShowSuggestions(false);
+    navigate(`/salon/${salon.id}`);
+  };
 
   const filteredSalons = useMemo(() => {
     return allSalons.filter(salon => {
@@ -216,14 +246,34 @@ const SearchSalons = () => {
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <div ref={searchInputRef} className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
             <Input
               placeholder="Search salons, services..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={handleSearchChange}
+              onFocus={() => setShowSuggestions(true)}
               className="pl-10 h-10"
             />
+            
+            {/* Salon Suggestions Dropdown */}
+            {showSuggestions && salonSuggestions.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto">
+                {salonSuggestions.map((salon) => (
+                  <button
+                    key={salon.id}
+                    onClick={() => handleSelectSalon(salon)}
+                    className="w-full px-4 py-3 text-left hover:bg-muted transition-colors flex items-center gap-3 first:rounded-t-xl last:rounded-b-xl"
+                  >
+                    <Scissors className="w-4 h-4 text-primary flex-shrink-0" />
+                    <div>
+                      <p className="text-foreground font-medium">{salon.name}</p>
+                      <p className="text-xs text-muted-foreground">{salon.location}, {salon.city}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
             <SheetTrigger asChild>

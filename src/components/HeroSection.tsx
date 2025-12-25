@@ -1,17 +1,23 @@
 import { motion } from "framer-motion";
-import { Search, MapPin, Locate, Loader2 } from "lucide-react";
+import { Search, MapPin, Locate, Loader2, Scissors } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { getFilteredCities } from "@/data/indianCities";
+import { getFilteredSalons, SalonBasic } from "@/data/salonsData";
 
 const HeroSection = () => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [location, setLocation] = useState("Mumbai, Maharashtra");
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showSalonSuggestions, setShowSalonSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [salonSuggestions, setSalonSuggestions] = useState<SalonBasic[]>([]);
   const { loading: detectingLocation, detectLocation, location: detectedLocation } = useGeolocation();
   const locationInputRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (detectedLocation) {
@@ -25,9 +31,17 @@ const HeroSection = () => {
   }, [location]);
 
   useEffect(() => {
+    const filtered = getFilteredSalons(searchQuery);
+    setSalonSuggestions(filtered);
+  }, [searchQuery]);
+
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (locationInputRef.current && !locationInputRef.current.contains(event.target as Node)) {
         setShowSuggestions(false);
+      }
+      if (searchInputRef.current && !searchInputRef.current.contains(event.target as Node)) {
+        setShowSalonSuggestions(false);
       }
     };
 
@@ -44,9 +58,23 @@ const HeroSection = () => {
     setShowSuggestions(true);
   };
 
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    setShowSalonSuggestions(true);
+  };
+
+  const handleSelectSalon = (salon: SalonBasic) => {
+    setShowSalonSuggestions(false);
+    navigate(`/salon/${salon.id}`);
+  };
+
   const handleSelectCity = (city: string) => {
     setLocation(city);
     setShowSuggestions(false);
+  };
+
+  const handleSearch = () => {
+    navigate('/search');
   };
 
   return (
@@ -134,20 +162,42 @@ const HeroSection = () => {
                 )}
               </div>
               
-              {/* Search Input */}
-              <div className="flex items-center gap-2 px-4 py-3 bg-background rounded-xl flex-[2]">
-                <Search className="w-5 h-5 text-muted-foreground" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search for salons, services..."
-                  className="bg-transparent outline-none w-full text-foreground placeholder:text-muted-foreground font-body"
-                />
+              {/* Search Input with Salon Suggestions */}
+              <div ref={searchInputRef} className="relative flex-[2]">
+                <div className="flex items-center gap-2 px-4 py-3 bg-background rounded-xl">
+                  <Search className="w-5 h-5 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                    onFocus={() => setShowSalonSuggestions(true)}
+                    placeholder="Search for salons, services..."
+                    className="bg-transparent outline-none w-full text-foreground placeholder:text-muted-foreground font-body"
+                  />
+                </div>
+
+                {/* Salon Suggestions Dropdown */}
+                {showSalonSuggestions && salonSuggestions.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto">
+                    {salonSuggestions.map((salon) => (
+                      <button
+                        key={salon.id}
+                        onClick={() => handleSelectSalon(salon)}
+                        className="w-full px-4 py-3 text-left hover:bg-muted transition-colors flex items-center gap-3 first:rounded-t-xl last:rounded-b-xl"
+                      >
+                        <Scissors className="w-4 h-4 text-primary flex-shrink-0" />
+                        <div>
+                          <p className="text-foreground font-medium">{salon.name}</p>
+                          <p className="text-xs text-muted-foreground">{salon.location}, {salon.city}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               
               {/* Search Button */}
-              <Button variant="hero" size="lg" className="sm:px-8">
+              <Button variant="hero" size="lg" className="sm:px-8" onClick={handleSearch}>
                 Search
               </Button>
             </div>
