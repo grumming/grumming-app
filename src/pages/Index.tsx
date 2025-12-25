@@ -1,10 +1,21 @@
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyAl-C6_m_jeHiBxmX4rUgCzN14eftpTBeI",
-  authDomain: "grumming-552d2.firebaseapp.com",
-  projectId: "grumming-552d2",
-  storageBucket: "grumming-552d2.firebasestorage.app",
-  messagingSenderId: "901278748260",
-  appId: "1:901278748260:web:7a1968f59c9aa08680d971",
-  measurementId: "G-NTH8DNDRV5",
+import Header from "@/components/Header";
+import HeroSection from "@/components/HeroSection";
+import FeaturedSalons from "@/components/FeaturedSalons";
+import AppPromo from "@/components/AppPromo";
+import BottomNav from "@/components/BottomNav";
+
+const Index = () => {
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+      <main className="pt-16 pb-24">
+        <HeroSection />
+        <FeaturedSalons />
+        <AppPromo />
+      </main>
+      <BottomNav />
+    </div>
+  );
 };
+
+export default Index;

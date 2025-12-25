@@ -35,16 +35,23 @@ export const setupRecaptcha = (): boolean => {
     }
 
     window.recaptchaVerifier = new window.RecaptchaVerifier(
-      window.firebaseAuth,
       'recaptcha-container',
       {
         size: 'invisible',
         callback: () => {},
         'expired-callback': () => {
           window.recaptchaVerifier = null;
-        }
-      }
+        },
+      },
+      window.firebaseAuth
     );
+
+    // Ensure widget renders (required for modular SDK)
+    try {
+      window.recaptchaVerifier.render?.();
+    } catch (e) {
+      // Ignore render errors
+    }
 
     return true;
   } catch (error) {
