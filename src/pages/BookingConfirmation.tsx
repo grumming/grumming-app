@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   CheckCircle, Calendar, Clock, MapPin, 
-  CalendarPlus, ArrowLeft, Home, Share2 
+  CalendarPlus, ArrowLeft, Home, Share2, Gift 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -25,6 +25,7 @@ const BookingConfirmation = () => {
     servicePrice: 0,
     bookingDate: '',
     bookingTime: '',
+    discount: 0,
   });
 
   useEffect(() => {
@@ -33,6 +34,7 @@ const BookingConfirmation = () => {
     const servicePrice = parseInt(searchParams.get('price') || '0', 10);
     const bookingDate = searchParams.get('date') || '';
     const bookingTime = searchParams.get('time') || '';
+    const discount = parseInt(searchParams.get('discount') || '0', 10);
 
     setBookingDetails({
       salonName,
@@ -40,10 +42,12 @@ const BookingConfirmation = () => {
       servicePrice,
       bookingDate,
       bookingTime,
+      discount,
     });
   }, [searchParams]);
 
-  const { salonName, serviceName, servicePrice, bookingDate, bookingTime } = bookingDetails;
+  const { salonName, serviceName, servicePrice, bookingDate, bookingTime, discount } = bookingDetails;
+  const originalPrice = servicePrice + discount;
 
   // Parse date for display
   const displayDate = bookingDate 
@@ -255,10 +259,38 @@ END:VCALENDAR`;
                 </div>
               </div>
 
+              {/* Discount Savings */}
+              {discount > 0 && (
+                <div className="flex items-center justify-between p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                  <div className="flex items-center gap-2">
+                    <Gift className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    <span className="text-sm font-medium text-green-700 dark:text-green-300">
+                      Referral Reward Applied
+                    </span>
+                  </div>
+                  <span className="font-semibold text-green-600 dark:text-green-400">
+                    -₹{discount}
+                  </span>
+                </div>
+              )}
+
               {/* Price */}
-              <div className="pt-4 border-t flex justify-between items-center">
-                <span className="text-muted-foreground">Total Amount</span>
-                <span className="text-xl font-bold text-primary">₹{servicePrice}</span>
+              <div className="pt-4 border-t space-y-2">
+                {discount > 0 && (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span className="text-muted-foreground line-through">₹{originalPrice}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Total Paid</span>
+                  <span className="text-xl font-bold text-primary">₹{servicePrice}</span>
+                </div>
+                {discount > 0 && (
+                  <p className="text-xs text-center text-green-600 dark:text-green-400 font-medium">
+                    🎉 You saved ₹{discount} with your referral reward!
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
