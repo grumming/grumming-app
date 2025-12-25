@@ -178,6 +178,51 @@ export type Database = {
           },
         ]
       }
+      stylists: {
+        Row: {
+          bio: string | null
+          created_at: string
+          experience_years: number | null
+          id: string
+          is_available: boolean | null
+          name: string
+          photo_url: string | null
+          rating: number | null
+          salon_id: string
+          specialties: string[] | null
+          total_reviews: number | null
+          updated_at: string
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string
+          experience_years?: number | null
+          id?: string
+          is_available?: boolean | null
+          name: string
+          photo_url?: string | null
+          rating?: number | null
+          salon_id: string
+          specialties?: string[] | null
+          total_reviews?: number | null
+          updated_at?: string
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string
+          experience_years?: number | null
+          id?: string
+          is_available?: boolean | null
+          name?: string
+          photo_url?: string | null
+          rating?: number | null
+          salon_id?: string
+          specialties?: string[] | null
+          total_reviews?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
