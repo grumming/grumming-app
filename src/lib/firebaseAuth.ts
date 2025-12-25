@@ -9,7 +9,7 @@ declare global {
   }
 }
 
-export const setupRecaptcha = (containerId: string): boolean => {
+export const setupRecaptcha = (): boolean => {
   try {
     if (!window.firebaseAuth || !window.RecaptchaVerifier) {
       console.error('Firebase not loaded yet');
@@ -25,16 +25,22 @@ export const setupRecaptcha = (containerId: string): boolean => {
       }
     }
 
+    // Create hidden container dynamically
+    let container = document.getElementById('recaptcha-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'recaptcha-container';
+      container.style.display = 'none';
+      document.body.appendChild(container);
+    }
+
     window.recaptchaVerifier = new window.RecaptchaVerifier(
       window.firebaseAuth,
-      containerId,
+      'recaptcha-container',
       {
         size: 'invisible',
-        callback: () => {
-          console.log('reCAPTCHA solved');
-        },
+        callback: () => {},
         'expired-callback': () => {
-          console.log('reCAPTCHA expired');
           window.recaptchaVerifier = null;
         }
       }
@@ -54,7 +60,7 @@ export const sendFirebaseOTP = async (phoneNumber: string): Promise<void> => {
 
   // Setup reCAPTCHA if not already done
   if (!window.recaptchaVerifier) {
-    const success = setupRecaptcha('recaptcha-container');
+    const success = setupRecaptcha();
     if (!success) {
       throw new Error('Failed to initialize reCAPTCHA. Please refresh the page.');
     }
