@@ -19,9 +19,11 @@ function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-// Send SMS via Fast2SMS (Indian SMS gateway)
+// Send SMS via Fast2SMS Quick Transactional API (works without DLT verification)
 async function sendSMSViaFast2SMS(phone: string, otp: string): Promise<boolean> {
   const phoneNumber = phone.replace('+91', ''); // Fast2SMS needs number without country code
+  
+  const message = `Your Grumming verification code is: ${otp}. Valid for 5 minutes. Do not share this code.`;
   
   const response = await fetch('https://www.fast2sms.com/dev/bulkV2', {
     method: 'POST',
@@ -30,8 +32,9 @@ async function sendSMSViaFast2SMS(phone: string, otp: string): Promise<boolean> 
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      route: 'otp',
-      variables_values: otp,
+      route: 'q', // Quick transactional route - no DLT required
+      message: message,
+      language: 'english',
       flash: 0,
       numbers: phoneNumber
     })
