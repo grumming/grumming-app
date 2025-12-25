@@ -18,31 +18,6 @@
     <meta name="twitter:site" content="@GlamourApp" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
 
-    <!-- Firebase SDK via CDN -->
-    <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
-      import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
-      import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-analytics.js";
-
-      const firebaseConfig = {
-        apiKey: "AIzaSyAl-C6_m_jeHiBxmX4rUgCzN14eftpTBeI",
-        authDomain: "grumming-552d2.firebaseapp.com",
-        projectId: "grumming-552d2",
-        storageBucket: "grumming-552d2.firebasestorage.app",
-        messagingSenderId: "901278748260",
-        appId: "1:901278748260:web:7a1968f59c9aa08680d971",
-        measurementId: "G-NTH8DNDRV5"
-      };
-
-      const app = initializeApp(firebaseConfig);
-      const auth = getAuth(app);
-      const analytics = getAnalytics(app);
-
-      // Expose to window for React components
-      window.firebaseAuth = auth;
-      window.RecaptchaVerifier = RecaptchaVerifier;
-      window.signInWithPhoneNumber = signInWithPhoneNumber;
-    </script>
   </head>
 
   <body>
