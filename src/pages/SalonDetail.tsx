@@ -182,6 +182,35 @@ const SalonDetail = () => {
     maxDiscount: number | null;
   } | null>(null);
   const [promoError, setPromoError] = useState('');
+  const [availablePromoCodes, setAvailablePromoCodes] = useState<Array<{
+    id: string;
+    code: string;
+    discount_type: string;
+    discount_value: number;
+    max_discount: number | null;
+    min_order_value: number | null;
+  }>>([]);
+
+  // Fetch available promo codes
+  useEffect(() => {
+    const fetchPromoCodes = async () => {
+      const now = new Date().toISOString();
+      const { data } = await supabase
+        .from('promo_codes')
+        .select('id, code, discount_type, discount_value, max_discount, min_order_value')
+        .eq('is_active', true)
+        .or(`valid_until.is.null,valid_until.gt.${now}`)
+        .or(`valid_from.is.null,valid_from.lte.${now}`)
+        .order('discount_value', { ascending: false })
+        .limit(5);
+      
+      if (data) {
+        setAvailablePromoCodes(data);
+      }
+    };
+    
+    fetchPromoCodes();
+  }, []);
 
   const salon = id ? salonsData[id] : null;
 
@@ -862,14 +891,14 @@ const SalonDetail = () => {
             )}
 
             {/* Promo Code Section */}
-            <div className="space-y-2 pt-2 border-t">
+            <div className="space-y-3 pt-2 border-t">
               <h4 className="font-medium text-sm flex items-center gap-2">
                 <Tag className="w-4 h-4" />
                 Promo Code
               </h4>
               
               {!appliedPromo ? (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <div className="flex gap-2">
                     <Input
                       placeholder="Enter promo code"
@@ -894,6 +923,40 @@ const SalonDetail = () => {
                   </div>
                   {promoError && (
                     <p className="text-xs text-destructive">{promoError}</p>
+                  )}
+                  
+                  {/* Available Promo Codes */}
+                  {availablePromoCodes.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground">Available offers:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {availablePromoCodes.map((promo) => {
+                          const discountText = promo.discount_type === 'percentage' 
+                            ? `${promo.discount_value}% OFF${promo.max_discount ? ` (Max ₹${promo.max_discount})` : ''}`
+                            : `₹${promo.discount_value} OFF`;
+                          const minOrderText = promo.min_order_value ? ` • Min ₹${promo.min_order_value}` : '';
+                          
+                          return (
+                            <button
+                              key={promo.id}
+                              onClick={() => {
+                                setPromoCodeInput(promo.code);
+                                setPromoError('');
+                              }}
+                              className="group flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-blue-300 dark:border-blue-700 bg-blue-50/50 dark:bg-blue-900/10 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                            >
+                              <Tag className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                              <div className="text-left">
+                                <p className="text-xs font-semibold text-blue-700 dark:text-blue-300">{promo.code}</p>
+                                <p className="text-[10px] text-blue-600/70 dark:text-blue-400/70">
+                                  {discountText}{minOrderText}
+                                </p>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                   )}
                 </div>
               ) : (
