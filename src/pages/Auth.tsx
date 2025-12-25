@@ -218,9 +218,6 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Invisible reCAPTCHA container */}
-      <div id="recaptcha-container"></div>
-      
       {/* Header */}
       <header className="p-4 flex items-center justify-between border-b border-border">
         <button onClick={goBack} className="p-2 rounded-full hover:bg-muted transition-colors">
