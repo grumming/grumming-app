@@ -3,8 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, Star, MapPin, Clock, Phone, Heart, Share2, 
-  ChevronRight, Calendar, Check, User, MessageSquare, CreditCard, Gift, X 
+  ChevronRight, Calendar, Check, User, MessageSquare, CreditCard, Gift, X,
+  Tag, Loader2
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -167,6 +169,19 @@ const SalonDetail = () => {
   const [isBooking, setIsBooking] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'online' | 'salon'>('online');
   const [applyReward, setApplyReward] = useState(false);
+  
+  // Promo code states
+  const [promoCode, setPromoCode] = useState('');
+  const [promoCodeInput, setPromoCodeInput] = useState('');
+  const [isValidatingPromo, setIsValidatingPromo] = useState(false);
+  const [appliedPromo, setAppliedPromo] = useState<{
+    id: string;
+    code: string;
+    discountType: 'fixed' | 'percentage';
+    discountValue: number;
+    maxDiscount: number | null;
+  } | null>(null);
+  const [promoError, setPromoError] = useState('');
 
   const salon = id ? salonsData[id] : null;
 
@@ -193,11 +208,120 @@ const SalonDetail = () => {
   const subtotalPrice = selectedServicesData.reduce((sum: number, s: any) => sum + s.price, 0);
   const availableReward = userReward?.available || 0;
   const rewardDiscount = applyReward ? Math.min(availableReward, subtotalPrice) : 0;
-  const totalPrice = Math.max(0, subtotalPrice - rewardDiscount);
+  
+  // Calculate promo discount
+  const calculatePromoDiscount = () => {
+    if (!appliedPromo) return 0;
+    const priceAfterReward = subtotalPrice - rewardDiscount;
+    if (appliedPromo.discountType === 'percentage') {
+      const discount = (priceAfterReward * appliedPromo.discountValue) / 100;
+      return appliedPromo.maxDiscount ? Math.min(discount, appliedPromo.maxDiscount) : discount;
+    }
+    return Math.min(appliedPromo.discountValue, priceAfterReward);
+  };
+  
+  const promoDiscount = calculatePromoDiscount();
+  const totalPrice = Math.max(0, subtotalPrice - rewardDiscount - promoDiscount);
   const totalDuration = selectedServicesData.reduce((sum: string, s: any) => {
     const match = s.duration.match(/(\d+\.?\d*)/);
     return match ? sum + parseFloat(match[0]) : sum;
   }, 0);
+
+  // Validate and apply promo code
+  const applyPromoCode = async () => {
+    if (!promoCodeInput.trim()) {
+      setPromoError('Please enter a promo code');
+      return;
+    }
+
+    setIsValidatingPromo(true);
+    setPromoError('');
+
+    try {
+      // Check if promo code exists and is valid
+      const { data: promoData, error } = await supabase
+        .from('promo_codes')
+        .select('*')
+        .eq('code', promoCodeInput.trim().toUpperCase())
+        .eq('is_active', true)
+        .single();
+
+      if (error || !promoData) {
+        setPromoError('Invalid promo code');
+        setIsValidatingPromo(false);
+        return;
+      }
+
+      // Check if code has expired
+      if (promoData.valid_until && new Date(promoData.valid_until) < new Date()) {
+        setPromoError('This promo code has expired');
+        setIsValidatingPromo(false);
+        return;
+      }
+
+      // Check if code hasn't started yet
+      if (promoData.valid_from && new Date(promoData.valid_from) > new Date()) {
+        setPromoError('This promo code is not yet active');
+        setIsValidatingPromo(false);
+        return;
+      }
+
+      // Check usage limit
+      if (promoData.usage_limit && promoData.used_count >= promoData.usage_limit) {
+        setPromoError('This promo code has reached its usage limit');
+        setIsValidatingPromo(false);
+        return;
+      }
+
+      // Check minimum order value
+      if (promoData.min_order_value && subtotalPrice < promoData.min_order_value) {
+        setPromoError(`Minimum order value is ₹${promoData.min_order_value}`);
+        setIsValidatingPromo(false);
+        return;
+      }
+
+      // Check if user has already used this code
+      if (user) {
+        const { data: usageData } = await supabase
+          .from('promo_code_usage')
+          .select('id')
+          .eq('promo_code_id', promoData.id)
+          .eq('user_id', user.id)
+          .limit(1)
+          .maybeSingle();
+
+        if (usageData) {
+          setPromoError('You have already used this promo code');
+          setIsValidatingPromo(false);
+          return;
+        }
+      }
+
+      // Apply the promo code
+      setAppliedPromo({
+        id: promoData.id,
+        code: promoData.code,
+        discountType: promoData.discount_type as 'fixed' | 'percentage',
+        discountValue: promoData.discount_value,
+        maxDiscount: promoData.max_discount,
+      });
+      setPromoCodeInput('');
+      
+      toast({
+        title: 'Promo Applied!',
+        description: `${promoData.code} applied successfully`,
+      });
+    } catch (err) {
+      setPromoError('Failed to validate promo code');
+    }
+
+    setIsValidatingPromo(false);
+  };
+
+  const removePromoCode = () => {
+    setAppliedPromo(null);
+    setPromoError('');
+  };
 
   const handleBooking = async () => {
     if (!user) {
@@ -261,14 +385,25 @@ const SalonDetail = () => {
           await markRewardAsUsed();
         }
 
+        // Record promo code usage
+        if (appliedPromo && user) {
+          await supabase.from('promo_code_usage').insert({
+            promo_code_id: appliedPromo.id,
+            user_id: user.id,
+            booking_id: bookingData.id,
+          });
+        }
+
         setShowBookingModal(false);
         setSelectedServices([]);
         setApplyReward(false);
+        setAppliedPromo(null);
         
+        const totalDiscount = rewardDiscount + promoDiscount;
         toast({
           title: 'Payment Successful!',
-          description: rewardDiscount > 0 
-            ? `Your booking is confirmed! You saved ₹${rewardDiscount} with your referral reward.`
+          description: totalDiscount > 0 
+            ? `Your booking is confirmed! You saved ₹${totalDiscount}.`
             : 'Your booking has been confirmed.',
         });
 
@@ -279,7 +414,7 @@ const SalonDetail = () => {
           date: format(selectedDate, 'yyyy-MM-dd'),
           time: selectedTime,
           paymentId: paymentResult.paymentId || '',
-          discount: rewardDiscount.toString(),
+          discount: totalDiscount.toString(),
         });
         
         navigate(`/booking-confirmation?${params.toString()}`);
@@ -304,15 +439,26 @@ const SalonDetail = () => {
         await markRewardAsUsed();
       }
 
+      // Record promo code usage for salon payment
+      if (appliedPromo && user) {
+        await supabase.from('promo_code_usage').insert({
+          promo_code_id: appliedPromo.id,
+          user_id: user.id,
+          booking_id: bookingData.id,
+        });
+      }
+
       setIsBooking(false);
       setShowBookingModal(false);
       setSelectedServices([]);
       setApplyReward(false);
+      setAppliedPromo(null);
 
+      const totalDiscount = rewardDiscount + promoDiscount;
       toast({
         title: 'Booking Confirmed!',
-        description: rewardDiscount > 0 
-          ? `You saved ₹${rewardDiscount} with your referral reward. Pay ₹${totalPrice} at the salon.`
+        description: totalDiscount > 0 
+          ? `You saved ₹${totalDiscount}. Pay ₹${totalPrice} at the salon.`
           : 'Your appointment is booked.',
       });
 
@@ -322,7 +468,7 @@ const SalonDetail = () => {
         price: totalPrice.toString(),
         date: format(selectedDate, 'yyyy-MM-dd'),
         time: selectedTime,
-        discount: rewardDiscount.toString(),
+        discount: totalDiscount.toString(),
       });
       
       navigate(`/booking-confirmation?${params.toString()}`);
@@ -715,10 +861,68 @@ const SalonDetail = () => {
               </div>
             )}
 
+            {/* Promo Code Section */}
+            <div className="space-y-2 pt-2 border-t">
+              <h4 className="font-medium text-sm flex items-center gap-2">
+                <Tag className="w-4 h-4" />
+                Promo Code
+              </h4>
+              
+              {!appliedPromo ? (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Enter promo code"
+                      value={promoCodeInput}
+                      onChange={(e) => {
+                        setPromoCodeInput(e.target.value.toUpperCase());
+                        setPromoError('');
+                      }}
+                      className="flex-1 uppercase"
+                    />
+                    <Button 
+                      variant="outline" 
+                      onClick={applyPromoCode}
+                      disabled={isValidatingPromo}
+                    >
+                      {isValidatingPromo ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        'Apply'
+                      )}
+                    </Button>
+                  </div>
+                  {promoError && (
+                    <p className="text-xs text-destructive">{promoError}</p>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center justify-between p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center gap-2">
+                    <Tag className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                      {appliedPromo.code}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                      -₹{promoDiscount.toFixed(0)}
+                    </span>
+                    <button 
+                      onClick={removePromoCode}
+                      className="p-1 hover:bg-blue-100 dark:hover:bg-blue-800 rounded"
+                    >
+                      <X className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="flex justify-between font-semibold pt-2 border-t">
               <span>Total</span>
               <div className="flex items-center gap-2">
-                {rewardDiscount > 0 && (
+                {(rewardDiscount > 0 || promoDiscount > 0) && (
                   <span className="text-sm text-muted-foreground line-through">₹{subtotalPrice}</span>
                 )}
                 <span className="text-primary">₹{totalPrice}</span>
