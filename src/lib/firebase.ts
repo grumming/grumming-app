@@ -1,5 +1,6 @@
-// Firebase configuration for Grumming app (reference only)
-// Phone OTP is handled via edge functions
+// Firebase configuration for Grumming app
+// Note: Firebase SDK causes build issues in this environment
+// Phone OTP authentication is handled via backend edge functions (send-sms-otp, verify-sms-otp)
 
 export const firebaseConfig = {
   apiKey: "AIzaSyAl-C6_m_jeHiBxmX4rUgCzN14eftpTBeI",
