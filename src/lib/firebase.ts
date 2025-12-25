@@ -1,6 +1,5 @@
 // Firebase configuration for Grumming app
-// Note: Firebase SMS authentication is handled server-side via edge functions
-// This config is stored for reference and potential future client-side use
+// SMS authentication is handled server-side via edge functions
 
 export const firebaseConfig = {
   apiKey: "AIzaSyAl-C6_m_jeHiBxmX4rUgCzN14eftpTBeI",
