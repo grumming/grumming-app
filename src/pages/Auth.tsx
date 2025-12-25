@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useReferral } from '@/hooks/useReferral';
+import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
 import authIllustration from '@/assets/auth-illustration.png';
 import { sendFirebaseOTP, verifyFirebaseOTP, isFirebaseReady } from '@/lib/firebaseAuth';
@@ -151,26 +152,20 @@ const Auth = () => {
         description: 'Setting up your account...',
       });
       
-      // Send token to backend to create/link Supabase user
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/firebase-verify-token`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({ 
-            idToken, 
-            referralCode: referralCode || undefined 
-          }),
-        }
-      );
+      // Send token to backend to create/link user
+      const { data, error } = await supabase.functions.invoke('firebase-verify-token', {
+        body: {
+          idToken,
+          referralCode: referralCode || undefined,
+        },
+      });
 
-      const data = await response.json();
+      if (error) {
+        throw new Error(error.message || 'Failed to complete login');
+      }
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to complete login');
+      if (!data) {
+        throw new Error('Failed to complete login');
       }
 
       triggerHaptic('success');
