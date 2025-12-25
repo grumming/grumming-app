@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut, Calendar, Settings, Gift } from 'lucide-react';
+import { User, LogOut, Calendar, Settings, Gift, Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useAdmin } from '@/hooks/useAdmin';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -16,6 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 const UserMenu = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { isAdmin } = useAdmin();
   const [isOpen, setIsOpen] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [fullName, setFullName] = useState<string | null>(null);
@@ -110,6 +112,15 @@ const UserMenu = () => {
           <Gift className="mr-2 h-4 w-4 text-primary" />
           <span>Refer & Earn ₹100</span>
         </DropdownMenuItem>
+        {isAdmin && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => navigate('/admin/promo-codes')}>
+              <Shield className="mr-2 h-4 w-4 text-orange-500" />
+              <span>Admin: Promo Codes</span>
+            </DropdownMenuItem>
+          </>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
           <LogOut className="mr-2 h-4 w-4" />
