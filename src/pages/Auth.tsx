@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Phone, ArrowLeft, Loader2, Gift, CheckCircle2 } from 'lucide-react';
+import { Phone, ArrowLeft, Loader2, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useReferral } from '@/hooks/useReferral';
 import { z } from 'zod';
 import authIllustration from '@/assets/auth-illustration.png';
+import { sendFirebaseOTP, verifyFirebaseOTP, isFirebaseReady } from '@/lib/firebaseAuth';
 
 const phoneSchema = z.string().min(10, 'Phone number must be at least 10 digits').regex(/^[0-9]+$/, 'Please enter a valid phone number');
 const otpSchema = z.string().length(6, 'OTP must be 6 digits');
@@ -27,6 +28,7 @@ const Auth = () => {
   
   const [step, setStep] = useState<AuthStep>('phone');
   const [isLoading, setIsLoading] = useState(false);
+  const [firebaseLoaded, setFirebaseLoaded] = useState(false);
   
   // Form fields
   const [phone, setPhone] = useState('');
@@ -37,6 +39,18 @@ const Auth = () => {
   // Errors
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [otpComplete, setOtpComplete] = useState(false);
+
+  // Check if Firebase is loaded
+  useEffect(() => {
+    const checkFirebase = () => {
+      if (isFirebaseReady()) {
+        setFirebaseLoaded(true);
+      } else {
+        setTimeout(checkFirebase, 100);
+      }
+    };
+    checkFirebase();
+  }, []);
 
   // Haptic feedback helper
   const triggerHaptic = (type: 'light' | 'success' | 'error') => {
@@ -57,16 +71,13 @@ const Auth = () => {
 
   useEffect(() => {
     if (!loading && user) {
-      // If user just logged in and has a referral code, apply it
       if (referralCode) {
         applyReferralCode(referralCode).then(() => {
           toast({
             title: '🎉 Referral Applied!',
             description: 'You got ₹100 off your first booking!',
           });
-        }).catch(() => {
-          // Silently fail if referral code is invalid or already used
-        });
+        }).catch(() => {});
       }
       navigate('/');
     }
@@ -95,29 +106,21 @@ const Auth = () => {
   const handlePhoneOTP = async () => {
     if (!validateField('phone', phone)) return;
     
+    if (!firebaseLoaded) {
+      toast({
+        title: 'Please wait',
+        description: 'Firebase is still loading. Please try again.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     const formattedPhone = `+91${phone}`;
     
     setIsLoading(true);
     
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-sms-otp`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({ phone: formattedPhone }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to send OTP');
-      }
-
+      await sendFirebaseOTP(formattedPhone);
       setStep('otp');
       toast({
         title: 'OTP Sent!',
@@ -134,33 +137,43 @@ const Auth = () => {
     }
   };
 
-  const handleVerifyOTP = async () => {
-    const otp = otpDigits.join('');
+  const handleVerifyOTP = async (otp: string) => {
     if (!validateField('otp', otp)) return;
-    
-    const formattedPhone = `+91${phone}`;
     
     setIsLoading(true);
     
     try {
+      // Verify with Firebase
+      const { idToken } = await verifyFirebaseOTP(otp);
+      
+      toast({
+        title: 'Verified!',
+        description: 'Setting up your account...',
+      });
+      
+      // Send token to backend to create/link Supabase user
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-sms-otp`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/firebase-verify-token`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ phone: formattedPhone, otp }),
+          body: JSON.stringify({ 
+            idToken, 
+            referralCode: referralCode || undefined 
+          }),
         }
       );
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to verify OTP');
+        throw new Error(data.error || 'Failed to complete login');
       }
 
+      triggerHaptic('success');
       toast({
         title: data.isNewUser ? 'Account Created!' : 'Welcome Back!',
         description: 'Logging you in...',
@@ -172,8 +185,12 @@ const Auth = () => {
         window.location.href = '/';
       }
     } catch (error: any) {
+      triggerHaptic('error');
+      setOtpComplete(false);
+      setOtpDigits(['', '', '', '', '', '']);
+      otpInputRefs.current[0]?.focus();
       toast({
-        title: 'Invalid OTP',
+        title: 'Verification Failed',
         description: error.message || 'The code you entered is incorrect.',
         variant: 'destructive',
       });
@@ -201,6 +218,9 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      {/* Invisible reCAPTCHA container */}
+      <div id="recaptcha-container"></div>
+      
       {/* Header */}
       <header className="p-4 flex items-center justify-between border-b border-border">
         <button onClick={goBack} className="p-2 rounded-full hover:bg-muted transition-colors">
@@ -304,14 +324,14 @@ const Auth = () => {
                 <Button
                   className="w-full h-14 text-base font-semibold"
                   onClick={handlePhoneOTP}
-                  disabled={isLoading || phone.length < 10}
+                  disabled={isLoading || phone.length < 10 || !firebaseLoaded}
                 >
                   {isLoading ? (
                     <Loader2 className="w-5 h-5 animate-spin mr-2" />
                   ) : (
                     <Phone className="w-5 h-5 mr-2" />
                   )}
-                  Continue
+                  {!firebaseLoaded ? 'Loading...' : 'Continue'}
                 </Button>
 
                 <p className="text-xs text-center text-muted-foreground leading-relaxed">
@@ -358,6 +378,7 @@ const Auth = () => {
                           maxLength={1}
                           value={digit}
                           autoFocus={index === 0}
+                          disabled={isLoading}
                           onChange={(e) => {
                             const value = e.target.value.replace(/\D/g, '');
                             if (value.length <= 1) {
@@ -365,62 +386,25 @@ const Auth = () => {
                               newDigits[index] = value;
                               setOtpDigits(newDigits);
                               
-                              // Haptic on digit entry
                               if (value) {
                                 triggerHaptic('light');
                               }
                               
-                              // Auto-focus next input
                               if (value && index < 5) {
                                 otpInputRefs.current[index + 1]?.focus();
                               }
                               
-                              // Check if all digits are filled
                               const fullOtp = newDigits.join('');
                               if (fullOtp.length === 6) {
                                 setOtpComplete(true);
                                 triggerHaptic('success');
-                                
-                                setTimeout(() => {
-                                  const formattedPhone = `+91${phone}`;
-                                  setIsLoading(true);
-                                  fetch(
-                                    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-sms-otp`,
-                                    {
-                                      method: 'POST',
-                                      headers: {
-                                        'Content-Type': 'application/json',
-                                        'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-                                      },
-                                      body: JSON.stringify({ phone: formattedPhone, otp: fullOtp }),
-                                    }
-                                  ).then(res => res.json()).then(data => {
-                                    if (data.error) throw new Error(data.error);
-                                    triggerHaptic('success');
-                                    toast({
-                                      title: data.isNewUser ? 'Account Created!' : 'Welcome Back!',
-                                      description: 'Logging you in...',
-                                    });
-                                    window.location.href = data.verificationUrl || '/';
-                                  }).catch((error) => {
-                                    triggerHaptic('error');
-                                    setOtpComplete(false);
-                                    setOtpDigits(['', '', '', '', '', '']);
-                                    otpInputRefs.current[0]?.focus();
-                                    toast({
-                                      title: 'Invalid OTP',
-                                      description: error.message || 'The code you entered is incorrect.',
-                                      variant: 'destructive',
-                                    });
-                                  }).finally(() => setIsLoading(false));
-                                }, 300);
+                                setTimeout(() => handleVerifyOTP(fullOtp), 300);
                               } else {
                                 setOtpComplete(false);
                               }
                             }
                           }}
                           onKeyDown={(e) => {
-                            // Handle backspace
                             if (e.key === 'Backspace' && !digit && index > 0) {
                               otpInputRefs.current[index - 1]?.focus();
                             }
@@ -436,105 +420,80 @@ const Auth = () => {
                               setOtpDigits(newDigits);
                               triggerHaptic('light');
                               
-                              // Focus last filled or next empty
                               const focusIndex = Math.min(pastedData.length, 5);
                               otpInputRefs.current[focusIndex]?.focus();
                               
                               if (pastedData.length === 6) {
                                 setOtpComplete(true);
                                 triggerHaptic('success');
-                                
-                                setTimeout(() => {
-                                  const formattedPhone = `+91${phone}`;
-                                  setIsLoading(true);
-                                  fetch(
-                                    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-sms-otp`,
-                                    {
-                                      method: 'POST',
-                                      headers: {
-                                        'Content-Type': 'application/json',
-                                        'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-                                      },
-                                      body: JSON.stringify({ phone: formattedPhone, otp: pastedData }),
-                                    }
-                                  ).then(res => res.json()).then(data => {
-                                    if (data.error) throw new Error(data.error);
-                                    triggerHaptic('success');
-                                    toast({
-                                      title: data.isNewUser ? 'Account Created!' : 'Welcome Back!',
-                                      description: 'Logging you in...',
-                                    });
-                                    window.location.href = data.verificationUrl || '/';
-                                  }).catch((error) => {
-                                    triggerHaptic('error');
-                                    setOtpComplete(false);
-                                    setOtpDigits(['', '', '', '', '', '']);
-                                    otpInputRefs.current[0]?.focus();
-                                    toast({
-                                      title: 'Invalid OTP',
-                                      description: error.message || 'The code you entered is incorrect.',
-                                      variant: 'destructive',
-                                    });
-                                  }).finally(() => setIsLoading(false));
-                                }, 300);
+                                setTimeout(() => handleVerifyOTP(pastedData), 300);
                               }
                             }
                           }}
-                          className={`w-11 h-14 sm:w-12 sm:h-16 text-center text-xl sm:text-2xl font-mono font-bold 
-                            border-2 rounded-xl bg-background transition-all duration-200
-                            focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary
-                            ${digit ? 'border-primary/50 bg-primary/5' : 'border-border'}
-                            ${otpComplete ? 'border-primary bg-primary/10 scale-105' : ''}
-                            ${errors.otp ? 'border-destructive' : ''}
+                          className={`
+                            w-11 h-14 sm:w-12 sm:h-16 text-center text-xl sm:text-2xl font-bold 
+                            border-2 rounded-xl transition-all duration-200
+                            bg-background text-foreground
+                            ${digit ? 'border-primary' : 'border-input'}
+                            ${otpComplete ? 'border-green-500 bg-green-50 dark:bg-green-900/20' : ''}
+                            focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none
+                            disabled:opacity-50
                           `}
                         />
                       </motion.div>
                     ))}
                   </div>
                   
-                  {/* Success indicator */}
-                  <AnimatePresence>
-                    {otpComplete && (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.8 }}
-                        className="flex items-center justify-center gap-2 text-primary"
-                      >
-                        <CheckCircle2 className="w-5 h-5" />
-                        <span className="text-sm font-medium">Verifying automatically...</span>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                  
-                  {errors.otp && <p className="text-xs text-destructive text-center">{errors.otp}</p>}
+                  {errors.otp && (
+                    <p className="text-xs text-destructive text-center">{errors.otp}</p>
+                  )}
                 </div>
+
+                {isLoading && (
+                  <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Verifying...</span>
+                  </div>
+                )}
 
                 <Button
                   className="w-full h-14 text-base font-semibold"
-                  onClick={handleVerifyOTP}
-                  disabled={isLoading || otpDigits.join('').length !== 6}
+                  onClick={() => handleVerifyOTP(otpDigits.join(''))}
+                  disabled={isLoading || otpDigits.join('').length < 6}
                 >
-                  {isLoading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
+                  {isLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                  ) : null}
                   Verify
                 </Button>
 
-                <div className="text-center space-y-2">
-                  <p className="text-sm text-muted-foreground">
-                    Didn't receive the OTP?
-                  </p>
+                <div className="text-center">
                   <button
-                    onClick={handlePhoneOTP}
-                    className="text-sm text-primary font-semibold hover:underline"
+                    onClick={() => {
+                      setOtpDigits(['', '', '', '', '', '']);
+                      setStep('phone');
+                    }}
                     disabled={isLoading}
+                    className="text-sm text-primary font-medium hover:underline disabled:opacity-50"
                   >
-                    Resend OTP
+                    Change phone number
                   </button>
                 </div>
+
+                <p className="text-xs text-center text-muted-foreground">
+                  Didn't receive OTP?{' '}
+                  <button
+                    onClick={handlePhoneOTP}
+                    disabled={isLoading}
+                    className="text-primary font-medium hover:underline disabled:opacity-50"
+                  >
+                    Resend
+                  </button>
+                </p>
               </div>
             </motion.div>
           )}
-          </AnimatePresence>
+        </AnimatePresence>
         </div>
       </div>
     </div>
