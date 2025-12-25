@@ -1,9 +1,9 @@
 import { motion } from "framer-motion";
-import { Search, MapPin, Locate, Loader2, Scissors, Clock, X } from "lucide-react";
+import { Search, MapPin, Locate, Loader2, Scissors, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useGeolocation } from "@/hooks/useGeolocation";
+import { useLocation } from "@/contexts/LocationContext";
 import { getFilteredCities } from "@/data/indianCities";
 import { getFilteredSalons, SalonBasic } from "@/data/salonsData";
 import { useRecentSearches } from "@/hooks/useRecentSearches";
@@ -11,26 +11,27 @@ import { useRecentSearches } from "@/hooks/useRecentSearches";
 const HeroSection = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const [location, setLocation] = useState("Mumbai, Maharashtra");
+  const { selectedCity, setSelectedCity, isDetecting, detectLocation } = useLocation();
+  const [locationInput, setLocationInput] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showSalonSuggestions, setShowSalonSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [salonSuggestions, setSalonSuggestions] = useState<SalonBasic[]>([]);
-  const { loading: detectingLocation, detectLocation, location: detectedLocation } = useGeolocation();
   const locationInputRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLDivElement>(null);
   const { recentSearches, addRecentSearch, clearRecentSearches } = useRecentSearches();
 
+  // Sync location input with selected city from context
   useEffect(() => {
-    if (detectedLocation) {
-      setLocation(detectedLocation);
+    if (selectedCity) {
+      setLocationInput(selectedCity);
     }
-  }, [detectedLocation]);
+  }, [selectedCity]);
 
   useEffect(() => {
-    const filtered = getFilteredCities(location);
+    const filtered = getFilteredCities(locationInput);
     setSuggestions(filtered);
-  }, [location]);
+  }, [locationInput]);
 
   useEffect(() => {
     const filtered = getFilteredSalons(searchQuery);
@@ -56,7 +57,7 @@ const HeroSection = () => {
   };
 
   const handleLocationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setLocation(e.target.value);
+    setLocationInput(e.target.value);
     setShowSuggestions(true);
   };
 
@@ -72,7 +73,8 @@ const HeroSection = () => {
   };
 
   const handleSelectCity = (city: string) => {
-    setLocation(city);
+    setLocationInput(city);
+    setSelectedCity(city);
     setShowSuggestions(false);
   };
 
@@ -128,7 +130,7 @@ const HeroSection = () => {
                   <MapPin className="w-5 h-5 text-primary flex-shrink-0" />
                   <input
                     type="text"
-                    value={location}
+                    value={locationInput}
                     onChange={handleLocationChange}
                     onFocus={() => setShowSuggestions(true)}
                     placeholder="Enter city name"
@@ -136,11 +138,11 @@ const HeroSection = () => {
                   />
                   <button
                     onClick={handleDetectLocation}
-                    disabled={detectingLocation}
+                    disabled={isDetecting}
                     className="p-1.5 rounded-lg hover:bg-muted transition-colors disabled:opacity-50 flex-shrink-0"
                     title="Detect my location"
                   >
-                    {detectingLocation ? (
+                    {isDetecting ? (
                       <Loader2 className="w-4 h-4 text-primary animate-spin" />
                     ) : (
                       <Locate className="w-4 h-4 text-primary" />
