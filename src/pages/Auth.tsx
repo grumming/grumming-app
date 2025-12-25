@@ -326,7 +326,40 @@ const Auth = () => {
                     type="text"
                     placeholder="Enter 6-digit OTP"
                     value={otp}
-                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    onChange={(e) => {
+                      const newOtp = e.target.value.replace(/\D/g, '').slice(0, 6);
+                      setOtp(newOtp);
+                      if (newOtp.length === 6) {
+                        setTimeout(() => {
+                          const formattedPhone = `+91${phone}`;
+                          setIsLoading(true);
+                          fetch(
+                            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-sms-otp`,
+                            {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                                'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+                              },
+                              body: JSON.stringify({ phone: formattedPhone, otp: newOtp }),
+                            }
+                          ).then(res => res.json()).then(data => {
+                            if (data.error) throw new Error(data.error);
+                            toast({
+                              title: data.isNewUser ? 'Account Created!' : 'Welcome Back!',
+                              description: 'Logging you in...',
+                            });
+                            window.location.href = data.verificationUrl || '/';
+                          }).catch((error) => {
+                            toast({
+                              title: 'Invalid OTP',
+                              description: error.message || 'The code you entered is incorrect.',
+                              variant: 'destructive',
+                            });
+                          }).finally(() => setIsLoading(false));
+                        }, 100);
+                      }
+                    }}
                     className={`text-center text-2xl tracking-[0.5em] h-14 font-mono ${errors.otp ? 'border-destructive' : ''}`}
                     maxLength={6}
                     autoFocus
