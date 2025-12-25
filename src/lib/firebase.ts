@@ -1,20 +1,11 @@
-// Firebase configuration for phone authentication
-// Note: These are client-side publishable keys, safe to include in code
-
+// Firebase configuration for Grumming app
+// Your web app's Firebase configuration
 export const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || '',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || '',
-};
-
-// Check if Firebase is configured
-export const isFirebaseConfigured = (): boolean => {
-  return !!(
-    firebaseConfig.apiKey &&
-    firebaseConfig.authDomain &&
-    firebaseConfig.projectId
-  );
+  apiKey: "AIzaSyAl-C6_m_jeHiBxmX4rUgCzN14eftpTBeI",
+  authDomain: "grumming-552d2.firebaseapp.com",
+  projectId: "grumming-552d2",
+  storageBucket: "grumming-552d2.firebasestorage.app",
+  messagingSenderId: "901278748260",
+  appId: "1:901278748260:web:7a1968f59c9aa08680d971",
+  measurementId: "G-NTH8DNDRV5"
 };
