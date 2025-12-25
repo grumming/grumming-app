@@ -1,5 +1,5 @@
 // Firebase configuration for Grumming app
-// Note: Firebase SDK causes build issues in this environment
+// Note: Firebase SDK causes build issues in this environment (TypeScript compiler stack overflow)
 // Phone OTP authentication is handled via backend edge functions (send-sms-otp, verify-sms-otp)
 
 export const firebaseConfig = {
