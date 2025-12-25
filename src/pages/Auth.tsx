@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Phone, ArrowLeft, Loader2 } from 'lucide-react';
+import { Phone, ArrowLeft, Loader2, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { useReferral } from '@/hooks/useReferral';
 import { z } from 'zod';
 import authIllustration from '@/assets/auth-illustration.png';
 
@@ -17,8 +18,12 @@ type AuthStep = 'phone' | 'otp';
 
 const Auth = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { user, loading } = useAuth();
+  const { applyReferralCode } = useReferral();
+  
+  const referralCodeFromUrl = searchParams.get('ref');
   
   const [step, setStep] = useState<AuthStep>('phone');
   const [isLoading, setIsLoading] = useState(false);
@@ -26,15 +31,27 @@ const Auth = () => {
   // Form fields
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
+  const [referralCode, setReferralCode] = useState(referralCodeFromUrl || '');
   
   // Errors
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!loading && user) {
+      // If user just logged in and has a referral code, apply it
+      if (referralCode) {
+        applyReferralCode(referralCode).then(() => {
+          toast({
+            title: '🎉 Referral Applied!',
+            description: 'You got ₹100 off your first booking!',
+          });
+        }).catch(() => {
+          // Silently fail if referral code is invalid or already used
+        });
+      }
       navigate('/');
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, referralCode, applyReferralCode, toast]);
 
   const validateField = (field: string, value: string) => {
     try {
@@ -242,6 +259,26 @@ const Auth = () => {
                     />
                   </div>
                   {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
+                </div>
+
+                {/* Referral Code Field */}
+                <div className="space-y-2">
+                  <Label htmlFor="referral" className="text-sm font-medium flex items-center gap-2">
+                    <Gift className="w-4 h-4 text-primary" />
+                    Referral Code (Optional)
+                  </Label>
+                  <Input
+                    id="referral"
+                    type="text"
+                    placeholder="Enter referral code"
+                    value={referralCode}
+                    onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                    className="h-12 uppercase tracking-wider"
+                    maxLength={8}
+                  />
+                  {referralCode && (
+                    <p className="text-xs text-primary">🎁 You'll get ₹100 off your first booking!</p>
+                  )}
                 </div>
 
                 <Button
