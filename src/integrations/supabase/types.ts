@@ -137,6 +137,66 @@ export type Database = {
         }
         Relationships: []
       }
+      referral_codes: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      referrals: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          referee_id: string
+          referee_reward_amount: number | null
+          referee_reward_used: boolean | null
+          referrer_id: string
+          referrer_reward_amount: number | null
+          referrer_reward_used: boolean | null
+          status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          referee_id: string
+          referee_reward_amount?: number | null
+          referee_reward_used?: boolean | null
+          referrer_id: string
+          referrer_reward_amount?: number | null
+          referrer_reward_used?: boolean | null
+          status?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          referee_id?: string
+          referee_reward_amount?: number | null
+          referee_reward_used?: boolean | null
+          referrer_id?: string
+          referrer_reward_amount?: number | null
+          referrer_reward_used?: boolean | null
+          status?: string
+        }
+        Relationships: []
+      }
       reviews: {
         Row: {
           booking_id: string | null
@@ -228,7 +288,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_referral_code: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never

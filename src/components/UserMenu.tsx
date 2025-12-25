@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut, Calendar, Settings } from 'lucide-react';
+import { User, LogOut, Calendar, Settings, Gift } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import {
@@ -102,9 +102,13 @@ const UserMenu = () => {
           <User className="mr-2 h-4 w-4" />
           <span>My Profile</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => navigate('/profile')}>
+        <DropdownMenuItem onClick={() => navigate('/my-bookings')}>
           <Calendar className="mr-2 h-4 w-4" />
           <span>My Bookings</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => navigate('/referrals')}>
+          <Gift className="mr-2 h-4 w-4 text-primary" />
+          <span>Refer & Earn ₹100</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
