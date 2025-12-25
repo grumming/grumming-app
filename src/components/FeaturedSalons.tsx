@@ -1,10 +1,26 @@
 import { motion } from "framer-motion";
 import { Star, MapPin, Clock, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useLocation } from "@/contexts/LocationContext";
+import { calculateDistance, formatDistance } from "@/lib/distance";
 
-const salons = [
+interface Salon {
+  id: number;
+  name: string;
+  image: string;
+  rating: number;
+  reviews: number;
+  location: string;
+  city: string;
+  coordinates: { lat: number; lng: number };
+  timing: string;
+  services: string[];
+  price: string;
+}
+
+const salonsData: Salon[] = [
   // Mumbai Salons
   {
     id: 1,
@@ -13,7 +29,8 @@ const salons = [
     rating: 4.9,
     reviews: 324,
     location: "Bandra West, Mumbai",
-    distance: "1.2 km",
+    city: "Mumbai",
+    coordinates: { lat: 19.0596, lng: 72.8295 },
     timing: "10 AM - 9 PM",
     services: ["Hair", "Makeup", "Spa"],
     price: "₹₹₹",
@@ -25,7 +42,8 @@ const salons = [
     rating: 4.8,
     reviews: 256,
     location: "Andheri East, Mumbai",
-    distance: "2.5 km",
+    city: "Mumbai",
+    coordinates: { lat: 19.1136, lng: 72.8697 },
     timing: "9 AM - 8 PM",
     services: ["Skincare", "Facial", "Waxing"],
     price: "₹₹",
@@ -38,7 +56,8 @@ const salons = [
     rating: 4.7,
     reviews: 289,
     location: "Boring Road, Patna",
-    distance: "1.5 km",
+    city: "Patna",
+    coordinates: { lat: 25.6093, lng: 85.1376 },
     timing: "10 AM - 9 PM",
     services: ["Haircut", "Grooming", "Spa"],
     price: "₹₹",
@@ -50,7 +69,8 @@ const salons = [
     rating: 4.8,
     reviews: 356,
     location: "Fraser Road, Patna",
-    distance: "2.0 km",
+    city: "Patna",
+    coordinates: { lat: 25.6125, lng: 85.1418 },
     timing: "9 AM - 8 PM",
     services: ["Bridal", "Makeup", "Skincare"],
     price: "₹₹₹",
@@ -63,7 +83,8 @@ const salons = [
     rating: 4.7,
     reviews: 234,
     location: "Saraiya Ganj, Muzaffarpur",
-    distance: "1.0 km",
+    city: "Muzaffarpur",
+    coordinates: { lat: 26.1209, lng: 85.3647 },
     timing: "10 AM - 8 PM",
     services: ["Hair", "Makeup", "Skincare"],
     price: "₹₹",
@@ -76,7 +97,8 @@ const salons = [
     rating: 4.6,
     reviews: 189,
     location: "Khalifabagh, Bhagalpur",
-    distance: "0.5 km",
+    city: "Bhagalpur",
+    coordinates: { lat: 25.2425, lng: 87.0041 },
     timing: "10 AM - 8 PM",
     services: ["Hair", "Bridal", "Massage"],
     price: "₹₹₹",
@@ -89,7 +111,8 @@ const salons = [
     rating: 4.6,
     reviews: 145,
     location: "Bodhgaya Road, Gaya",
-    distance: "0.8 km",
+    city: "Gaya",
+    coordinates: { lat: 24.7914, lng: 85.0002 },
     timing: "9 AM - 7 PM",
     services: ["Hair", "Facial", "Bridal"],
     price: "₹₹",
@@ -101,7 +124,8 @@ const salons = [
     rating: 4.8,
     reviews: 267,
     location: "Patliputra Colony, Patna",
-    distance: "4.2 km",
+    city: "Patna",
+    coordinates: { lat: 25.6245, lng: 85.0948 },
     timing: "10 AM - 9 PM",
     services: ["Haircut", "Grooming", "Spa"],
     price: "₹₹₹",
@@ -114,7 +138,8 @@ const salons = [
     rating: 4.8,
     reviews: 156,
     location: "Main Road, Chakia",
-    distance: "0.5 km",
+    city: "Chakia",
+    coordinates: { lat: 26.4167, lng: 83.8833 },
     timing: "9 AM - 8 PM",
     services: ["Hair", "Skincare", "Makeup"],
     price: "₹₹",
@@ -124,6 +149,26 @@ const salons = [
 const FeaturedSalons = () => {
   const [favorites, setFavorites] = useState<number[]>([]);
   const navigate = useNavigate();
+  const { coordinates } = useLocation();
+
+  // Calculate distance and sort salons by proximity
+  const sortedSalons = useMemo(() => {
+    if (!coordinates) {
+      return salonsData.map(salon => ({ ...salon, distance: null }));
+    }
+
+    return salonsData
+      .map(salon => ({
+        ...salon,
+        distance: calculateDistance(
+          coordinates.lat,
+          coordinates.lng,
+          salon.coordinates.lat,
+          salon.coordinates.lng
+        ),
+      }))
+      .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+  }, [coordinates]);
 
   const toggleFavorite = (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -148,10 +193,12 @@ const FeaturedSalons = () => {
         >
           <div>
             <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-2">
-              Featured Salons
+              {coordinates ? "Nearby Salons" : "Featured Salons"}
             </h2>
             <p className="text-muted-foreground">
-              Handpicked salons with the best ratings & reviews
+              {coordinates 
+                ? "Sorted by distance from your location" 
+                : "Handpicked salons with the best ratings & reviews"}
             </p>
           </div>
           <Button variant="outline" className="mt-4 sm:mt-0">
@@ -160,7 +207,7 @@ const FeaturedSalons = () => {
         </motion.div>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {salons.map((salon, index) => (
+          {sortedSalons.map((salon, index) => (
             <motion.div
               key={salon.id}
               initial={{ opacity: 0, y: 20 }}
@@ -227,7 +274,10 @@ const FeaturedSalons = () => {
                   <div className="flex flex-col gap-1 text-sm text-muted-foreground mb-4">
                     <div className="flex items-center gap-2">
                       <MapPin className="w-4 h-4" />
-                      <span>{salon.location} • {salon.distance}</span>
+                      <span>
+                        {salon.location}
+                        {salon.distance !== null && ` • ${formatDistance(salon.distance)}`}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Clock className="w-4 h-4" />
