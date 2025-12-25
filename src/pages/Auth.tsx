@@ -11,7 +11,6 @@ import { useReferral } from '@/hooks/useReferral';
 import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
 import authIllustration from '@/assets/auth-illustration.png';
-import { sendFirebaseOTP, verifyFirebaseOTP, isFirebaseReady } from '@/lib/firebaseAuth';
 
 const phoneSchema = z.string().min(10, 'Phone number must be at least 10 digits').regex(/^[0-9]+$/, 'Please enter a valid phone number');
 const otpSchema = z.string().length(6, 'OTP must be 6 digits');
@@ -29,7 +28,6 @@ const Auth = () => {
   
   const [step, setStep] = useState<AuthStep>('phone');
   const [isLoading, setIsLoading] = useState(false);
-  const [firebaseLoaded, setFirebaseLoaded] = useState(false);
   
   // Form fields
   const [phone, setPhone] = useState('');
@@ -40,18 +38,6 @@ const Auth = () => {
   // Errors
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [otpComplete, setOtpComplete] = useState(false);
-
-  // Check if Firebase is loaded
-  useEffect(() => {
-    const checkFirebase = () => {
-      if (isFirebaseReady()) {
-        setFirebaseLoaded(true);
-      } else {
-        setTimeout(checkFirebase, 100);
-      }
-    };
-    checkFirebase();
-  }, []);
 
   // Haptic feedback helper
   const triggerHaptic = (type: 'light' | 'success' | 'error') => {
@@ -107,26 +93,38 @@ const Auth = () => {
   const handlePhoneOTP = async () => {
     if (!validateField('phone', phone)) return;
     
-    if (!firebaseLoaded) {
-      toast({
-        title: 'Please wait',
-        description: 'Firebase is still loading. Please try again.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    
     const formattedPhone = `+91${phone}`;
     
     setIsLoading(true);
     
     try {
-      await sendFirebaseOTP(formattedPhone);
+      // Call the edge function to send OTP via Fast2SMS
+      const { data, error } = await supabase.functions.invoke('send-sms-otp', {
+        body: { phone: formattedPhone },
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to send OTP');
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.error || 'Failed to send OTP');
+      }
+
       setStep('otp');
       toast({
         title: 'OTP Sent!',
         description: 'Please check your phone for the verification code.',
       });
+
+      // In dev mode, show the OTP in toast if returned
+      if (data.debug_otp) {
+        console.log('Debug OTP:', data.debug_otp);
+        toast({
+          title: 'Dev Mode',
+          description: `OTP: ${data.debug_otp}`,
+        });
+      }
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -141,31 +139,25 @@ const Auth = () => {
   const handleVerifyOTP = async (otp: string) => {
     if (!validateField('otp', otp)) return;
     
+    const formattedPhone = `+91${phone}`;
+    
     setIsLoading(true);
     
     try {
-      // Verify with Firebase
-      const { idToken } = await verifyFirebaseOTP(otp);
-      
-      toast({
-        title: 'Verified!',
-        description: 'Setting up your account...',
-      });
-      
-      // Send token to backend to create/link user
-      const { data, error } = await supabase.functions.invoke('firebase-verify-token', {
-        body: {
-          idToken,
-          referralCode: referralCode || undefined,
+      // Verify OTP via edge function
+      const { data, error } = await supabase.functions.invoke('verify-sms-otp', {
+        body: { 
+          phone: formattedPhone, 
+          otp,
         },
       });
 
       if (error) {
-        throw new Error(error.message || 'Failed to complete login');
+        throw new Error(error.message || 'Failed to verify OTP');
       }
 
-      if (!data) {
-        throw new Error('Failed to complete login');
+      if (!data?.success) {
+        throw new Error(data?.error || 'Invalid OTP');
       }
 
       triggerHaptic('success');
@@ -174,10 +166,12 @@ const Auth = () => {
         description: 'Logging you in...',
       });
       
+      // Redirect to the magic link URL to establish session
       if (data.verificationUrl) {
         window.location.href = data.verificationUrl;
       } else {
-        window.location.href = '/';
+        // Fallback: navigate to home and let auth state update
+        navigate('/');
       }
     } catch (error: any) {
       triggerHaptic('error');
@@ -316,14 +310,14 @@ const Auth = () => {
                 <Button
                   className="w-full h-14 text-base font-semibold"
                   onClick={handlePhoneOTP}
-                  disabled={isLoading || phone.length < 10 || !firebaseLoaded}
+                  disabled={isLoading || phone.length < 10}
                 >
                   {isLoading ? (
                     <Loader2 className="w-5 h-5 animate-spin mr-2" />
                   ) : (
                     <Phone className="w-5 h-5 mr-2" />
                   )}
-                  {!firebaseLoaded ? 'Loading...' : 'Continue'}
+                  Continue
                 </Button>
 
                 <p className="text-xs text-center text-muted-foreground leading-relaxed">
@@ -462,8 +456,8 @@ const Auth = () => {
                 <div className="text-center">
                   <button
                     onClick={() => {
-                      setOtpDigits(['', '', '', '', '', '']);
                       setStep('phone');
+                      setOtpDigits(['', '', '', '', '', '']);
                     }}
                     disabled={isLoading}
                     className="text-sm text-primary font-medium hover:underline disabled:opacity-50"

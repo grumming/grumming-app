@@ -9,10 +9,8 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-// Twilio credentials
-const TWILIO_ACCOUNT_SID = Deno.env.get('TWILIO_ACCOUNT_SID');
-const TWILIO_AUTH_TOKEN = Deno.env.get('TWILIO_AUTH_TOKEN');
-const TWILIO_PHONE_NUMBER = Deno.env.get('TWILIO_PHONE_NUMBER');
+// Fast2SMS API key
+const FAST2SMS_API_KEY = Deno.env.get('FAST2SMS_API_KEY');
 
 // Rate limit: max 3 OTP sends per phone per minute
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
@@ -23,43 +21,52 @@ function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-// Send SMS via Twilio
-async function sendSMSViaTwilio(phone: string, otp: string): Promise<boolean> {
-  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
-    console.error('Missing Twilio credentials');
+// Send SMS via Fast2SMS (for Indian numbers)
+async function sendSMSViaFast2SMS(phone: string, otp: string): Promise<boolean> {
+  if (!FAST2SMS_API_KEY) {
+    console.error('FAST2SMS_API_KEY not configured');
+    return false;
+  }
+
+  // Extract the 10-digit number without country code
+  const phoneNumber = phone.replace('+91', '').replace(/\D/g, '');
+  
+  if (phoneNumber.length !== 10) {
+    console.error('Invalid phone number length:', phoneNumber.length);
     return false;
   }
 
   const message = `Your Grumming verification code is: ${otp}. Valid for 5 minutes. Do not share this code.`;
 
   try {
-    const response = await fetch(
-      `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Basic ' + btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`),
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          To: phone,
-          From: TWILIO_PHONE_NUMBER,
-          Body: message,
-        }),
-      }
-    );
+    // Using Fast2SMS Quick Transactional Route
+    const response = await fetch('https://www.fast2sms.com/dev/bulkV2', {
+      method: 'POST',
+      headers: {
+        'authorization': FAST2SMS_API_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        route: 'q', // Quick SMS route (for OTP)
+        message: message,
+        language: 'english',
+        flash: 0,
+        numbers: phoneNumber,
+      }),
+    });
 
     const result = await response.json();
-    console.log('Twilio response:', JSON.stringify(result));
+    console.log('Fast2SMS response:', JSON.stringify(result));
 
-    if (result.error_code || result.error_message) {
-      console.error('Twilio error:', result.error_message);
+    if (result.return === true || result.return === 'true') {
+      console.log('SMS sent successfully via Fast2SMS');
+      return true;
+    } else {
+      console.error('Fast2SMS error:', result.message || result);
       return false;
     }
-
-    return result.status === 'queued' || result.status === 'sent' || result.sid;
   } catch (error) {
-    console.error('Error sending SMS via Twilio:', error);
+    console.error('Error sending SMS via Fast2SMS:', error);
     return false;
   }
 }
@@ -130,7 +137,7 @@ serve(async (req) => {
     // Generate OTP
     const otp = generateOTP();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiry
-    console.log(`Generated OTP: ${otp} for phone: ${phone}, expires at: ${expiresAt.toISOString()}`);
+    console.log(`Generated OTP for phone: ${phone}, expires at: ${expiresAt.toISOString()}`);
 
     // Delete any existing OTP for this phone first
     await supabase.from('phone_otps').delete().eq('phone', phone);
@@ -153,20 +160,20 @@ serve(async (req) => {
       );
     }
 
-    // Try to send SMS via Twilio
+    // Send SMS via Fast2SMS
     let smsSent = false;
-    if (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN && TWILIO_PHONE_NUMBER) {
+    if (FAST2SMS_API_KEY) {
       try {
-        smsSent = await sendSMSViaTwilio(phone, otp);
-        console.log(`SMS send result via Twilio: ${smsSent}`);
+        smsSent = await sendSMSViaFast2SMS(phone, otp);
+        console.log(`SMS send result via Fast2SMS: ${smsSent}`);
       } catch (smsError) {
-        console.error('Twilio error:', smsError);
+        console.error('Fast2SMS error:', smsError);
       }
     } else {
-      console.log('Twilio credentials not configured');
+      console.log('Fast2SMS API key not configured');
     }
 
-    // If SMS failed, still return success (OTP stored in DB for testing)
+    // If SMS failed, log the OTP for testing purposes
     if (!smsSent) {
       console.log(`[DEV MODE] OTP for ${phone}: ${otp}`);
     }
@@ -182,8 +189,8 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         message: smsSent ? 'OTP sent successfully' : 'OTP generated (check logs in dev mode)',
-        // Remove debug_otp in production
-        debug_otp: smsSent ? undefined : otp
+        // Only include debug_otp in dev mode when SMS fails
+        ...(smsSent ? {} : { debug_otp: otp })
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
