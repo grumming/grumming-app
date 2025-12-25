@@ -17,6 +17,7 @@ import { useRazorpay } from '@/hooks/useRazorpay';
 import { supabase } from '@/integrations/supabase/client';
 import { format, addDays, parseISO } from 'date-fns';
 import { SalonReviews } from '@/components/SalonReviews';
+import StylistsList from '@/components/StylistsList';
 
 // Mock salon data - in production this would come from database
 const salonsData: Record<string, any> = {
@@ -397,8 +398,9 @@ const SalonDetail = () => {
       {/* Tabs */}
       <div className="px-4 mt-6">
         <Tabs defaultValue="services" className="w-full">
-          <TabsList className="w-full grid grid-cols-3 mb-4">
+          <TabsList className="w-full grid grid-cols-4 mb-4">
             <TabsTrigger value="services">Services</TabsTrigger>
+            <TabsTrigger value="stylists">Stylists</TabsTrigger>
             <TabsTrigger value="reviews">Reviews</TabsTrigger>
             <TabsTrigger value="location">Location</TabsTrigger>
           </TabsList>
@@ -445,6 +447,11 @@ const SalonDetail = () => {
                 </div>
               </div>
             ))}
+          </TabsContent>
+
+          {/* Stylists Tab */}
+          <TabsContent value="stylists">
+            <StylistsList salonId={id || ''} />
           </TabsContent>
 
           {/* Reviews Tab */}
