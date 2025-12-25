@@ -106,6 +106,19 @@ const salons = [
     services: ["Haircut", "Grooming", "Spa"],
     price: "₹₹₹",
   },
+  // Bihar - Chakia
+  {
+    id: 15,
+    name: "Expert Hair and Skin Salon",
+    image: "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&auto=format&fit=crop&q=80",
+    rating: 4.8,
+    reviews: 156,
+    location: "Main Road, Chakia",
+    distance: "0.5 km",
+    timing: "9 AM - 8 PM",
+    services: ["Hair", "Skincare", "Makeup"],
+    price: "₹₹",
+  },
 ];
 
 const FeaturedSalons = () => {
