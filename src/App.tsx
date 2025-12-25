@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/hooks/useAuth";
+import { LocationProvider } from "@/contexts/LocationContext";
 import { PushNotificationSetup } from "@/components/PushNotificationSetup";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -26,27 +27,29 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
         <AuthProvider>
-          <TooltipProvider>
-            <PushNotificationSetup />
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/salon/:id" element={<SalonDetail />} />
-                <Route path="/booking-confirmation" element={<BookingConfirmation />} />
-                <Route path="/notification-settings" element={<NotificationSettings />} />
-                <Route path="/my-bookings" element={<MyBookings />} />
-                <Route path="/search" element={<SearchSalons />} />
-                <Route path="/referrals" element={<Referrals />} />
-                <Route path="/admin/promo-codes" element={<AdminPromoCodes />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </TooltipProvider>
+          <LocationProvider>
+            <TooltipProvider>
+              <PushNotificationSetup />
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/salon/:id" element={<SalonDetail />} />
+                  <Route path="/booking-confirmation" element={<BookingConfirmation />} />
+                  <Route path="/notification-settings" element={<NotificationSettings />} />
+                  <Route path="/my-bookings" element={<MyBookings />} />
+                  <Route path="/search" element={<SearchSalons />} />
+                  <Route path="/referrals" element={<Referrals />} />
+                  <Route path="/admin/promo-codes" element={<AdminPromoCodes />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </TooltipProvider>
+          </LocationProvider>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
