@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   ArrowLeft, User, Mail, Phone, Calendar, Edit2, Save, X, Loader2, Camera, 
-  Bell, ChevronRight, Gift, Settings, LogOut, CreditCard, HelpCircle, Shield, Star
+  Bell, ChevronRight, Gift, Settings, LogOut, CreditCard, HelpCircle, Shield, Star, Wallet
 } from 'lucide-react';
+import { useWallet } from '@/hooks/useWallet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,6 +27,7 @@ const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, loading: authLoading, signOut } = useAuth();
+  const { wallet } = useWallet();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -195,10 +197,10 @@ const Profile = () => {
   }
 
   const quickActions = [
+    { icon: Wallet, label: 'Wallet', onClick: () => navigate('/wallet'), color: 'text-green-500', badge: `₹${wallet?.balance?.toFixed(0) || 0}` },
     { icon: Calendar, label: 'My Bookings', onClick: () => navigate('/my-bookings'), color: 'text-primary' },
     { icon: Gift, label: 'Refer & Earn', onClick: () => navigate('/referrals'), color: 'text-accent' },
     { icon: Bell, label: 'Notifications', onClick: () => navigate('/notification-settings'), color: 'text-orange-500' },
-    { icon: Star, label: 'Reviews', onClick: () => navigate('/my-bookings'), color: 'text-yellow-500' },
   ];
 
   const menuItems = [
@@ -322,8 +324,13 @@ const Profile = () => {
             <button
               key={action.label}
               onClick={action.onClick}
-              className="flex flex-col items-center gap-2 p-3 rounded-xl bg-card border border-border hover:border-primary/30 transition-all active:scale-95"
+              className="flex flex-col items-center gap-2 p-3 rounded-xl bg-card border border-border hover:border-primary/30 transition-all active:scale-95 relative"
             >
+              {'badge' in action && action.badge && (
+                <span className="absolute -top-1 -right-1 text-[10px] font-bold bg-green-500 text-white px-1.5 py-0.5 rounded-full">
+                  {action.badge}
+                </span>
+              )}
               <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
                 <action.icon className={`w-5 h-5 ${action.color}`} />
               </div>
