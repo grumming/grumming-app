@@ -11,6 +11,7 @@ const Header = () => {
   const [locationInput, setLocationInput] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [isScrolled, setIsScrolled] = useState(false);
   const locationInputRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -34,6 +35,16 @@ const Header = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Scroll detection for blur effect
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+    
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const handleDetectLocation = async () => {
     await detectLocation();
   };
@@ -54,7 +65,11 @@ const Header = () => {
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="fixed top-0 left-0 right-0 z-50 glass"
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        isScrolled 
+          ? 'bg-background/80 backdrop-blur-xl border-b border-border/50 shadow-sm' 
+          : 'bg-background/50 backdrop-blur-sm'
+      }`}
     >
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Location Selector */}
