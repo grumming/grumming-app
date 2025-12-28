@@ -169,7 +169,7 @@ const HeroSection = ({ onSearchActiveChange }: HeroSectionProps) => {
         )}
       </AnimatePresence>
       
-      <section className="relative py-4 overflow-hidden z-[95]">
+      <section className="relative py-4 z-[95]">
         <div className="container mx-auto px-4">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -216,7 +216,7 @@ const HeroSection = ({ onSearchActiveChange }: HeroSectionProps) => {
 
                 {/* Search Suggestions Dropdown */}
                 {showSuggestions && (hasResults || hasRecentSearches) && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-xl shadow-xl z-[100] max-h-80 overflow-y-auto">
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-background border border-border rounded-xl shadow-xl z-[100] max-h-[400px] overflow-y-auto overflow-x-hidden">
                     {/* Recent Searches */}
                     {hasRecentSearches && (
                       <>
