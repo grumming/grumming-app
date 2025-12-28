@@ -30,6 +30,8 @@ const BookingConfirmation = () => {
     promoDiscount: 0,
     rewardDiscount: 0,
     walletDiscount: 0,
+    paymentMethod: '',
+    walletPaid: 0,
   });
 
   useEffect(() => {
@@ -43,6 +45,8 @@ const BookingConfirmation = () => {
     const promoDiscount = parseInt(searchParams.get('promoDiscount') || '0', 10);
     const rewardDiscount = parseInt(searchParams.get('rewardDiscount') || '0', 10);
     const walletDiscount = parseInt(searchParams.get('walletDiscount') || '0', 10);
+    const paymentMethod = searchParams.get('paymentMethod') || 'online';
+    const walletPaid = parseInt(searchParams.get('walletPaid') || '0', 10);
 
     setBookingDetails({
       salonName,
@@ -55,11 +59,24 @@ const BookingConfirmation = () => {
       promoDiscount,
       rewardDiscount,
       walletDiscount,
+      paymentMethod,
+      walletPaid,
     });
   }, [searchParams]);
 
-  const { salonName, serviceName, servicePrice, bookingDate, bookingTime, discount, promoCode, promoDiscount, rewardDiscount, walletDiscount } = bookingDetails;
+  const { salonName, serviceName, servicePrice, bookingDate, bookingTime, discount, promoCode, promoDiscount, rewardDiscount, walletDiscount, paymentMethod, walletPaid } = bookingDetails;
   const originalPrice = servicePrice + discount;
+
+  // Determine payment status text
+  const getPaymentStatusText = () => {
+    if (paymentMethod === 'split') {
+      return `₹${walletPaid} paid via wallet`;
+    }
+    if (paymentMethod === 'salon') {
+      return 'Pay at Salon';
+    }
+    return 'Paid Online';
+  };
 
   // Parse date for display
   const displayDate = bookingDate 
@@ -321,6 +338,21 @@ END:VCALENDAR`;
                       </span>
                     </div>
                   )}
+
+                  {/* Split Payment - Wallet Portion */}
+                  {paymentMethod === 'split' && walletPaid > 0 && (
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800">
+                      <div className="flex items-center gap-2">
+                        <Wallet className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                        <span className="text-sm font-medium text-purple-700 dark:text-purple-300">
+                          Paid from Wallet
+                        </span>
+                      </div>
+                      <span className="font-semibold text-purple-600 dark:text-purple-400">
+                        ₹{walletPaid}
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -333,7 +365,9 @@ END:VCALENDAR`;
                   </div>
                 )}
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Total Paid</span>
+                  <span className="text-muted-foreground">
+                    {paymentMethod === 'salon' ? 'To Pay at Salon' : paymentMethod === 'split' ? 'Remaining to Pay' : 'Total Paid'}
+                  </span>
                   <span className="text-xl font-bold text-primary">₹{servicePrice}</span>
                 </div>
                 {discount > 0 && (
