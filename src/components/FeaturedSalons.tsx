@@ -241,7 +241,10 @@ const FeaturedSalons = () => {
                 </SelectContent>
               </Select>
             )}
-            <Button variant="outline">
+            <Button 
+              variant="outline"
+              onClick={() => navigate('/search?nearby=true')}
+            >
               View All
             </Button>
           </div>
