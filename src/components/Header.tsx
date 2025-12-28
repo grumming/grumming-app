@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
-import { MapPin, Locate, Loader2, ChevronDown } from "lucide-react";
+import { MapPin, Locate, Loader2, ChevronDown, Search } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import UserMenu from "@/components/UserMenu";
 import NotificationCenter from "@/components/NotificationCenter";
@@ -7,6 +8,7 @@ import { useLocation } from "@/contexts/LocationContext";
 import { getGroupedFilteredCities, popularCities, GroupedCitySuggestion } from "@/data/indianCities";
 
 const Header = () => {
+  const navigate = useNavigate();
   const { selectedCity, setSelectedCity, isDetecting, detectLocation } = useLocation();
   const [locationInput, setLocationInput] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -184,7 +186,16 @@ const Header = () => {
         </div>
         
         {/* Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
+          {/* Search Button */}
+          <button
+            onClick={() => navigate('/search')}
+            className="p-2 rounded-lg hover:bg-muted/70 transition-colors"
+            title="Search salons"
+          >
+            <Search className="w-5 h-5 text-foreground" />
+          </button>
+          
           <NotificationCenter />
           <UserMenu />
         </div>
