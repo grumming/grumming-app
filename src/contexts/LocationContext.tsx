@@ -33,28 +33,40 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
           setCoordinates({ lat: latitude, lng: longitude });
 
           try {
-            // Use reverse geocoding to get location name
+            // Use reverse geocoding to get location name with higher zoom for accuracy
             const response = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=10`
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
             );
             const data = await response.json();
 
-            const city =
+            // Priority order for getting the most accurate locality name
+            const locality =
+              data.address?.suburb ||
+              data.address?.neighbourhood ||
               data.address?.city ||
               data.address?.town ||
               data.address?.village ||
+              data.address?.municipality ||
               data.address?.state_district ||
               data.address?.county ||
               "Unknown Location";
             
+            const city = data.address?.city || data.address?.town || data.address?.state_district || "";
             const state = data.address?.state || "";
-            const locationName = state ? `${city}, ${state}` : city;
+            
+            // Build a meaningful location string
+            let locationName = locality;
+            if (city && city !== locality) {
+              locationName = `${locality}, ${city}`;
+            } else if (state) {
+              locationName = `${locality}, ${state}`;
+            }
 
             setSelectedCity(locationName);
             setIsDetecting(false);
             setHasAutoDetected(true);
             
-            toast.success(`📍 Location: ${locationName}`);
+            toast.success(`📍 ${locationName}`);
             resolve(locationName);
           } catch {
             // Fallback if geocoding fails
@@ -85,9 +97,9 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
           resolve(null);
         },
         {
-          enableHighAccuracy: false, // Faster detection
-          timeout: 8000,
-          maximumAge: 600000, // Cache for 10 minutes
+          enableHighAccuracy: true, // More accurate GPS
+          timeout: 10000,
+          maximumAge: 300000, // Cache for 5 minutes
         }
       );
     });
@@ -102,8 +114,8 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
       
       if (cachedLocation && cachedTime) {
         const cacheAge = Date.now() - parseInt(cachedTime, 10);
-        // Use cache if less than 30 minutes old
-        if (cacheAge < 30 * 60 * 1000) {
+        // Use cache if less than 5 minutes old (shorter cache for accuracy)
+        if (cacheAge < 5 * 60 * 1000) {
           setSelectedCity(cachedLocation);
           setHasAutoDetected(true);
           return;
