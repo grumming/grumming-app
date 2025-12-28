@@ -6,6 +6,8 @@ import {
   ChevronRight, Calendar, Check, User, MessageSquare, CreditCard, Gift, X,
   Tag, Loader2, Wallet, Ticket
 } from 'lucide-react';
+import { useLocation } from '@/contexts/LocationContext';
+import { calculateDistance, formatDistance } from '@/lib/distance';
 import { PaymentMethodSelector, PaymentMethodType } from '@/components/PaymentMethodSelector';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -41,7 +43,7 @@ const salonsData: Record<string, any> = {
     reviews: 324,
     location: "Bandra West, Mumbai",
     address: "123 Linking Road, Bandra West, Mumbai 400050",
-    distance: "1.2 km",
+    coordinates: { lat: 19.0596, lng: 72.8295 },
     timing: "10 AM - 9 PM",
     phone: "+91 98765 43210",
     description: "Luxe Beauty Lounge is a premium salon offering world-class hair, makeup, and spa services. Our expert stylists use only the finest products to ensure you leave looking and feeling your best.",
@@ -74,7 +76,7 @@ const salonsData: Record<string, any> = {
     reviews: 256,
     location: "Andheri East, Mumbai",
     address: "456 Western Express Highway, Andheri East, Mumbai 400069",
-    distance: "2.5 km",
+    coordinates: { lat: 19.1136, lng: 72.8697 },
     timing: "9 AM - 8 PM",
     phone: "+91 98765 43211",
     description: "Glow Studio specializes in skincare and facial treatments. Our trained aestheticians provide personalized care using premium skincare products.",
@@ -102,7 +104,7 @@ const salonsData: Record<string, any> = {
     reviews: 189,
     location: "Juhu, Mumbai",
     address: "789 Juhu Tara Road, Juhu, Mumbai 400049",
-    distance: "3.1 km",
+    coordinates: { lat: 19.1075, lng: 72.8263 },
     timing: "11 AM - 10 PM",
     phone: "+91 98765 43212",
     description: "The Hair Bar is your destination for trendy haircuts and vibrant colors. Our stylists stay updated with the latest trends to give you the perfect look.",
@@ -130,7 +132,7 @@ const salonsData: Record<string, any> = {
     reviews: 412,
     location: "Powai, Mumbai",
     address: "321 Hiranandani Gardens, Powai, Mumbai 400076",
-    distance: "4.0 km",
+    coordinates: { lat: 19.1176, lng: 72.9060 },
     timing: "8 AM - 10 PM",
     phone: "+91 98765 43213",
     description: "Serenity Spa offers a tranquil escape from the city chaos. Indulge in our signature massages and body treatments for complete relaxation.",
@@ -161,7 +163,7 @@ const salonsData: Record<string, any> = {
     reviews: 289,
     location: "Boring Road, Patna",
     address: "Near Maurya Lok Complex, Boring Road, Patna, Bihar 800001",
-    distance: "1.5 km",
+    coordinates: { lat: 25.6093, lng: 85.1376 },
     timing: "10 AM - 9 PM",
     phone: "+91 98520 12345",
     description: "Royal Cuts is Patna's premier unisex salon offering the latest hairstyles, grooming services, and beauty treatments. Our skilled stylists bring international trends to Bihar.",
@@ -192,7 +194,7 @@ const salonsData: Record<string, any> = {
     reviews: 356,
     location: "Fraser Road, Patna",
     address: "Fraser Road, Near Gandhi Maidan, Patna, Bihar 800001",
-    distance: "2.0 km",
+    coordinates: { lat: 25.6125, lng: 85.1418 },
     timing: "9 AM - 8 PM",
     phone: "+91 98520 23456",
     description: "Glamour Zone is a premium beauty destination in the heart of Patna. Specializing in bridal makeup, skincare, and hair treatments with top international brands.",
@@ -222,7 +224,7 @@ const salonsData: Record<string, any> = {
     reviews: 178,
     location: "Kankarbagh, Patna",
     address: "Main Road, Kankarbagh, Patna, Bihar 800020",
-    distance: "3.5 km",
+    coordinates: { lat: 25.5941, lng: 85.1712 },
     timing: "10 AM - 8 PM",
     phone: "+91 98520 34567",
     description: "Style Studio brings affordable luxury to Kankarbagh. Expert hair and beauty services at pocket-friendly prices without compromising on quality.",
@@ -251,7 +253,7 @@ const salonsData: Record<string, any> = {
     reviews: 145,
     location: "Bodhgaya Road, Gaya",
     address: "Near Mahabodhi Temple, Bodhgaya Road, Gaya, Bihar 823001",
-    distance: "0.8 km",
+    coordinates: { lat: 24.7914, lng: 85.0002 },
     timing: "9 AM - 7 PM",
     phone: "+91 98520 45678",
     description: "Located near the sacred Mahabodhi Temple, Buddha Beauty Parlour offers traditional and modern beauty services. Perfect for tourists and locals alike.",
@@ -279,7 +281,7 @@ const salonsData: Record<string, any> = {
     reviews: 98,
     location: "Station Road, Gaya",
     address: "Station Road, Near Gaya Junction, Gaya, Bihar 823001",
-    distance: "1.2 km",
+    coordinates: { lat: 24.7941, lng: 84.9993 },
     timing: "8 AM - 9 PM",
     phone: "+91 98520 56789",
     description: "The go-to destination for men's grooming in Gaya. Professional haircuts, shaves, and grooming services at competitive prices.",
@@ -309,7 +311,7 @@ const salonsData: Record<string, any> = {
     reviews: 234,
     location: "Saraiya Ganj, Muzaffarpur",
     address: "Saraiya Ganj Main Road, Muzaffarpur, Bihar 842001",
-    distance: "1.0 km",
+    coordinates: { lat: 26.1209, lng: 85.3647 },
     timing: "10 AM - 8 PM",
     phone: "+91 98520 67890",
     description: "Muzaffarpur's favorite beauty destination! Lichi City Salon offers premium beauty services with a warm, welcoming atmosphere.",
@@ -339,7 +341,7 @@ const salonsData: Record<string, any> = {
     reviews: 156,
     location: "Mithanpura, Muzaffarpur",
     address: "Mithanpura Chowk, Muzaffarpur, Bihar 842002",
-    distance: "2.5 km",
+    coordinates: { lat: 26.1178, lng: 85.3913 },
     timing: "9 AM - 9 PM",
     phone: "+91 98520 78901",
     description: "A modern unisex salon catering to all your grooming needs. From trendy haircuts to relaxing spa treatments, we have it all.",
@@ -369,7 +371,7 @@ const salonsData: Record<string, any> = {
     reviews: 189,
     location: "Khalifabagh, Bhagalpur",
     address: "Khalifabagh Main Road, Bhagalpur, Bihar 812001",
-    distance: "0.5 km",
+    coordinates: { lat: 25.2425, lng: 87.0041 },
     timing: "10 AM - 8 PM",
     phone: "+91 98520 89012",
     description: "Bhagalpur's premium beauty destination. Silk City Beauty Hub combines traditional beauty secrets with modern techniques for stunning results.",
@@ -399,7 +401,7 @@ const salonsData: Record<string, any> = {
     reviews: 112,
     location: "Adampur, Bhagalpur",
     address: "Adampur Chowk, Bhagalpur, Bihar 812001",
-    distance: "1.8 km",
+    coordinates: { lat: 25.2501, lng: 86.9834 },
     timing: "9 AM - 8 PM",
     phone: "+91 98520 90123",
     description: "Your neighborhood salon for everyday beauty needs. Quality services at budget-friendly prices for the whole family.",
@@ -429,7 +431,7 @@ const salonsData: Record<string, any> = {
     reviews: 267,
     location: "Patliputra Colony, Patna",
     address: "A Block, Patliputra Colony, Patna, Bihar 800013",
-    distance: "4.2 km",
+    coordinates: { lat: 25.6245, lng: 85.0948 },
     timing: "10 AM - 9 PM",
     phone: "+91 98520 01234",
     description: "An exclusive men's grooming destination in Patliputra. Premium haircuts, beard styling, and luxurious spa treatments in a sophisticated setting.",
@@ -461,7 +463,7 @@ const salonsData: Record<string, any> = {
     reviews: 156,
     location: "Main Road, Chakia",
     address: "Near Bus Stand, Main Road, Chakia, East Champaran, Bihar 845412",
-    distance: "0.5 km",
+    coordinates: { lat: 26.4167, lng: 83.8833 },
     timing: "9 AM - 8 PM",
     phone: "+91 98520 15151",
     description: "Expert Hair and Skin Salon is Chakia's leading beauty destination. We specialize in premium hair treatments, advanced skincare, and professional grooming services using top-quality products.",
@@ -503,6 +505,7 @@ const SalonDetail = () => {
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { coordinates } = useLocation();
   const { initiatePayment, isLoading: isPaymentLoading } = useRazorpay();
   const { initiateUpiPayment, isProcessing: isUpiProcessing } = useUpiPayment();
   const { userReward } = useReferral();
@@ -617,6 +620,16 @@ const SalonDetail = () => {
   }, [user]);
 
   const salon = id ? salonsData[id] : null;
+
+  // Calculate distance from user's location
+  const salonDistance = salon && coordinates && salon.coordinates
+    ? calculateDistance(
+        coordinates.lat,
+        coordinates.lng,
+        salon.coordinates.lat,
+        salon.coordinates.lng
+      )
+    : null;
 
   // Handle retry payment mode - pre-fill booking details
   useEffect(() => {
@@ -1286,10 +1299,16 @@ const SalonDetail = () => {
                 {salon.name}
               </h1>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <MapPin className="w-4 h-4" />
+                <MapPin className="w-4 h-4 flex-shrink-0" />
                 <span>{salon.location}</span>
-                <span>•</span>
-                <span>{salon.distance}</span>
+                {salonDistance !== null && (
+                  <>
+                    <span>•</span>
+                    <span className="font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full text-xs">
+                      {formatDistance(salonDistance)}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-1 bg-primary/10 px-3 py-1.5 rounded-full">
