@@ -35,7 +35,11 @@ declare global {
   }
 }
 
-const HeroSection = () => {
+interface HeroSectionProps {
+  onSearchActiveChange?: (isActive: boolean) => void;
+}
+
+const HeroSection = ({ onSearchActiveChange }: HeroSectionProps) => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -105,6 +109,12 @@ const HeroSection = () => {
     setSalonResults(results.salons);
     setServiceResults(results.services);
   }, [searchQuery]);
+
+  // Notify parent when search is active
+  useEffect(() => {
+    const isActive = showSuggestions && (salonResults.length > 0 || serviceResults.length > 0 || (searchQuery === '' && recentSearches.length > 0));
+    onSearchActiveChange?.(isActive);
+  }, [showSuggestions, salonResults.length, serviceResults.length, searchQuery, recentSearches.length, onSearchActiveChange]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

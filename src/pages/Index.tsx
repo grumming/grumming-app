@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import Header from "@/components/Header";
 import HeroSection from "@/components/HeroSection";
 import FirstBookingBanner from "@/components/FirstBookingBanner";
@@ -8,14 +10,27 @@ import BottomNav from "@/components/BottomNav";
 import WelcomeBanner from "@/components/WelcomeBanner";
 
 const Index = () => {
+  const [isSearchActive, setIsSearchActive] = useState(false);
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
       <WelcomeBanner />
       <main className="pt-16 pb-24">
-        <HeroSection />
-        <FirstBookingBanner />
-        <CashbackBanner />
+        <HeroSection onSearchActiveChange={setIsSearchActive} />
+        <AnimatePresence>
+          {!isSearchActive && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <FirstBookingBanner />
+              <CashbackBanner />
+            </motion.div>
+          )}
+        </AnimatePresence>
         <FeaturedSalons />
         <AppPromo />
       </main>
