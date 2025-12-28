@@ -27,6 +27,7 @@ import AdminPromoCodes from "./pages/AdminPromoCodes";
 import Wallet from "./pages/Wallet";
 import Favorites from "./pages/Favorites";
 import PaymentMethods from "./pages/PaymentMethods";
+import PaymentHistory from "./pages/PaymentHistory";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import NotFound from "./pages/NotFound";
@@ -64,6 +65,7 @@ const App = () => {
                     <Route path="/wallet" element={<Wallet />} />
                     <Route path="/favorites" element={<Favorites />} />
                     <Route path="/payment-methods" element={<PaymentMethods />} />
+                    <Route path="/payment-history" element={<PaymentHistory />} />
                     <Route path="/admin/promo-codes" element={<AdminPromoCodes />} />
                     <Route path="/terms" element={<Terms />} />
                     <Route path="/privacy" element={<Privacy />} />

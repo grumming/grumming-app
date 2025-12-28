@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   ArrowLeft, Bell, Globe, Lock, Shield, HelpCircle,
-  ChevronRight, Eye, EyeOff, Volume2, VolumeX, Vibrate, Check
+  ChevronRight, Eye, EyeOff, Volume2, VolumeX, Vibrate, Check, Receipt
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -160,6 +160,20 @@ const Settings = () => {
             <div className="flex-1 text-left">
               <span className="text-sm font-medium text-foreground">Notifications</span>
               <p className="text-xs text-muted-foreground mt-0.5">Manage notification preferences</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </button>
+
+          <button
+            onClick={() => navigate('/payment-history')}
+            className="w-full flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors border-b border-border"
+          >
+            <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
+              <Receipt className="w-4.5 h-4.5 text-muted-foreground" />
+            </div>
+            <div className="flex-1 text-left">
+              <span className="text-sm font-medium text-foreground">Payment History</span>
+              <p className="text-xs text-muted-foreground mt-0.5">View all transactions & receipts</p>
             </div>
             <ChevronRight className="w-4 h-4 text-muted-foreground" />
           </button>
