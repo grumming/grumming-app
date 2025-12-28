@@ -332,9 +332,15 @@ const Auth = () => {
               exit={{ opacity: 0, x: -20 }}
               className="w-full max-w-md mx-auto"
             >
-              <h1 className="text-2xl text-foreground mb-8">
-                <span className="font-bold">Login</span> <span className="font-normal">or create account</span>
-              </h1>
+              <div className="mb-8">
+                <h1 className="text-2xl font-bold text-foreground">Sign up</h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                  or{' '}
+                  <span className="text-primary font-medium underline underline-offset-2 cursor-default">
+                    login to your account
+                  </span>
+                </p>
+              </div>
               
               <div className="space-y-6">
                 <div className="space-y-2">
