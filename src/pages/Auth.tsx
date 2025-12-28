@@ -475,24 +475,28 @@ const Auth = () => {
                     }}
                     transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                   />
-                  <button
+                  <motion.button
                     type="button"
                     onClick={() => setIsSignUp(false)}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                     className={`relative z-10 flex-1 py-2.5 text-sm font-medium rounded-md transition-colors ${
                       !isSignUp ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
                     Login
-                  </button>
-                  <button
+                  </motion.button>
+                  <motion.button
                     type="button"
                     onClick={() => setIsSignUp(true)}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                     className={`relative z-10 flex-1 py-2.5 text-sm font-medium rounded-md transition-colors ${
                       isSignUp ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
                     Sign Up
-                  </button>
+                  </motion.button>
                 </div>
                 <AnimatePresence mode="wait">
                   <motion.p
