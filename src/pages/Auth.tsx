@@ -172,35 +172,37 @@ const Auth = () => {
 
       triggerHaptic('success');
       
-      // Fire confetti celebration
-      const fireConfetti = () => {
-        // Center burst
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 },
-          colors: ['#7c3aed', '#a78bfa', '#c4b5fd', '#22c55e', '#4ade80']
-        });
-        
-        // Side bursts
-        setTimeout(() => {
+      // Fire confetti celebration only for new users
+      if (data.isNewUser) {
+        const fireConfetti = () => {
+          // Center burst
           confetti({
-            particleCount: 50,
-            angle: 60,
-            spread: 55,
-            origin: { x: 0, y: 0.6 },
-            colors: ['#7c3aed', '#a78bfa', '#22c55e']
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#7c3aed', '#a78bfa', '#c4b5fd', '#22c55e', '#4ade80']
           });
-          confetti({
-            particleCount: 50,
-            angle: 120,
-            spread: 55,
-            origin: { x: 1, y: 0.6 },
-            colors: ['#7c3aed', '#a78bfa', '#22c55e']
-          });
-        }, 150);
-      };
-      fireConfetti();
+          
+          // Side bursts
+          setTimeout(() => {
+            confetti({
+              particleCount: 50,
+              angle: 60,
+              spread: 55,
+              origin: { x: 0, y: 0.6 },
+              colors: ['#7c3aed', '#a78bfa', '#22c55e']
+            });
+            confetti({
+              particleCount: 50,
+              angle: 120,
+              spread: 55,
+              origin: { x: 1, y: 0.6 },
+              colors: ['#7c3aed', '#a78bfa', '#22c55e']
+            });
+          }, 150);
+        };
+        fireConfetti();
+      }
       
       toast({
         title: data.isNewUser ? 'Account Created!' : 'Welcome Back!',
