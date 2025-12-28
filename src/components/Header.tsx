@@ -47,7 +47,7 @@ const Header = () => {
   }, []);
 
   const handleDetectLocation = async () => {
-    await detectLocation();
+    await detectLocation({ forceFresh: true });
   };
 
   const handleLocationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
