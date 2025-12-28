@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { getFilteredSalons, SalonBasic } from "@/data/salonsData";
 import { useRecentSearches } from "@/hooks/useRecentSearches";
 import { toast } from "sonner";
+import VoiceWaveform from "./VoiceWaveform";
 
 // Web Speech API types
 interface SpeechRecognitionEvent extends Event {
@@ -162,15 +163,19 @@ const HeroSection = () => {
               <div ref={searchInputRef} className="relative flex-1">
                 <div className="flex items-center gap-2 px-4 py-3 bg-muted/50 rounded-lg border border-border/50">
                   <Search className="w-5 h-5 text-muted-foreground" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={handleSearchChange}
-                    onKeyDown={handleKeyDown}
-                    onFocus={() => setShowSalonSuggestions(true)}
-                    placeholder={isListening ? "Listening..." : "Search for salons, services..."}
-                    className="bg-transparent outline-none w-full text-foreground placeholder:text-muted-foreground font-body"
-                  />
+                  {isListening ? (
+                    <VoiceWaveform isActive={isListening} />
+                  ) : (
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={handleSearchChange}
+                      onKeyDown={handleKeyDown}
+                      onFocus={() => setShowSalonSuggestions(true)}
+                      placeholder="Search for salons, services..."
+                      className="bg-transparent outline-none w-full text-foreground placeholder:text-muted-foreground font-body"
+                    />
+                  )}
                   <button
                     onClick={toggleLanguage}
                     className="px-2 py-1 rounded-md text-xs font-medium bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
