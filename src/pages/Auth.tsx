@@ -38,6 +38,7 @@ const Auth = () => {
   
   const [step, setStep] = useState<AuthStep>('phone');
   const [isLoading, setIsLoading] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(true);
   const [showReferralSuccess, setShowReferralSuccess] = useState(false);
   const [showReferralInput, setShowReferralInput] = useState(!!referralCodeFromUrl);
   const [showTermsModal, setShowTermsModal] = useState(false);
@@ -333,12 +334,18 @@ const Auth = () => {
               className="w-full max-w-md mx-auto"
             >
               <div className="mb-8">
-                <h1 className="text-2xl font-bold text-foreground">Sign up</h1>
+                <h1 className="text-2xl font-bold text-foreground">
+                  {isSignUp ? 'Sign up' : 'Login'}
+                </h1>
                 <p className="text-sm text-muted-foreground mt-1">
                   or{' '}
-                  <span className="text-primary font-medium underline underline-offset-2 cursor-default">
-                    login to your account
-                  </span>
+                  <button 
+                    type="button"
+                    onClick={() => setIsSignUp(!isSignUp)}
+                    className="text-primary font-medium underline underline-offset-2 hover:text-primary/80 transition-colors"
+                  >
+                    {isSignUp ? 'login to your account' : 'create an account'}
+                  </button>
                 </p>
               </div>
               
