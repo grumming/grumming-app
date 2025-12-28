@@ -730,25 +730,50 @@ const Auth = () => {
           {step === 'profile' && (
             <motion.div
               key="profile"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
               className="w-full max-w-md mx-auto"
             >
-              <h1 className="text-2xl font-bold text-foreground mb-2">
-                Complete your profile
-              </h1>
-              <p className="text-muted-foreground mb-8">
-                Help us personalize your experience
-              </p>
+              {/* Welcome Header with Icon */}
+              <motion.div 
+                className="text-center mb-8"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.1, duration: 0.3 }}
+              >
+                <motion.div 
+                  className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center border border-primary/20"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                >
+                  <User className="w-10 h-10 text-primary" />
+                </motion.div>
+                <h1 className="text-2xl font-bold text-foreground mb-2">
+                  Almost there!
+                </h1>
+                <p className="text-muted-foreground">
+                  Tell us a bit about yourself
+                </p>
+              </motion.div>
               
               <div className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="fullName" className="text-sm font-medium">
+                {/* Full Name Input */}
+                <motion.div 
+                  className="space-y-2"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3, duration: 0.3 }}
+                >
+                  <Label htmlFor="fullName" className="text-sm font-medium flex items-center gap-1">
                     Full Name <span className="text-destructive">*</span>
                   </Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <div className="relative group">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center transition-colors group-focus-within:bg-primary/20">
+                      <User className="w-5 h-5 text-primary" />
+                    </div>
                     <Input
                       id="fullName"
                       type="text"
@@ -756,19 +781,36 @@ const Auth = () => {
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       onBlur={() => fullName && validateField('fullName', fullName)}
-                      className={`h-12 pl-10 ${errors.fullName ? 'border-destructive' : ''}`}
+                      className={`h-14 pl-16 text-base transition-all duration-200 focus:ring-2 focus:ring-primary/20 ${errors.fullName ? 'border-destructive ring-destructive/20' : ''}`}
                       autoFocus
                     />
                   </div>
-                  {errors.fullName && <p className="text-xs text-destructive">{errors.fullName}</p>}
-                </div>
+                  {errors.fullName && (
+                    <motion.p 
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="text-xs text-destructive flex items-center gap-1"
+                    >
+                      {errors.fullName}
+                    </motion.p>
+                  )}
+                </motion.div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm font-medium">
-                    Email <span className="text-muted-foreground">(Optional)</span>
+                {/* Email Input */}
+                <motion.div 
+                  className="space-y-2"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.4, duration: 0.3 }}
+                >
+                  <Label htmlFor="email" className="text-sm font-medium flex items-center gap-2">
+                    Email 
+                    <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">Optional</span>
                   </Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <div className="relative group">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center transition-colors group-focus-within:bg-primary/20">
+                      <Mail className="w-5 h-5 text-primary" />
+                    </div>
                     <Input
                       id="email"
                       type="email"
@@ -776,25 +818,41 @@ const Auth = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       onBlur={() => email && validateField('email', email)}
-                      className={`h-12 pl-10 ${errors.email ? 'border-destructive' : ''}`}
+                      className={`h-14 pl-16 text-base transition-all duration-200 focus:ring-2 focus:ring-primary/20 ${errors.email ? 'border-destructive ring-destructive/20' : ''}`}
                     />
                   </div>
-                  {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
-                  <p className="text-xs text-muted-foreground">
-                    We'll use this for booking confirmations and offers
+                  {errors.email && (
+                    <motion.p 
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="text-xs text-destructive"
+                    >
+                      {errors.email}
+                    </motion.p>
+                  )}
+                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <span className="w-1 h-1 rounded-full bg-muted-foreground/50"></span>
+                    For booking confirmations and exclusive offers
                   </p>
-                </div>
+                </motion.div>
 
-                <Button
-                  className="w-full h-14 text-base font-semibold"
-                  onClick={handleProfileComplete}
-                  disabled={isLoading || !fullName.trim()}
+                {/* Submit Button */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5, duration: 0.3 }}
                 >
-                  {isLoading ? (
-                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                  ) : null}
-                  Get Started
-                </Button>
+                  <Button
+                    className="w-full h-14 text-base font-semibold shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all duration-300"
+                    onClick={handleProfileComplete}
+                    disabled={isLoading || !fullName.trim()}
+                  >
+                    {isLoading ? (
+                      <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                    ) : null}
+                    Get Started
+                  </Button>
+                </motion.div>
               </div>
             </motion.div>
           )}
