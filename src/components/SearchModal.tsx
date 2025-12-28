@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, X, Scissors, Clock, Sparkles, History } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { getSearchResults, SalonBasic, ServiceResult } from "@/data/salonsData";
 import { useRecentSearches } from "@/hooks/useRecentSearches";
@@ -75,7 +76,9 @@ const SearchModal = ({ isOpen, onClose }: SearchModalProps) => {
   const hasRecentSearches = searchQuery === '' && recentSearches.length > 0;
   const hasSearchHistory = searchQuery === '' && searchHistory.length > 0;
 
-  return (
+  const portalRoot = typeof document !== "undefined" ? document.body : null;
+
+  return portalRoot ? createPortal(
     <AnimatePresence>
       {isOpen && (
         <>
@@ -85,8 +88,8 @@ const SearchModal = ({ isOpen, onClose }: SearchModalProps) => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[300] cursor-pointer"
-            onClick={onClose}
+            className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[300] cursor-pointer"
+            onPointerDown={onClose}
           />
           
           {/* Modal */}
@@ -96,7 +99,7 @@ const SearchModal = ({ isOpen, onClose }: SearchModalProps) => {
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
             className="fixed top-4 left-4 right-4 sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-lg z-[301] bg-background border border-border rounded-2xl shadow-2xl overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
           >
             {/* Search Input */}
             <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
@@ -279,8 +282,9 @@ const SearchModal = ({ isOpen, onClose }: SearchModalProps) => {
           </motion.div>
         </>
       )}
-    </AnimatePresence>
-  );
+    </AnimatePresence>,
+    portalRoot
+  ) : null;
 };
 
 export default SearchModal;
