@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useReferral } from '@/hooks/useReferral';
 import { supabase } from '@/integrations/supabase/client';
+import { ReferralSuccessAnimation } from '@/components/ReferralSuccessAnimation';
 import { z } from 'zod';
 import authIllustration from '@/assets/auth-illustration.png';
 
@@ -28,6 +29,7 @@ const Auth = () => {
   
   const [step, setStep] = useState<AuthStep>('phone');
   const [isLoading, setIsLoading] = useState(false);
+  const [showReferralSuccess, setShowReferralSuccess] = useState(false);
   
   // Form fields
   const [phone, setPhone] = useState('');
@@ -60,15 +62,22 @@ const Auth = () => {
     if (!loading && user) {
       if (referralCode) {
         applyReferralCode(referralCode).then(() => {
-          toast({
-            title: '🎉 Referral Applied!',
-            description: 'You got ₹100 off your first booking!',
-          });
-        }).catch(() => {});
+          // Show the referral success animation
+          setShowReferralSuccess(true);
+        }).catch(() => {
+          // Referral failed, just navigate
+          navigate('/');
+        });
+      } else {
+        navigate('/');
       }
-      navigate('/');
     }
-  }, [user, loading, navigate, referralCode, applyReferralCode, toast]);
+  }, [user, loading, navigate, referralCode, applyReferralCode]);
+
+  const handleReferralAnimationComplete = () => {
+    setShowReferralSuccess(false);
+    navigate('/');
+  };
 
   const validateField = (field: string, value: string) => {
     try {
@@ -206,7 +215,15 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <>
+      {/* Referral Success Animation */}
+      <ReferralSuccessAnimation 
+        isVisible={showReferralSuccess} 
+        onComplete={handleReferralAnimationComplete}
+        rewardAmount={100}
+      />
+      
+      <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="p-4 flex items-center justify-between border-b border-border">
         <button onClick={goBack} className="p-2 rounded-full hover:bg-muted transition-colors">
@@ -482,7 +499,8 @@ const Auth = () => {
         </AnimatePresence>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 
