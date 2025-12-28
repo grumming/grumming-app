@@ -154,47 +154,26 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      // Call the backend function to send OTP
-      const { data, error } = await supabase.functions.invoke('send-sms-otp', {
-        body: { phone: formattedPhone, isSignUp: mode },
-      });
+      // Use raw fetch to get access to response body on errors
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-sms-otp`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ phone: formattedPhone, isSignUp: mode }),
+        }
+      );
 
-      // Handle non-2xx responses (e.g. 409 ACCOUNT_EXISTS, 404 NO_ACCOUNT)
-      if (error) {
-        console.log('OTP send error:', error);
-        
-        // Try multiple ways to extract the error code
-        let errorCode: string | null = null;
-        
-        // Method 1: Check if error message contains the JSON
-        try {
-          if (typeof (error as any).message === 'string' && (error as any).message.includes('{')) {
-            const jsonMatch = (error as any).message.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-              const parsed = JSON.parse(jsonMatch[0]);
-              errorCode = parsed?.code;
-            }
-          }
-        } catch { /* ignore */ }
-        
-        // Method 2: Try to get from context.response
-        if (!errorCode) {
-          try {
-            const res = (error as any)?.context?.response;
-            if (res) {
-              const bodyText = await res.clone().text();
-              const bodyJson = bodyText ? JSON.parse(bodyText) : null;
-              errorCode = bodyJson?.code;
-            }
-          } catch { /* ignore */ }
-        }
-        
-        // Method 3: Check if error itself has a code property
-        if (!errorCode) {
-          errorCode = (error as any)?.code;
-        }
-        
-        console.log('Extracted error code:', errorCode);
+      const data = await response.json();
+
+      // Handle non-2xx responses
+      if (!response.ok) {
+        console.log('OTP send error:', data);
+        const errorCode = data?.code;
 
         if (mode && errorCode === 'ACCOUNT_EXISTS') {
           setShowExistingAccountModal(true);
@@ -216,7 +195,7 @@ const Auth = () => {
 
         toast({
           title: 'Error',
-          description: (error as any).message || 'Failed to send OTP',
+          description: data?.error || data?.message || 'Failed to send OTP',
           variant: 'destructive',
         });
         return;
