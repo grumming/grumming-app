@@ -11,6 +11,7 @@ import { useReferral } from '@/hooks/useReferral';
 import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
 import authIllustration from '@/assets/auth-illustration.png';
+import ReferralSuccessAnimation from '@/components/ReferralSuccessAnimation';
 
 const phoneSchema = z.string().min(10, 'Phone number must be at least 10 digits').regex(/^[0-9]+$/, 'Please enter a valid phone number');
 const otpSchema = z.string().length(6, 'OTP must be 6 digits');
@@ -35,8 +36,9 @@ const Auth = () => {
   const [referralCode, setReferralCode] = useState(referralCodeFromUrl || '');
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   
-  // Errors
+  // Errors and animation states
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showReferralSuccess, setShowReferralSuccess] = useState(false);
   const [otpComplete, setOtpComplete] = useState(false);
 
   // Haptic feedback helper
@@ -60,15 +62,20 @@ const Auth = () => {
     if (!loading && user) {
       if (referralCode) {
         applyReferralCode(referralCode).then(() => {
-          toast({
-            title: '🎉 Referral Applied!',
-            description: 'You got ₹100 off your first booking!',
-          });
-        }).catch(() => {});
+          setShowReferralSuccess(true);
+        }).catch(() => {
+          navigate('/');
+        });
+      } else {
+        navigate('/');
       }
-      navigate('/');
     }
-  }, [user, loading, navigate, referralCode, applyReferralCode, toast]);
+  }, [user, loading, navigate, referralCode, applyReferralCode]);
+
+  const handleReferralAnimationClose = () => {
+    setShowReferralSuccess(false);
+    navigate('/');
+  };
 
   const validateField = (field: string, value: string) => {
     try {
@@ -206,6 +213,12 @@ const Auth = () => {
   }
 
   return (
+    <>
+    <ReferralSuccessAnimation
+      isVisible={showReferralSuccess}
+      onClose={handleReferralAnimationClose}
+      rewardAmount={100}
+    />
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="p-4 flex items-center justify-between border-b border-border">
@@ -483,6 +496,7 @@ const Auth = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 
