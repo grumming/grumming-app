@@ -84,15 +84,6 @@ const HeroSection = () => {
 
   return (
     <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden">
-      {/* Background gradient */}
-      <div 
-        className="absolute inset-0 z-0"
-        style={{ background: "var(--gradient-hero)" }}
-      />
-      
-      {/* Decorative circles */}
-      <div className="absolute top-20 right-10 w-64 h-64 rounded-full bg-primary/10 blur-3xl" />
-      <div className="absolute bottom-20 left-10 w-80 h-80 rounded-full bg-accent/10 blur-3xl" />
       
       <div className="relative z-10 container mx-auto px-4 text-center">
         
