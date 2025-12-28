@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
-  ArrowLeft, Bell, Globe, Lock, Shield, HelpCircle,
+  ArrowLeft, Bell, Moon, Sun, Globe, Lock, Shield, HelpCircle,
   ChevronRight, Eye, EyeOff, Volume2, VolumeX, Vibrate, Check
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { useTheme } from 'next-themes';
 import BottomNav from '@/components/BottomNav';
 
 interface Language {
@@ -39,6 +40,7 @@ const languages: Language[] = [
 const Settings = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { theme, setTheme } = useTheme();
   
   // Settings state
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -107,6 +109,39 @@ const Settings = () => {
         </div>
       </header>
 
+      {/* Appearance Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="p-4"
+      >
+        <h2 className="text-sm font-semibold text-muted-foreground mb-3 px-1">APPEARANCE</h2>
+        <div className="bg-card rounded-xl border border-border overflow-hidden">
+          <div className="flex items-center gap-4 p-4">
+            <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
+              {theme === 'dark' ? (
+                <Moon className="w-4.5 h-4.5 text-muted-foreground" />
+              ) : (
+                <Sun className="w-4.5 h-4.5 text-muted-foreground" />
+              )}
+            </div>
+            <div className="flex-1">
+              <Label className="text-sm font-medium text-foreground">Dark Mode</Label>
+              <p className="text-xs text-muted-foreground mt-0.5">Switch between light and dark theme</p>
+            </div>
+            <Switch
+              checked={theme === 'dark'}
+              onCheckedChange={(checked) => {
+                setTheme(checked ? 'dark' : 'light');
+                toast({
+                  title: 'Theme updated',
+                  description: `Switched to ${checked ? 'dark' : 'light'} mode`,
+                });
+              }}
+            />
+          </div>
+        </div>
+      </motion.div>
 
 
       {/* App Preferences Section */}

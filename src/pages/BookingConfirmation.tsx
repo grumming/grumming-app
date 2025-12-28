@@ -1,10 +1,9 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { 
   CheckCircle, Calendar, Clock, MapPin, 
-  CalendarPlus, ArrowLeft, Home, Share2, Gift, Tag, Wallet, Ticket,
-  Loader2, AlertCircle, RefreshCw, CreditCard
+  CalendarPlus, ArrowLeft, Home, Share2, Gift, Tag, Wallet, Ticket 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -15,19 +14,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { format, parse } from 'date-fns';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-
-type PaymentStatus = 'pending' | 'verifying' | 'confirmed' | 'failed';
 
 const BookingConfirmation = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { toast } = useToast();
-  
-  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('confirmed');
-  const [verificationAttempts, setVerificationAttempts] = useState(0);
-  const [autoVerifyCount, setAutoVerifyCount] = useState(0);
   
   const [bookingDetails, setBookingDetails] = useState({
     salonName: '',
@@ -44,50 +34,7 @@ const BookingConfirmation = () => {
     walletPaid: 0,
     voucherCode: '',
     voucherDiscount: 0,
-    bookingId: '',
-    isPending: false,
-    upiApp: '',
   });
-
-  // Check booking status from database
-  const checkPaymentStatus = useCallback(async (bookingId: string) => {
-    if (!bookingId) return;
-    
-    setPaymentStatus('verifying');
-    setVerificationAttempts(prev => prev + 1);
-    
-    try {
-      const { data, error } = await supabase
-        .from('bookings')
-        .select('status')
-        .eq('id', bookingId)
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (data) {
-        if (data.status === 'upcoming' || data.status === 'confirmed') {
-          setPaymentStatus('confirmed');
-          toast({
-            title: 'Payment Confirmed! ✅',
-            description: 'Your booking has been successfully confirmed.',
-          });
-        } else if (data.status === 'payment_failed') {
-          setPaymentStatus('failed');
-          toast({
-            title: 'Payment Failed',
-            description: 'Your payment could not be verified. Please try again.',
-            variant: 'destructive',
-          });
-        } else if (data.status === 'pending_payment') {
-          setPaymentStatus('pending');
-        }
-      }
-    } catch (error) {
-      console.error('Error checking payment status:', error);
-      setPaymentStatus('pending');
-    }
-  }, [toast]);
 
   useEffect(() => {
     const salonName = searchParams.get('salon') || '';
@@ -104,9 +51,6 @@ const BookingConfirmation = () => {
     const walletPaid = parseInt(searchParams.get('walletPaid') || '0', 10);
     const voucherCode = searchParams.get('voucherCode') || '';
     const voucherDiscount = parseInt(searchParams.get('voucherDiscount') || '0', 10);
-    const isPending = searchParams.get('pending') === 'true';
-    const upiApp = searchParams.get('upiApp') || '';
-    const bookingId = searchParams.get('bookingId') || '';
 
     setBookingDetails({
       salonName,
@@ -123,30 +67,8 @@ const BookingConfirmation = () => {
       walletPaid,
       voucherCode,
       voucherDiscount,
-      bookingId,
-      isPending,
-      upiApp,
     });
-
-    // If payment is pending, start auto-verification
-    if (isPending && bookingId) {
-      setPaymentStatus('pending');
-    }
   }, [searchParams]);
-
-  // Auto-verify payment status periodically for pending UPI payments
-  useEffect(() => {
-    if (paymentStatus !== 'pending' || !bookingDetails.bookingId || autoVerifyCount >= 6) {
-      return;
-    }
-
-    const interval = setInterval(() => {
-      setAutoVerifyCount(prev => prev + 1);
-      checkPaymentStatus(bookingDetails.bookingId);
-    }, 5000); // Check every 5 seconds
-
-    return () => clearInterval(interval);
-  }, [paymentStatus, bookingDetails.bookingId, autoVerifyCount, checkPaymentStatus]);
 
   const { salonName, serviceName, servicePrice, bookingDate, bookingTime, discount, promoCode, promoDiscount, rewardDiscount, walletDiscount, paymentMethod, walletPaid, voucherCode, voucherDiscount } = bookingDetails;
   const originalPrice = servicePrice + discount;
@@ -294,7 +216,7 @@ END:VCALENDAR`;
       </header>
 
       <div className="flex-1 flex flex-col items-center justify-center px-6 pb-12">
-        {/* Payment Status Animation */}
+        {/* Success Animation */}
         <motion.div
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -306,52 +228,15 @@ END:VCALENDAR`;
           }}
           className="mb-8"
         >
-          <AnimatePresence mode="wait">
-            {paymentStatus === 'pending' && (
-              <motion.div
-                key="pending"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="w-24 h-24 rounded-full bg-amber-100 flex items-center justify-center"
-              >
-                <Clock className="w-14 h-14 text-amber-600" />
-              </motion.div>
-            )}
-            {paymentStatus === 'verifying' && (
-              <motion.div
-                key="verifying"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="w-24 h-24 rounded-full bg-blue-100 flex items-center justify-center"
-              >
-                <Loader2 className="w-14 h-14 text-blue-600 animate-spin" />
-              </motion.div>
-            )}
-            {paymentStatus === 'confirmed' && (
-              <motion.div
-                key="confirmed"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 300 }}
-                className="w-24 h-24 rounded-full bg-green-100 flex items-center justify-center"
-              >
-                <CheckCircle className="w-14 h-14 text-green-600" />
-              </motion.div>
-            )}
-            {paymentStatus === 'failed' && (
-              <motion.div
-                key="failed"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="w-24 h-24 rounded-full bg-red-100 flex items-center justify-center"
-              >
-                <AlertCircle className="w-14 h-14 text-red-600" />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <div className="w-24 h-24 rounded-full bg-green-100 flex items-center justify-center">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.3, type: "spring", stiffness: 300 }}
+            >
+              <CheckCircle className="w-14 h-14 text-green-600" />
+            </motion.div>
+          </div>
         </motion.div>
 
         {/* Confirmation Message */}
@@ -361,129 +246,13 @@ END:VCALENDAR`;
           transition={{ delay: 0.4 }}
           className="text-center mb-8"
         >
-          <AnimatePresence mode="wait">
-            {paymentStatus === 'pending' && (
-              <motion.div key="pending-text" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <h1 className="font-display text-2xl font-bold text-foreground mb-2">
-                  Payment Pending
-                </h1>
-                <p className="text-muted-foreground">
-                  Complete payment in your UPI app. We'll verify automatically.
-                </p>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Auto-checking... ({autoVerifyCount}/6)
-                </p>
-              </motion.div>
-            )}
-            {paymentStatus === 'verifying' && (
-              <motion.div key="verifying-text" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <h1 className="font-display text-2xl font-bold text-foreground mb-2">
-                  Verifying Payment...
-                </h1>
-                <p className="text-muted-foreground">
-                  Please wait while we confirm your payment
-                </p>
-              </motion.div>
-            )}
-            {paymentStatus === 'confirmed' && (
-              <motion.div key="confirmed-text" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <h1 className="font-display text-2xl font-bold text-foreground mb-2">
-                  Booking Confirmed!
-                </h1>
-                <p className="text-muted-foreground">
-                  Your appointment has been successfully scheduled
-                </p>
-              </motion.div>
-            )}
-            {paymentStatus === 'failed' && (
-              <motion.div key="failed-text" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <h1 className="font-display text-2xl font-bold text-destructive mb-2">
-                  Payment Failed
-                </h1>
-                <p className="text-muted-foreground">
-                  We couldn't verify your payment. Please try again.
-                </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <h1 className="font-display text-2xl font-bold text-foreground mb-2">
+            Booking Confirmed!
+          </h1>
+          <p className="text-muted-foreground">
+            Your appointment has been successfully scheduled
+          </p>
         </motion.div>
-
-        {/* Manual Verification Button for Pending Payments */}
-        {paymentStatus === 'pending' && bookingDetails.bookingId && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6 w-full max-w-md"
-          >
-            <Button
-              onClick={() => checkPaymentStatus(bookingDetails.bookingId)}
-              className="w-full gap-2"
-              variant="outline"
-            >
-              <RefreshCw className="w-4 h-4" />
-              Check Payment Status
-            </Button>
-            {verificationAttempts > 0 && (
-              <p className="text-xs text-center text-muted-foreground mt-2">
-                Checked {verificationAttempts} time{verificationAttempts > 1 ? 's' : ''}
-              </p>
-            )}
-          </motion.div>
-        )}
-
-        {/* Payment Failed - Retry Options */}
-        {paymentStatus === 'failed' && bookingDetails.bookingId && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6 w-full max-w-md space-y-3"
-          >
-            <Button
-              onClick={() => checkPaymentStatus(bookingDetails.bookingId)}
-              className="w-full gap-2"
-              variant="outline"
-            >
-              <RefreshCw className="w-4 h-4" />
-              Check Payment Status Again
-            </Button>
-            <Button
-              onClick={() => {
-                // Navigate back to salon page with retry params
-                const retryParams = new URLSearchParams({
-                  retry: 'true',
-                  service: bookingDetails.serviceName,
-                  price: bookingDetails.servicePrice.toString(),
-                  date: bookingDetails.bookingDate,
-                  time: bookingDetails.bookingTime,
-                  bookingId: bookingDetails.bookingId,
-                });
-                navigate(`/salon/${encodeURIComponent(bookingDetails.salonName)}?${retryParams.toString()}`);
-              }}
-              className="w-full gap-2"
-              variant="default"
-            >
-              <CreditCard className="w-4 h-4" />
-              Try Different Payment Method
-            </Button>
-            <p className="text-xs text-center text-muted-foreground">
-              Your booking is saved. Choose a different payment method to complete it.
-            </p>
-          </motion.div>
-        )}
-
-        {/* Verifying State Button */}
-        {paymentStatus === 'verifying' && bookingDetails.bookingId && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6 w-full max-w-md"
-          >
-            <Button disabled className="w-full gap-2" variant="outline">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Checking...
-            </Button>
-          </motion.div>
-        )}
 
         {/* Booking Details Card */}
         <motion.div
