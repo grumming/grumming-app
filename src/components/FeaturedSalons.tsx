@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useLocation } from "@/contexts/LocationContext";
 import { calculateDistance, formatDistance } from "@/lib/distance";
 
-interface Salon {
+export interface Salon {
   id: number;
   name: string;
   image: string;
@@ -20,7 +20,7 @@ interface Salon {
   price: string;
 }
 
-const salonsData: Salon[] = [
+export const salonsData: Salon[] = [
   // Mumbai Salons
   {
     id: 1,
