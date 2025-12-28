@@ -14,13 +14,13 @@ const CashbackBanner = () => {
     >
       <button
         onClick={() => navigate('/wallet')}
-        className="w-full relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 p-[2px] group"
+        className="w-full relative overflow-hidden rounded-2xl bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500 p-[2px] group"
       >
-        <div className="relative rounded-[14px] bg-gradient-to-r from-amber-500/90 via-orange-500/90 to-rose-500/90 px-5 py-4">
+        <div className="relative rounded-[14px] bg-gradient-to-r from-violet-500/90 via-purple-500/90 to-fuchsia-500/90 px-5 py-4">
           {/* Animated background sparkles */}
           <div className="absolute inset-0 overflow-hidden rounded-[14px]">
             <div className="absolute -top-4 -left-4 w-24 h-24 bg-white/20 rounded-full blur-2xl animate-pulse" />
-            <div className="absolute -bottom-4 -right-4 w-32 h-32 bg-yellow-300/20 rounded-full blur-2xl animate-pulse delay-300" />
+            <div className="absolute -bottom-4 -right-4 w-32 h-32 bg-fuchsia-300/20 rounded-full blur-2xl animate-pulse delay-300" />
           </div>
           
           <div className="relative flex items-center justify-between">
