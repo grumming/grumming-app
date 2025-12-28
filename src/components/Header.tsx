@@ -1,8 +1,6 @@
 import { motion } from "framer-motion";
 import UserMenu from "@/components/UserMenu";
 import NotificationCenter from "@/components/NotificationCenter";
-import MobileDrawer from "@/components/MobileDrawer";
-
 const Header = () => {
   return (
     <motion.header
@@ -27,7 +25,6 @@ const Header = () => {
         <div className="flex items-center gap-2">
           <NotificationCenter />
           <UserMenu />
-          <MobileDrawer />
         </div>
       </div>
     </motion.header>
