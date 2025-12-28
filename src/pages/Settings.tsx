@@ -3,13 +3,39 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   ArrowLeft, Bell, Moon, Sun, Globe, Lock, Shield, HelpCircle,
-  ChevronRight, Eye, EyeOff, Volume2, VolumeX, Vibrate
+  ChevronRight, Eye, EyeOff, Volume2, VolumeX, Vibrate, Check
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useTheme } from 'next-themes';
 import BottomNav from '@/components/BottomNav';
+
+interface Language {
+  code: string;
+  name: string;
+  nativeName: string;
+  flag: string;
+}
+
+const languages: Language[] = [
+  { code: 'en-IN', name: 'English (India)', nativeName: 'English', flag: '🇮🇳' },
+  { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी', flag: '🇮🇳' },
+  { code: 'ta', name: 'Tamil', nativeName: 'தமிழ்', flag: '🇮🇳' },
+  { code: 'te', name: 'Telugu', nativeName: 'తెలుగు', flag: '🇮🇳' },
+  { code: 'kn', name: 'Kannada', nativeName: 'ಕನ್ನಡ', flag: '🇮🇳' },
+  { code: 'ml', name: 'Malayalam', nativeName: 'മലയാളം', flag: '🇮🇳' },
+  { code: 'mr', name: 'Marathi', nativeName: 'मराठी', flag: '🇮🇳' },
+  { code: 'bn', name: 'Bengali', nativeName: 'বাংলা', flag: '🇮🇳' },
+  { code: 'gu', name: 'Gujarati', nativeName: 'ગુજરાતી', flag: '🇮🇳' },
+  { code: 'pa', name: 'Punjabi', nativeName: 'ਪੰਜਾਬੀ', flag: '🇮🇳' },
+];
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -20,6 +46,17 @@ const Settings = () => {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [vibrationEnabled, setVibrationEnabled] = useState(true);
   const [hideBalance, setHideBalance] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState<Language>(languages[0]);
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
+
+  const handleLanguageSelect = (language: Language) => {
+    setSelectedLanguage(language);
+    setShowLanguageModal(false);
+    toast({
+      title: 'Language updated',
+      description: `App language set to ${language.name}`,
+    });
+  };
 
   const handleToggle = (
     setter: React.Dispatch<React.SetStateAction<boolean>>, 
@@ -191,7 +228,7 @@ const Settings = () => {
           </button>
           
           <button
-            onClick={() => {}}
+            onClick={() => setShowLanguageModal(true)}
             className="w-full flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors border-b border-border"
           >
             <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
@@ -199,7 +236,7 @@ const Settings = () => {
             </div>
             <div className="flex-1 text-left">
               <span className="text-sm font-medium text-foreground">Language</span>
-              <p className="text-xs text-muted-foreground mt-0.5">English (India)</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{selectedLanguage.name}</p>
             </div>
             <ChevronRight className="w-4 h-4 text-muted-foreground" />
           </button>
@@ -219,6 +256,42 @@ const Settings = () => {
           </button>
         </div>
       </motion.div>
+
+      {/* Language Selection Modal */}
+      <Dialog open={showLanguageModal} onOpenChange={setShowLanguageModal}>
+        <DialogContent className="max-w-sm max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Globe className="w-5 h-5" />
+              Select Language
+            </DialogTitle>
+          </DialogHeader>
+          <div className="overflow-y-auto flex-1 -mx-6 px-6">
+            <div className="space-y-1 pb-4">
+              {languages.map((language) => (
+                <button
+                  key={language.code}
+                  onClick={() => handleLanguageSelect(language)}
+                  className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                    selectedLanguage.code === language.code
+                      ? 'bg-primary/10 border border-primary/30'
+                      : 'hover:bg-muted border border-transparent'
+                  }`}
+                >
+                  <span className="text-2xl">{language.flag}</span>
+                  <div className="flex-1 text-left">
+                    <p className="text-sm font-medium text-foreground">{language.name}</p>
+                    <p className="text-xs text-muted-foreground">{language.nativeName}</p>
+                  </div>
+                  {selectedLanguage.code === language.code && (
+                    <Check className="w-5 h-5 text-primary" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <BottomNav />
     </div>
