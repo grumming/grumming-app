@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Copy, Share2, Gift, Users, Check, Sparkles, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Copy, Share2, Gift, Users, Check, Sparkles, MessageCircle, Trophy, Crown, Medal } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -13,7 +13,7 @@ const Referrals = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
-  const { referralCode, referrals, userReward, isLoading, getShareUrl, getShareText } = useReferral();
+  const { referralCode, referrals, userReward, leaderboard, isLoading, isLoadingLeaderboard, getShareUrl, getShareText } = useReferral();
   const [copied, setCopied] = useState(false);
 
   if (!user) {
@@ -170,6 +170,95 @@ const Referrals = () => {
             </Card>
           </motion.div>
         </div>
+
+        {/* Leaderboard */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.18 }}
+        >
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <Trophy className="w-6 h-6 text-yellow-500" />
+                <h3 className="font-display text-lg font-semibold">Top Referrers</h3>
+              </div>
+              
+              {isLoadingLeaderboard ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-14 bg-secondary/50 rounded-lg animate-pulse" />
+                  ))}
+                </div>
+              ) : leaderboard && leaderboard.length > 0 ? (
+                <div className="space-y-2">
+                  {leaderboard.map((entry) => (
+                    <div
+                      key={entry.userId}
+                      className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                        entry.isCurrentUser 
+                          ? 'bg-primary/10 border border-primary/20' 
+                          : 'bg-secondary/50'
+                      }`}
+                    >
+                      {/* Rank */}
+                      <div className="w-8 h-8 flex items-center justify-center shrink-0">
+                        {entry.rank === 1 ? (
+                          <Crown className="w-6 h-6 text-yellow-500" />
+                        ) : entry.rank === 2 ? (
+                          <Medal className="w-6 h-6 text-gray-400" />
+                        ) : entry.rank === 3 ? (
+                          <Medal className="w-6 h-6 text-amber-600" />
+                        ) : (
+                          <span className="text-lg font-bold text-muted-foreground">
+                            {entry.rank}
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* Avatar */}
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden shrink-0">
+                        {entry.avatarUrl ? (
+                          <img 
+                            src={entry.avatarUrl} 
+                            alt={entry.name} 
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <Users className="w-5 h-5 text-primary" />
+                        )}
+                      </div>
+                      
+                      {/* Name */}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">
+                          {entry.isCurrentUser ? 'You' : entry.name}
+                        </p>
+                        {entry.isCurrentUser && (
+                          <p className="text-xs text-primary">Your rank</p>
+                        )}
+                      </div>
+                      
+                      {/* Count */}
+                      <Badge 
+                        variant={entry.rank <= 3 ? 'default' : 'secondary'}
+                        className={entry.rank === 1 ? 'bg-yellow-500' : ''}
+                      >
+                        {entry.referralCount} {entry.referralCount === 1 ? 'referral' : 'referrals'}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Trophy className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                  <p>Be the first to refer friends!</p>
+                  <p className="text-sm mt-1">Share your code to climb the leaderboard</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {/* How it works */}
         <motion.div
