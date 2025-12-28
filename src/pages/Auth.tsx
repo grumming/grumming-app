@@ -371,7 +371,8 @@ const Auth = () => {
                   {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
                 </div>
 
-                {/* Referral Code Field - Collapsible */}
+                {/* Referral Code Field - Collapsible - Only show during signup */}
+                {isSignUp && (
                 <div className="space-y-2">
                   <button
                     type="button"
@@ -454,6 +455,7 @@ const Auth = () => {
                     )}
                   </AnimatePresence>
                 </div>
+                )}
 
                 <Button
                   className="w-full h-14 text-base font-semibold"
