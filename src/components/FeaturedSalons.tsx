@@ -152,13 +152,13 @@ const FeaturedSalons = () => {
   const { coordinates } = useLocation();
   const { isFavorite, toggleFavorite } = useFavorites();
 
-  // Calculate distance and sort salons by proximity
+  // Calculate distance and sort salons by proximity - show nearest first
   const sortedSalons = useMemo(() => {
     if (!coordinates) {
       return salonsData.map(salon => ({ ...salon, distance: null }));
     }
 
-    return salonsData
+    const salonsWithDistance = salonsData
       .map(salon => ({
         ...salon,
         distance: calculateDistance(
@@ -168,7 +168,11 @@ const FeaturedSalons = () => {
           salon.coordinates.lng
         ),
       }))
-      .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+      .sort((a, b) => a.distance - b.distance);
+
+    // Filter to show only salons within 100km, or all if none within range
+    const nearbySalons = salonsWithDistance.filter(s => s.distance <= 100);
+    return nearbySalons.length > 0 ? nearbySalons : salonsWithDistance;
   }, [coordinates]);
 
   const handleSalonClick = (id: number) => {
@@ -267,11 +271,13 @@ const FeaturedSalons = () => {
                   
                   <div className="flex flex-col gap-1 text-sm text-muted-foreground mb-4">
                     <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4" />
-                      <span>
-                        {salon.location}
-                        {salon.distance !== null && ` • ${formatDistance(salon.distance)}`}
-                      </span>
+                      <MapPin className="w-4 h-4 flex-shrink-0" />
+                      <span className="truncate">{salon.location}</span>
+                      {salon.distance !== null && (
+                        <span className="ml-auto flex-shrink-0 text-xs font-medium bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                          {formatDistance(salon.distance)}
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       <Clock className="w-4 h-4" />
