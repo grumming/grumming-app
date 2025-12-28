@@ -1,8 +1,8 @@
 import { motion } from "framer-motion";
-import { Search, Scissors, Clock, Mic, MicOff } from "lucide-react";
+import { Search, Scissors, Clock, Mic, MicOff, Sparkles } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { getFilteredSalons, SalonBasic } from "@/data/salonsData";
+import { getSearchResults, SalonBasic, ServiceResult } from "@/data/salonsData";
 import { useRecentSearches } from "@/hooks/useRecentSearches";
 import { toast } from "sonner";
 import VoiceWaveform from "./VoiceWaveform";
@@ -38,8 +38,9 @@ declare global {
 const HeroSection = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const [showSalonSuggestions, setShowSalonSuggestions] = useState(false);
-  const [salonSuggestions, setSalonSuggestions] = useState<SalonBasic[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [salonResults, setSalonResults] = useState<SalonBasic[]>([]);
+  const [serviceResults, setServiceResults] = useState<ServiceResult[]>([]);
   const [isListening, setIsListening] = useState(false);
   const searchInputRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
@@ -59,7 +60,7 @@ const HeroSection = () => {
           .map(result => result[0].transcript)
           .join('');
         setSearchQuery(transcript);
-        setShowSalonSuggestions(true);
+        setShowSuggestions(true);
       };
 
       recognitionRef.current.onend = () => {
@@ -100,14 +101,15 @@ const HeroSection = () => {
   };
 
   useEffect(() => {
-    const filtered = getFilteredSalons(searchQuery);
-    setSalonSuggestions(filtered);
+    const results = getSearchResults(searchQuery);
+    setSalonResults(results.salons);
+    setServiceResults(results.services);
   }, [searchQuery]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchInputRef.current && !searchInputRef.current.contains(event.target as Node)) {
-        setShowSalonSuggestions(false);
+        setShowSuggestions(false);
       }
     };
 
@@ -117,21 +119,29 @@ const HeroSection = () => {
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
-    setShowSalonSuggestions(true);
+    setShowSuggestions(true);
   };
 
   const handleSelectSalon = (salon: SalonBasic) => {
     addRecentSearch(salon);
-    setShowSalonSuggestions(false);
+    setShowSuggestions(false);
     navigate(`/salon/${salon.id}`);
+  };
+
+  const handleSelectService = (service: ServiceResult) => {
+    setShowSuggestions(false);
+    navigate(`/salon/${service.salonId}?service=${encodeURIComponent(service.serviceName)}`);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && searchQuery.trim()) {
-      setShowSalonSuggestions(false);
+      setShowSuggestions(false);
       navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
+
+  const hasResults = salonResults.length > 0 || serviceResults.length > 0;
+  const hasRecentSearches = searchQuery === '' && recentSearches.length > 0;
 
   return (
     <section className="relative py-4 overflow-hidden">
@@ -145,7 +155,7 @@ const HeroSection = () => {
           {/* Search Card */}
           <div className="bg-background border border-border rounded-xl p-1.5">
             <div className="flex flex-col sm:flex-row gap-1.5">
-              {/* Search Input with Salon Suggestions */}
+              {/* Search Input with Suggestions */}
               <div ref={searchInputRef} className="relative flex-1">
                 <div className="flex items-center gap-2 px-4 py-3 bg-muted/50 rounded-lg border border-border/50">
                   <Search className="w-5 h-5 text-muted-foreground" />
@@ -157,8 +167,8 @@ const HeroSection = () => {
                       value={searchQuery}
                       onChange={handleSearchChange}
                       onKeyDown={handleKeyDown}
-                      onFocus={() => setShowSalonSuggestions(true)}
-                      placeholder="Search for salons, services..."
+                      onFocus={() => setShowSuggestions(true)}
+                      placeholder="Search salons or services..."
                       className="bg-transparent outline-none w-full text-foreground placeholder:text-muted-foreground font-body"
                     />
                   )}
@@ -179,13 +189,13 @@ const HeroSection = () => {
                   </button>
                 </div>
 
-                {/* Salon Suggestions Dropdown */}
-                {showSalonSuggestions && (salonSuggestions.length > 0 || (searchQuery === '' && recentSearches.length > 0)) && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-xl shadow-lg z-50 max-h-72 overflow-y-auto">
+                {/* Search Suggestions Dropdown */}
+                {showSuggestions && (hasResults || hasRecentSearches) && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-xl shadow-lg z-50 max-h-80 overflow-y-auto">
                     {/* Recent Searches */}
-                    {searchQuery === '' && recentSearches.length > 0 && (
+                    {hasRecentSearches && (
                       <>
-                        <div className="px-4 py-2 flex items-center justify-between border-b border-border">
+                        <div className="px-4 py-2 flex items-center justify-between border-b border-border bg-background">
                           <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
                             <Clock className="w-3 h-3" /> Recent Searches
                           </span>
@@ -203,7 +213,7 @@ const HeroSection = () => {
                           <button
                             key={salon.id}
                             onClick={() => handleSelectSalon(salon)}
-                            className="w-full px-4 py-3 text-left hover:bg-muted transition-colors flex items-center gap-3"
+                            className="w-full px-4 py-3 text-left hover:bg-muted transition-colors flex items-center gap-3 bg-background"
                           >
                             <Clock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                             <div>
@@ -214,20 +224,64 @@ const HeroSection = () => {
                         ))}
                       </>
                     )}
-                    {/* Search Suggestions */}
-                    {salonSuggestions.map((salon) => (
-                      <button
-                        key={salon.id}
-                        onClick={() => handleSelectSalon(salon)}
-                        className="w-full px-4 py-3 text-left hover:bg-muted transition-colors flex items-center gap-3 first:rounded-t-xl last:rounded-b-xl"
-                      >
-                        <Scissors className="w-4 h-4 text-primary flex-shrink-0" />
-                        <div>
-                          <p className="text-foreground font-medium">{salon.name}</p>
-                          <p className="text-xs text-muted-foreground">{salon.location}, {salon.city}</p>
+
+                    {/* Services Section */}
+                    {serviceResults.length > 0 && (
+                      <>
+                        <div className="px-4 py-2 border-b border-border bg-muted/30">
+                          <span className="text-xs font-semibold text-primary flex items-center gap-1.5">
+                            <Sparkles className="w-3 h-3" /> Services
+                          </span>
                         </div>
-                      </button>
-                    ))}
+                        {serviceResults.map((service, index) => (
+                          <button
+                            key={`${service.salonId}-${service.serviceName}-${index}`}
+                            onClick={() => handleSelectService(service)}
+                            className="w-full px-4 py-3 text-left hover:bg-muted transition-colors flex items-center gap-3 bg-background"
+                          >
+                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                              <Sparkles className="w-4 h-4 text-primary" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-foreground font-medium">{service.serviceName}</p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {service.salonName} • {service.location}
+                              </p>
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              <p className="text-sm font-semibold text-primary">₹{service.price}</p>
+                              <p className="text-xs text-muted-foreground">{service.duration}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </>
+                    )}
+
+                    {/* Salons Section */}
+                    {salonResults.length > 0 && (
+                      <>
+                        <div className="px-4 py-2 border-b border-border bg-muted/30">
+                          <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                            <Scissors className="w-3 h-3" /> Salons
+                          </span>
+                        </div>
+                        {salonResults.map((salon) => (
+                          <button
+                            key={salon.id}
+                            onClick={() => handleSelectSalon(salon)}
+                            className="w-full px-4 py-3 text-left hover:bg-muted transition-colors flex items-center gap-3 bg-background"
+                          >
+                            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                              <Scissors className="w-4 h-4 text-muted-foreground" />
+                            </div>
+                            <div>
+                              <p className="text-foreground font-medium">{salon.name}</p>
+                              <p className="text-xs text-muted-foreground">{salon.location}, {salon.city}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </>
+                    )}
                   </div>
                 )}
               </div>
