@@ -60,7 +60,7 @@ const Header = () => {
         {/* Location Selector */}
         <div ref={locationInputRef} className="relative">
           <div 
-            className="flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-lg border border-border/50 cursor-pointer"
+            className="flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-lg border border-border/50 cursor-pointer hover:bg-muted/70 transition-colors"
             onClick={() => setShowSuggestions(true)}
           >
             <MapPin className="w-4 h-4 text-primary flex-shrink-0" />
@@ -71,6 +71,9 @@ const Header = () => {
               onFocus={() => setShowSuggestions(true)}
               placeholder="Select city"
               className="bg-transparent outline-none w-24 sm:w-32 text-sm text-foreground placeholder:text-muted-foreground font-body"
+            />
+            <ChevronDown 
+              className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${showSuggestions ? 'rotate-180' : ''}`} 
             />
             <button
               onClick={(e) => {
