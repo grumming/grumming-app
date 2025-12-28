@@ -9,9 +9,13 @@ import AppPromo from "@/components/AppPromo";
 import BottomNav from "@/components/BottomNav";
 import WelcomeBanner from "@/components/WelcomeBanner";
 import Footer from "@/components/Footer";
+import { usePendingProfile } from "@/hooks/usePendingProfile";
 
 const Index = () => {
   const [isSearchActive, setIsSearchActive] = useState(false);
+  
+  // Handle pending profile updates after signup
+  usePendingProfile();
 
   return (
     <div className="min-h-screen bg-background">
