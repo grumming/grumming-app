@@ -1,5 +1,4 @@
 import Header from "@/components/Header";
-import HeroSection from "@/components/HeroSection";
 import FirstBookingBanner from "@/components/FirstBookingBanner";
 import CashbackBanner from "@/components/CashbackBanner";
 import FeaturedSalons from "@/components/FeaturedSalons";
@@ -13,7 +12,6 @@ const Index = () => {
       <Header />
       <WelcomeBanner />
       <main className="pt-16 pb-24">
-        <HeroSection />
         <FirstBookingBanner />
         <CashbackBanner />
         <FeaturedSalons />
