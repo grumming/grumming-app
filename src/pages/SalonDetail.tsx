@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, Star, MapPin, Clock, Phone, Heart, Share2, 
   ChevronRight, Calendar, Check, User, MessageSquare, CreditCard, Gift, X,
-  Tag, Loader2
+  Tag, Loader2, Wallet
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,7 @@ import { format, addDays, parseISO } from 'date-fns';
 import { SalonReviews } from '@/components/SalonReviews';
 import StylistsList from '@/components/StylistsList';
 import { useReferral } from '@/hooks/useReferral';
+import { useWallet } from '@/hooks/useWallet';
 
 // Mock salon data - in production this would come from database
 const salonsData: Record<string, any> = {
@@ -500,6 +501,7 @@ const SalonDetail = () => {
   const { user } = useAuth();
   const { initiatePayment, isLoading: isPaymentLoading } = useRazorpay();
   const { userReward } = useReferral();
+  const { wallet, useCredits } = useWallet();
   
   const [isFavorite, setIsFavorite] = useState(false);
   const [selectedServices, setSelectedServices] = useState<number[]>([]);
@@ -509,6 +511,7 @@ const SalonDetail = () => {
   const [isBooking, setIsBooking] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'online' | 'salon'>('online');
   const [applyReward, setApplyReward] = useState(false);
+  const [applyWalletCredits, setApplyWalletCredits] = useState(false);
   
   // Promo code states
   const [promoCode, setPromoCode] = useState('');
@@ -578,19 +581,25 @@ const SalonDetail = () => {
   const availableReward = userReward?.available || 0;
   const rewardDiscount = applyReward ? Math.min(availableReward, subtotalPrice) : 0;
   
+  // Calculate wallet credits discount
+  const walletBalance = wallet?.balance || 0;
+  const priceAfterReward = subtotalPrice - rewardDiscount;
+  const walletCreditsDiscount = applyWalletCredits ? Math.min(walletBalance, priceAfterReward) : 0;
+  
   // Calculate promo discount
   const calculatePromoDiscount = () => {
     if (!appliedPromo) return 0;
-    const priceAfterReward = subtotalPrice - rewardDiscount;
+    const priceAfterCredits = subtotalPrice - rewardDiscount - walletCreditsDiscount;
     if (appliedPromo.discountType === 'percentage') {
-      const discount = (priceAfterReward * appliedPromo.discountValue) / 100;
+      const discount = (priceAfterCredits * appliedPromo.discountValue) / 100;
       return appliedPromo.maxDiscount ? Math.min(discount, appliedPromo.maxDiscount) : discount;
     }
-    return Math.min(appliedPromo.discountValue, priceAfterReward);
+    return Math.min(appliedPromo.discountValue, priceAfterCredits);
   };
   
   const promoDiscount = calculatePromoDiscount();
-  const totalPrice = Math.max(0, subtotalPrice - rewardDiscount - promoDiscount);
+  const totalPrice = Math.max(0, subtotalPrice - rewardDiscount - walletCreditsDiscount - promoDiscount);
+  const totalDiscount = rewardDiscount + walletCreditsDiscount + promoDiscount;
   const totalDuration = selectedServicesData.reduce((sum: string, s: any) => {
     const match = s.duration.match(/(\d+\.?\d*)/);
     return match ? sum + parseFloat(match[0]) : sum;
@@ -754,6 +763,16 @@ const SalonDetail = () => {
           await markRewardAsUsed();
         }
 
+        // Deduct wallet credits if applied
+        if (applyWalletCredits && walletCreditsDiscount > 0) {
+          await useCredits({
+            amount: walletCreditsDiscount,
+            category: 'booking_discount',
+            description: `Used for booking at ${salon.name}`,
+            referenceId: bookingData.id,
+          });
+        }
+
         // Record promo code usage
         if (appliedPromo && user) {
           await supabase.from('promo_code_usage').insert({
@@ -766,9 +785,9 @@ const SalonDetail = () => {
         setShowBookingModal(false);
         setSelectedServices([]);
         setApplyReward(false);
+        setApplyWalletCredits(false);
         setAppliedPromo(null);
         
-        const totalDiscount = rewardDiscount + promoDiscount;
         toast({
           title: 'Payment Successful!',
           description: totalDiscount > 0 
@@ -808,6 +827,16 @@ const SalonDetail = () => {
         await markRewardAsUsed();
       }
 
+      // Deduct wallet credits if applied
+      if (applyWalletCredits && walletCreditsDiscount > 0) {
+        await useCredits({
+          amount: walletCreditsDiscount,
+          category: 'booking_discount',
+          description: `Used for booking at ${salon.name}`,
+          referenceId: bookingData.id,
+        });
+      }
+
       // Record promo code usage for salon payment
       if (appliedPromo && user) {
         await supabase.from('promo_code_usage').insert({
@@ -821,9 +850,9 @@ const SalonDetail = () => {
       setShowBookingModal(false);
       setSelectedServices([]);
       setApplyReward(false);
+      setApplyWalletCredits(false);
       setAppliedPromo(null);
 
-      const totalDiscount = rewardDiscount + promoDiscount;
       toast({
         title: 'Booking Confirmed!',
         description: totalDiscount > 0 
@@ -1230,6 +1259,42 @@ const SalonDetail = () => {
               </div>
             )}
 
+            {/* Wallet Credits Section */}
+            {walletBalance > 0 && (
+              <div className="space-y-2">
+                {!applyWalletCredits ? (
+                  <button
+                    onClick={() => setApplyWalletCredits(true)}
+                    className="w-full flex items-center justify-between p-3 rounded-lg border border-dashed border-amber-500/50 bg-amber-50/50 dark:bg-amber-900/10 hover:bg-amber-100/50 dark:hover:bg-amber-900/20 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Wallet className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                      <span className="text-sm font-medium text-amber-700 dark:text-amber-300">
+                        Use ₹{Math.min(walletBalance, priceAfterReward)} Wallet Credits
+                      </span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">Balance: ₹{walletBalance}</span>
+                  </button>
+                ) : (
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                    <div className="flex items-center gap-2">
+                      <Wallet className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                      <span className="text-sm font-medium text-amber-700 dark:text-amber-300">Credits Applied!</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-amber-600 dark:text-amber-400">-₹{walletCreditsDiscount}</span>
+                      <button 
+                        onClick={() => setApplyWalletCredits(false)}
+                        className="p-1 hover:bg-amber-100 dark:hover:bg-amber-800 rounded"
+                      >
+                        <X className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Promo Code Section */}
             <div className="space-y-3 pt-2 border-t">
               <h4 className="font-medium text-sm flex items-center gap-2">
@@ -1325,12 +1390,17 @@ const SalonDetail = () => {
             <div className="flex justify-between font-semibold pt-2 border-t">
               <span>Total</span>
               <div className="flex items-center gap-2">
-                {(rewardDiscount > 0 || promoDiscount > 0) && (
+                {totalDiscount > 0 && (
                   <span className="text-sm text-muted-foreground line-through">₹{subtotalPrice}</span>
                 )}
                 <span className="text-primary">₹{totalPrice}</span>
               </div>
             </div>
+            {totalDiscount > 0 && (
+              <p className="text-xs text-green-600 dark:text-green-400 text-center">
+                🎉 You're saving ₹{totalDiscount} on this booking!
+              </p>
+            )}
           </div>
 
           {/* Date Selection */}
