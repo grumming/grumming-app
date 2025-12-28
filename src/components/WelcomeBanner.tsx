@@ -75,7 +75,7 @@ const WelcomeBanner = () => {
               
               <div className="flex-1 pr-6">
                 <h3 className="text-lg font-bold text-white">
-                  Welcome to Glamour! 🎉
+                  Welcome to Grumming! 🎉
                 </h3>
                 <p className="mt-1 text-sm text-white/90">
                   Use code <span className="font-bold text-yellow-300">FIRST100</span> for ₹100 off your first booking!
