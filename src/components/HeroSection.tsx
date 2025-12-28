@@ -267,17 +267,17 @@ const HeroSection = ({ onSearchActiveChange }: HeroSectionProps) => {
                             onClick={() => handleSelectService(service)}
                             className="w-full px-4 py-3 text-left hover:bg-muted transition-colors flex items-center gap-3 bg-background"
                           >
-                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                              <Sparkles className="w-4 h-4 text-primary" />
+                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                              <Sparkles className="w-5 h-5 text-primary" />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-foreground font-medium">{service.serviceName}</p>
-                              <p className="text-xs text-muted-foreground truncate">
+                              <p className="text-base font-semibold text-foreground">{service.serviceName}</p>
+                              <p className="text-sm text-muted-foreground truncate">
                                 {service.salonName} • {service.location}
                               </p>
                             </div>
                             <div className="text-right flex-shrink-0">
-                              <p className="text-sm font-semibold text-primary">₹{service.price}</p>
+                              <p className="text-base font-bold text-primary">₹{service.price}</p>
                               <p className="text-xs text-muted-foreground">{service.duration}</p>
                             </div>
                           </button>
@@ -302,12 +302,12 @@ const HeroSection = ({ onSearchActiveChange }: HeroSectionProps) => {
                             onClick={() => handleSelectSalon(salon)}
                             className="w-full px-4 py-3 text-left hover:bg-muted transition-colors flex items-center gap-3 bg-background"
                           >
-                            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                              <Scissors className="w-4 h-4 text-muted-foreground" />
+                            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                              <Scissors className="w-5 h-5 text-foreground" />
                             </div>
                             <div>
-                              <p className="text-foreground font-medium">{salon.name}</p>
-                              <p className="text-xs text-muted-foreground">{salon.location}, {salon.city}</p>
+                              <p className="text-base font-semibold text-foreground">{salon.name}</p>
+                              <p className="text-sm text-muted-foreground">{salon.location}, {salon.city}</p>
                             </div>
                           </button>
                         ))}
