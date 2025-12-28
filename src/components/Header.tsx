@@ -1,6 +1,4 @@
 import { motion } from "framer-motion";
-import { Menu } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import UserMenu from "@/components/UserMenu";
 import NotificationCenter from "@/components/NotificationCenter";
 const Header = () => {
@@ -27,9 +25,6 @@ const Header = () => {
         <div className="flex items-center gap-2">
           <NotificationCenter />
           <UserMenu />
-          <Button variant="ghost" size="icon" className="md:hidden">
-            <Menu className="w-5 h-5" />
-          </Button>
         </div>
       </div>
     </motion.header>
