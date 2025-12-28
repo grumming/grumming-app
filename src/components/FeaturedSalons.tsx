@@ -1,11 +1,18 @@
 import { motion } from "framer-motion";
-import { Star, MapPin, Clock, Heart, Car } from "lucide-react";
+import { Star, MapPin, Clock, Heart, Car, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "@/contexts/LocationContext";
 import { calculateDistance, formatDistance, estimateTravelTime } from "@/lib/distance";
 import { useFavorites } from "@/contexts/FavoritesContext";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export interface Salon {
   id: number;
@@ -147,10 +154,20 @@ export const salonsData: Salon[] = [
   },
 ];
 
+const distanceFilters = [
+  { value: "all", label: "All distances" },
+  { value: "2", label: "Within 2 km" },
+  { value: "5", label: "Within 5 km" },
+  { value: "10", label: "Within 10 km" },
+  { value: "25", label: "Within 25 km" },
+  { value: "50", label: "Within 50 km" },
+];
+
 const FeaturedSalons = () => {
   const navigate = useNavigate();
   const { coordinates } = useLocation();
   const { isFavorite, toggleFavorite } = useFavorites();
+  const [distanceFilter, setDistanceFilter] = useState<string>("all");
 
   // Calculate distance and sort salons by proximity - show nearest first
   const sortedSalons = useMemo(() => {
@@ -175,6 +192,15 @@ const FeaturedSalons = () => {
     return nearbySalons.length > 0 ? nearbySalons : salonsWithDistance;
   }, [coordinates]);
 
+  // Apply distance filter
+  const filteredSalons = useMemo(() => {
+    if (distanceFilter === "all" || !coordinates) {
+      return sortedSalons;
+    }
+    const maxDistance = parseFloat(distanceFilter);
+    return sortedSalons.filter(s => s.distance !== null && s.distance <= maxDistance);
+  }, [sortedSalons, distanceFilter, coordinates]);
+
   const handleSalonClick = (id: number) => {
     navigate(`/salon/${id}`);
   };
@@ -187,7 +213,7 @@ const FeaturedSalons = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="flex flex-col sm:flex-row sm:items-end justify-between mb-10"
+          className="flex flex-col sm:flex-row sm:items-end justify-between mb-10 gap-4"
         >
           <div>
             <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-2">
@@ -195,24 +221,53 @@ const FeaturedSalons = () => {
             </h2>
             <p className="text-muted-foreground">
               {coordinates 
-                ? "Sorted by distance from your location" 
+                ? `Showing ${filteredSalons.length} salon${filteredSalons.length !== 1 ? 's' : ''} sorted by distance` 
                 : "Handpicked salons with the best ratings & reviews"}
             </p>
           </div>
-          <Button variant="outline" className="mt-4 sm:mt-0">
-            View All
-          </Button>
+          <div className="flex items-center gap-3">
+            {coordinates && (
+              <Select value={distanceFilter} onValueChange={setDistanceFilter}>
+                <SelectTrigger className="w-[160px]">
+                  <SlidersHorizontal className="w-4 h-4 mr-2" />
+                  <SelectValue placeholder="Filter by distance" />
+                </SelectTrigger>
+                <SelectContent>
+                  {distanceFilters.map((filter) => (
+                    <SelectItem key={filter.value} value={filter.value}>
+                      {filter.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <Button variant="outline">
+              View All
+            </Button>
+          </div>
         </motion.div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {sortedSalons.map((salon, index) => (
-            <motion.div
-              key={salon.id}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: index * 0.1 }}
-            >
+        {filteredSalons.length === 0 ? (
+          <div className="text-center py-12">
+            <MapPin className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-foreground mb-2">No salons found</h3>
+            <p className="text-muted-foreground mb-4">
+              No salons within {distanceFilter} km of your location.
+            </p>
+            <Button variant="outline" onClick={() => setDistanceFilter("all")}>
+              Show all salons
+            </Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {filteredSalons.map((salon, index) => (
+              <motion.div
+                key={salon.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: index * 0.1 }}
+              >
               <div 
                 onClick={() => handleSalonClick(salon.id)}
                 className="group bg-card rounded-2xl overflow-hidden shadow-soft hover:shadow-card transition-all duration-300 hover:-translate-y-1 cursor-pointer"
@@ -305,7 +360,8 @@ const FeaturedSalons = () => {
               </div>
             </motion.div>
           ))}
-        </div>
+          </div>
+        )}
       </div>
     </section>
   );
