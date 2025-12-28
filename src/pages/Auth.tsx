@@ -525,10 +525,8 @@ const Auth = () => {
                   onClick={handlePhoneOTP}
                   disabled={isLoading || phone.length < 10}
                 >
-                  {isLoading ? (
+                  {isLoading && (
                     <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                  ) : (
-                    <Phone className="w-5 h-5 mr-2" />
                   )}
                   Continue
                 </Button>
