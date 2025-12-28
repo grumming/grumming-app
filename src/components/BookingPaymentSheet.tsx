@@ -10,6 +10,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { PaymentMethodSelector, PaymentMethodType } from './PaymentMethodSelector';
+import { PaymentReceipt } from './PaymentReceipt';
 import { useRazorpay } from '@/hooks/useRazorpay';
 import { useWallet } from '@/hooks/useWallet';
 import { useToast } from '@/hooks/use-toast';
@@ -22,11 +23,27 @@ interface BookingPaymentSheetProps {
     salon_name: string;
     service_name: string;
     service_price: number;
+    booking_date?: string;
+    booking_time?: string;
   };
   customerName?: string;
   customerEmail?: string;
   customerPhone?: string;
   onPaymentSuccess: () => void;
+}
+
+interface ReceiptData {
+  bookingId: string;
+  paymentId: string;
+  salonName: string;
+  serviceName: string;
+  amount: number;
+  walletAmount?: number;
+  paidAmount: number;
+  paymentMethod: string;
+  bookingDate?: string;
+  bookingTime?: string;
+  paidAt: Date;
 }
 
 export function BookingPaymentSheet({
@@ -48,10 +65,39 @@ export function BookingPaymentSheet({
   const [selectedSavedMethodId, setSelectedSavedMethodId] = useState<string | null>(null);
   const [selectedUpiAppId, setSelectedUpiAppId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
 
   const walletBalance = wallet?.balance || 0;
   const totalAmount = booking.service_price;
   const amountToPay = isSplitPayment ? totalAmount - walletAmountToUse : totalAmount;
+
+  const getPaymentMethodLabel = (method: PaymentMethodType) => {
+    switch (method) {
+      case 'online': return 'Card/Net Banking';
+      case 'upi': return 'UPI';
+      case 'split': return 'Wallet + Pay at Salon';
+      case 'salon': return 'Pay at Salon';
+      default: return 'Online';
+    }
+  };
+
+  const showReceiptDialog = (paymentId: string) => {
+    setReceiptData({
+      bookingId: booking.id,
+      paymentId,
+      salonName: booking.salon_name,
+      serviceName: booking.service_name,
+      amount: totalAmount,
+      walletAmount: isSplitPayment ? walletAmountToUse : undefined,
+      paidAmount: amountToPay,
+      paymentMethod: getPaymentMethodLabel(paymentMethod),
+      bookingDate: booking.booking_date,
+      bookingTime: booking.booking_time,
+      paidAt: new Date(),
+    });
+    setShowReceipt(true);
+  };
 
   const handlePayNow = async () => {
     setIsProcessing(true);
@@ -89,13 +135,9 @@ export function BookingPaymentSheet({
           customerPhone,
         });
 
-        if (result.success) {
-          toast({
-            title: 'Payment Successful!',
-            description: `Your booking at ${booking.salon_name} has been paid.`,
-          });
+        if (result.success && result.paymentId) {
+          showReceiptDialog(result.paymentId);
           onPaymentSuccess();
-          onOpenChange(false);
         } else {
           // If split payment and wallet was deducted, we need to inform user
           if (isSplitPayment && walletAmountToUse > 0) {
@@ -114,12 +156,9 @@ export function BookingPaymentSheet({
         }
       } else if (paymentMethod === 'split' && amountToPay > 0) {
         // For split payment with remaining amount to pay at salon
-        toast({
-          title: 'Wallet Amount Deducted',
-          description: `₹${walletAmountToUse} deducted from wallet. Pay ₹${amountToPay} at the salon.`,
-        });
+        const walletPaymentId = `WALLET-${Date.now()}`;
+        showReceiptDialog(walletPaymentId);
         onPaymentSuccess();
-        onOpenChange(false);
       }
     } catch (error: any) {
       toast({
@@ -130,6 +169,12 @@ export function BookingPaymentSheet({
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handleReceiptClose = () => {
+    setShowReceipt(false);
+    setReceiptData(null);
+    onOpenChange(false);
   };
 
   const isLoading = razorpayLoading || isProcessing;
@@ -224,6 +269,15 @@ export function BookingPaymentSheet({
           )}
         </div>
       </SheetContent>
+
+      {/* Payment Receipt Dialog */}
+      {receiptData && (
+        <PaymentReceipt
+          open={showReceipt}
+          onOpenChange={handleReceiptClose}
+          receipt={receiptData}
+        />
+      )}
     </Sheet>
   );
 }
