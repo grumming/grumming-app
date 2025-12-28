@@ -1,81 +1,24 @@
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Heart, MapPin, Star, Clock, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { useFavorites } from '@/hooks/useFavorites';
 import BottomNav from '@/components/BottomNav';
 import { salonsData } from '@/components/FeaturedSalons';
-
-interface FavoriteSalon {
-  id: string;
-  salon_id: string;
-  created_at: string;
-}
 
 const Favorites = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { toast } = useToast();
-  const [favorites, setFavorites] = useState<FavoriteSalon[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { favorites, isLoading, toggleFavorite } = useFavorites();
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/auth');
-    }
-  }, [user, authLoading, navigate]);
-
-  useEffect(() => {
-    if (user) {
-      fetchFavorites();
-    }
-  }, [user]);
-
-  const fetchFavorites = async () => {
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from('favorite_salons')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching favorites:', error);
-    } else {
-      setFavorites(data || []);
-    }
-    setIsLoading(false);
-  };
-
-  const removeFavorite = async (salonId: string) => {
-    if (!user) return;
-
-    const { error } = await supabase
-      .from('favorite_salons')
-      .delete()
-      .eq('user_id', user.id)
-      .eq('salon_id', salonId);
-
-    if (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to remove from favorites.',
-        variant: 'destructive',
-      });
-    } else {
-      setFavorites(prev => prev.filter(f => f.salon_id !== salonId));
-      toast({
-        title: 'Removed',
-        description: 'Salon removed from favorites.',
-      });
-    }
-  };
+  // Redirect to auth if not logged in
+  if (!authLoading && !user) {
+    navigate('/auth');
+    return null;
+  }
 
   const favoriteSalons = salonsData.filter(salon => 
-    favorites.some(f => f.salon_id === salon.id.toString())
+    favorites.includes(String(salon.id))
   );
 
   if (authLoading || isLoading) {
@@ -141,7 +84,7 @@ const Favorites = () => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          removeFavorite(salon.id.toString());
+                          toggleFavorite(salon.id);
                         }}
                         className="p-1.5 rounded-full hover:bg-muted transition-colors flex-shrink-0"
                       >
