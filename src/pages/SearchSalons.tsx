@@ -445,6 +445,27 @@ const SearchSalons = () => {
         {/* Quick Filters for Nearby Mode */}
         {isNearbyMode && coordinates && (
           <div className="px-4 pb-3 space-y-2">
+            {/* Filter Header with Clear Button */}
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Quick Filters</span>
+              {(minRating > 0 || selectedCategories.length > 0) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setMinRating(0);
+                    setSelectedCategories([]);
+                    setShowRatingOptions(false);
+                    setShowServicesOptions(false);
+                  }}
+                  className="h-6 text-xs text-muted-foreground hover:text-foreground px-2"
+                >
+                  <X className="w-3 h-3 mr-1" />
+                  Clear filters
+                </Button>
+              )}
+            </div>
+
             {/* Rating Expandable Filter */}
             <div className="space-y-2">
               <button
