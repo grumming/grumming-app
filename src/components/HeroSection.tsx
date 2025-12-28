@@ -253,9 +253,12 @@ const HeroSection = ({ onSearchActiveChange }: HeroSectionProps) => {
                     {/* Services Section */}
                     {serviceResults.length > 0 && (
                       <>
-                        <div className="px-4 py-2 border-b border-border bg-muted/30">
+                        <div className="px-4 py-2 border-b border-border bg-muted/30 flex items-center justify-between">
                           <span className="text-xs font-semibold text-primary flex items-center gap-1.5">
                             <Sparkles className="w-3 h-3" /> Services
+                          </span>
+                          <span className="text-xs text-muted-foreground bg-primary/10 px-2 py-0.5 rounded-full">
+                            {serviceResults.length} found
                           </span>
                         </div>
                         {serviceResults.map((service, index) => (
@@ -285,9 +288,12 @@ const HeroSection = ({ onSearchActiveChange }: HeroSectionProps) => {
                     {/* Salons Section */}
                     {salonResults.length > 0 && (
                       <>
-                        <div className="px-4 py-2 border-b border-border bg-muted/30">
+                        <div className="px-4 py-2 border-b border-border bg-muted/30 flex items-center justify-between">
                           <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                             <Scissors className="w-3 h-3" /> Salons
+                          </span>
+                          <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                            {salonResults.length} found
                           </span>
                         </div>
                         {salonResults.map((salon) => (
