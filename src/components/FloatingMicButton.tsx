@@ -33,16 +33,10 @@ declare global {
   }
 }
 
-const VOICE_LANGUAGES = [
-  { code: 'en-IN', label: 'EN', name: 'English' },
-  { code: 'hi-IN', label: 'हि', name: 'Hindi' },
-];
-
 const FloatingMicButton = () => {
   const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [voiceLang, setVoiceLang] = useState('en-IN');
   const [transcript, setTranscript] = useState('');
   const [isVisible, setIsVisible] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
@@ -64,7 +58,7 @@ const FloatingMicButton = () => {
       recognitionRef.current = new SpeechRecognitionConstructor();
       recognitionRef.current.continuous = false;
       recognitionRef.current.interimResults = true;
-      recognitionRef.current.lang = voiceLang;
+      recognitionRef.current.lang = 'en-IN';
 
       recognitionRef.current.onresult = (event) => {
         const text = Array.from(event.results)
@@ -97,7 +91,7 @@ const FloatingMicButton = () => {
         recognitionRef.current.abort();
       }
     };
-  }, [voiceLang, transcript, navigate]);
+  }, [transcript, navigate]);
 
   const startListening = () => {
     if (!recognitionRef.current) {
@@ -108,8 +102,7 @@ const FloatingMicButton = () => {
     setTranscript('');
     recognitionRef.current.start();
     setIsListening(true);
-    const langName = VOICE_LANGUAGES.find(l => l.code === voiceLang)?.name || 'English';
-    toast.info(`Listening in ${langName}...`);
+    toast.info('Listening... Speak now');
   };
 
   const stopListening = () => {
@@ -117,13 +110,6 @@ const FloatingMicButton = () => {
       recognitionRef.current.stop();
       setIsListening(false);
     }
-  };
-
-  const toggleLanguage = () => {
-    const currentIndex = VOICE_LANGUAGES.findIndex(l => l.code === voiceLang);
-    const nextIndex = (currentIndex + 1) % VOICE_LANGUAGES.length;
-    setVoiceLang(VOICE_LANGUAGES[nextIndex].code);
-    toast.success(`Voice: ${VOICE_LANGUAGES[nextIndex].name}`);
   };
 
   const handleClose = () => {
@@ -187,13 +173,6 @@ const FloatingMicButton = () => {
 
                 {/* Controls */}
                 <div className="flex items-center justify-center gap-3">
-                  <button
-                    onClick={toggleLanguage}
-                    className="px-3 py-2 rounded-lg text-xs font-medium bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {VOICE_LANGUAGES.find(l => l.code === voiceLang)?.label}
-                  </button>
-                  
                   <motion.button
                     onClick={handleButtonClick}
                     whileTap={{ scale: 0.95 }}
