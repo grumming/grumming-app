@@ -207,7 +207,6 @@ const Profile = () => {
 
   const menuItems = [
     { icon: Heart, label: 'Favorites', onClick: () => navigate('/favorites'), badge: favorites.length > 0 ? `${favorites.length}` : undefined },
-    { icon: MapPin, label: 'Saved Addresses', onClick: () => navigate('/saved-addresses') },
     { icon: CreditCard, label: 'Payment Methods', onClick: () => {}, badge: 'Coming Soon' },
     { icon: Settings, label: 'Settings', onClick: () => navigate('/settings') },
   ];
