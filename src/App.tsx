@@ -27,6 +27,8 @@ import AdminPromoCodes from "./pages/AdminPromoCodes";
 import Wallet from "./pages/Wallet";
 import Favorites from "./pages/Favorites";
 import PaymentMethods from "./pages/PaymentMethods";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
 import NotFound from "./pages/NotFound";
 
 const App = () => {
@@ -63,6 +65,8 @@ const App = () => {
                     <Route path="/favorites" element={<Favorites />} />
                     <Route path="/payment-methods" element={<PaymentMethods />} />
                     <Route path="/admin/promo-codes" element={<AdminPromoCodes />} />
+                    <Route path="/terms" element={<Terms />} />
+                    <Route path="/privacy" element={<Privacy />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
                   </Routes>
