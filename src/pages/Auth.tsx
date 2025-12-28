@@ -60,6 +60,9 @@ const Auth = () => {
   // Errors
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [otpComplete, setOtpComplete] = useState(false);
+  
+  // Resend OTP cooldown (30 seconds)
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   // Haptic feedback helper
   const triggerHaptic = (type: 'light' | 'success' | 'error') => {
@@ -93,6 +96,23 @@ const Auth = () => {
       }
     }
   }, [user, loading, navigate, referralCode, applyReferralCode]);
+
+  // Resend cooldown timer effect
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
 
   const handleReferralAnimationComplete = () => {
     setShowReferralSuccess(false);
@@ -179,6 +199,7 @@ const Auth = () => {
       }
 
       setStep('otp');
+      setResendCooldown(30); // Start 30 second cooldown
       toast({
         title: 'OTP Sent!',
         description: 'Please check your phone for the verification code.',
@@ -744,13 +765,19 @@ const Auth = () => {
 
                 <p className="text-xs text-center text-muted-foreground">
                   Didn't receive OTP?{' '}
-                  <button
-                    onClick={handlePhoneOTP}
-                    disabled={isLoading}
-                    className="text-primary font-medium hover:underline disabled:opacity-50"
-                  >
-                    Resend
-                  </button>
+                  {resendCooldown > 0 ? (
+                    <span className="text-muted-foreground font-medium">
+                      Resend in {resendCooldown}s
+                    </span>
+                  ) : (
+                    <button
+                      onClick={handlePhoneOTP}
+                      disabled={isLoading}
+                      className="text-primary font-medium hover:underline disabled:opacity-50"
+                    >
+                      Resend
+                    </button>
+                  )}
                 </p>
               </div>
             </motion.div>
