@@ -23,6 +23,7 @@ import { SalonReviews } from '@/components/SalonReviews';
 import StylistsList from '@/components/StylistsList';
 import { useReferral } from '@/hooks/useReferral';
 import { useWallet } from '@/hooks/useWallet';
+import { useFavorites } from '@/hooks/useFavorites';
 
 // Mock salon data - in production this would come from database
 const salonsData: Record<string, any> = {
@@ -503,8 +504,9 @@ const SalonDetail = () => {
   const { initiatePayment, isLoading: isPaymentLoading } = useRazorpay();
   const { userReward } = useReferral();
   const { wallet, useCredits } = useWallet();
+  const { isFavorite: checkIsFavorite, toggleFavorite } = useFavorites();
   
-  const [isFavorite, setIsFavorite] = useState(false);
+  const isFavorite = id ? checkIsFavorite(id) : false;
   const [selectedServices, setSelectedServices] = useState<number[]>([]);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -1107,7 +1109,7 @@ const SalonDetail = () => {
               <Share2 className="w-5 h-5 text-foreground" />
             </button>
             <button
-              onClick={() => setIsFavorite(!isFavorite)}
+              onClick={() => id && toggleFavorite(id)}
               className="w-10 h-10 rounded-full bg-card/80 backdrop-blur-sm flex items-center justify-center hover:bg-card transition-colors"
             >
               <Heart className={`w-5 h-5 ${isFavorite ? 'fill-primary text-primary' : 'text-foreground'}`} />
