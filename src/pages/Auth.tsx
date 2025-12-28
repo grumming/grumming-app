@@ -202,7 +202,15 @@ const Auth = () => {
         }
 
         if (!mode && errorCode === 'NO_ACCOUNT') {
-          setShowNoAccountModal(true);
+          // Auto-switch to sign up mode and send OTP
+          setIsSignUp(true);
+          toast({
+            title: 'No account found',
+            description: 'Switching to sign up mode...',
+          });
+          setTimeout(() => {
+            void sendOtp(true);
+          }, 0);
           return;
         }
 
