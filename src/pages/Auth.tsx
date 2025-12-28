@@ -181,12 +181,8 @@ const Auth = () => {
         }
 
         if (!mode && errorCode === 'NO_ACCOUNT') {
-          // Switch to sign up mode; let the user explicitly request OTP again
+          // Switch to sign up mode silently; let the user explicitly request OTP again
           setIsSignUp(true);
-          toast({
-            title: 'No account found',
-            description: 'Switched to sign up mode. Tap "Send OTP" to continue.',
-          });
           return;
         }
 
