@@ -17,3 +17,9 @@ verify_jwt = false
 
 [functions.firebase-verify-token]
 verify_jwt = false
+
+[functions.create-wallet-topup-order]
+verify_jwt = false
+
+[functions.verify-wallet-topup]
+verify_jwt = false
