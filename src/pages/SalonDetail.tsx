@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, Star, MapPin, Clock, Phone, Heart, Share2, 
   ChevronRight, Calendar, Check, User, MessageSquare, CreditCard, Gift, X,
-  Tag, Loader2, Wallet, Ticket
+  Tag, Loader2, Wallet, Ticket, Navigation
 } from 'lucide-react';
 import { useLocation } from '@/contexts/LocationContext';
 import { calculateDistance, formatDistance } from '@/lib/distance';
@@ -1329,6 +1329,17 @@ const SalonDetail = () => {
                 {salon.phone}
               </a>
             </div>
+            {salon.coordinates && (
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&destination=${salon.coordinates.lat},${salon.coordinates.lng}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+              >
+                <Navigation className="w-4 h-4" />
+                Get Directions
+              </a>
+            )}
           </div>
 
           <p className="text-muted-foreground text-sm">{salon.description}</p>
