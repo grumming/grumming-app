@@ -12,6 +12,7 @@ import { ReferralRewardListener } from "@/components/ReferralRewardListener";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
+import Settings from "./pages/Settings";
 import SalonDetail from "./pages/SalonDetail";
 import BookingConfirmation from "./pages/BookingConfirmation";
 import NotificationSettings from "./pages/NotificationSettings";
@@ -42,6 +43,7 @@ const App = () => {
                   <Route path="/" element={<Index />} />
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/profile" element={<Profile />} />
+                  <Route path="/settings" element={<Settings />} />
                   <Route path="/salon/:id" element={<SalonDetail />} />
                   <Route path="/booking-confirmation" element={<BookingConfirmation />} />
                   <Route path="/notification-settings" element={<NotificationSettings />} />

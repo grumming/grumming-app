@@ -205,10 +205,11 @@ const Profile = () => {
 
   const menuItems = [
     { icon: MapPin, label: 'Saved Addresses', onClick: () => navigate('/saved-addresses') },
+    { icon: Bell, label: 'Notifications', onClick: () => navigate('/notification-settings') },
     { icon: CreditCard, label: 'Payment Methods', onClick: () => {}, badge: 'Coming Soon' },
     { icon: Shield, label: 'Privacy & Security', onClick: () => {} },
     { icon: HelpCircle, label: 'Help & Support', onClick: () => {} },
-    { icon: Settings, label: 'Settings', onClick: () => {} },
+    { icon: Settings, label: 'Settings', onClick: () => navigate('/settings') },
   ];
 
   return (
