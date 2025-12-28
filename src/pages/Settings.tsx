@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
-  ArrowLeft, Bell, Moon, Sun, Globe, Lock, Smartphone, 
+  ArrowLeft, Bell, Moon, Sun, Globe, Lock, 
   ChevronRight, Eye, EyeOff, Volume2, VolumeX, Vibrate
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
@@ -17,13 +17,8 @@ const Settings = () => {
   const { theme, setTheme } = useTheme();
   
   // Settings state
-  const [pushNotifications, setPushNotifications] = useState(true);
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [smsNotifications, setSmsNotifications] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [vibrationEnabled, setVibrationEnabled] = useState(true);
-  const [showBookingReminders, setShowBookingReminders] = useState(true);
-  const [showPromotions, setShowPromotions] = useState(true);
   const [hideBalance, setHideBalance] = useState(false);
 
   const handleToggle = (
@@ -37,44 +32,6 @@ const Settings = () => {
       description: message,
     });
   };
-
-  const notificationSettings = [
-    {
-      icon: Bell,
-      label: 'Push Notifications',
-      description: 'Receive push notifications on your device',
-      value: pushNotifications,
-      onChange: (v: boolean) => handleToggle(setPushNotifications, v, `Push notifications ${v ? 'enabled' : 'disabled'}`),
-    },
-    {
-      icon: Bell,
-      label: 'Email Notifications',
-      description: 'Receive booking updates via email',
-      value: emailNotifications,
-      onChange: (v: boolean) => handleToggle(setEmailNotifications, v, `Email notifications ${v ? 'enabled' : 'disabled'}`),
-    },
-    {
-      icon: Smartphone,
-      label: 'SMS Notifications',
-      description: 'Receive booking updates via SMS',
-      value: smsNotifications,
-      onChange: (v: boolean) => handleToggle(setSmsNotifications, v, `SMS notifications ${v ? 'enabled' : 'disabled'}`),
-    },
-    {
-      icon: Bell,
-      label: 'Booking Reminders',
-      description: 'Get reminded before your appointments',
-      value: showBookingReminders,
-      onChange: (v: boolean) => handleToggle(setShowBookingReminders, v, `Booking reminders ${v ? 'enabled' : 'disabled'}`),
-    },
-    {
-      icon: Bell,
-      label: 'Promotions & Offers',
-      description: 'Receive promotional offers and discounts',
-      value: showPromotions,
-      onChange: (v: boolean) => handleToggle(setShowPromotions, v, `Promotional notifications ${v ? 'enabled' : 'disabled'}`),
-    },
-  ];
 
   const appSettings = [
     {
@@ -149,37 +106,6 @@ const Settings = () => {
         </div>
       </motion.div>
 
-      {/* Notifications Section */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="px-4 pb-4"
-      >
-        <h2 className="text-sm font-semibold text-muted-foreground mb-3 px-1">NOTIFICATIONS</h2>
-        <div className="bg-card rounded-xl border border-border overflow-hidden">
-          {notificationSettings.map((setting, index) => (
-            <div
-              key={setting.label}
-              className={`flex items-center gap-4 p-4 ${
-                index !== notificationSettings.length - 1 ? 'border-b border-border' : ''
-              }`}
-            >
-              <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
-                <setting.icon className="w-4.5 h-4.5 text-muted-foreground" />
-              </div>
-              <div className="flex-1">
-                <Label className="text-sm font-medium text-foreground">{setting.label}</Label>
-                <p className="text-xs text-muted-foreground mt-0.5">{setting.description}</p>
-              </div>
-              <Switch
-                checked={setting.value}
-                onCheckedChange={setting.onChange}
-              />
-            </div>
-          ))}
-        </div>
-      </motion.div>
 
       {/* App Preferences Section */}
       <motion.div
