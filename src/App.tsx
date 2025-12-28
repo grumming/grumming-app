@@ -21,7 +21,6 @@ import SearchSalons from "./pages/SearchSalons";
 import Referrals from "./pages/Referrals";
 import AdminPromoCodes from "./pages/AdminPromoCodes";
 import Wallet from "./pages/Wallet";
-import FavoriteSalons from "./pages/FavoriteSalons";
 import NotFound from "./pages/NotFound";
 
 const App = () => {
@@ -50,7 +49,6 @@ const App = () => {
                   <Route path="/search" element={<SearchSalons />} />
                   <Route path="/referrals" element={<Referrals />} />
                   <Route path="/wallet" element={<Wallet />} />
-                  <Route path="/favorites" element={<FavoriteSalons />} />
                   <Route path="/admin/promo-codes" element={<AdminPromoCodes />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />

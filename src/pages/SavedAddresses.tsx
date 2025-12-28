@@ -1,52 +1,29 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
+  ArrowLeft, Plus, MapPin, Home, Briefcase, Heart, MoreVertical, 
+  Edit2, Trash2, Check, Loader2, Navigation
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import BottomNav from '@/components/BottomNav';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
   DialogTitle,
-  DialogFooter 
-} from "@/components/ui/dialog";
-import { 
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
-import { 
-  ArrowLeft, 
-  Plus, 
-  MapPin, 
-  Home, 
-  Briefcase, 
-  Heart,
-  MoreVertical,
-  Pencil,
-  Trash2,
-  Check,
-  Locate,
-  Loader2
-} from "lucide-react";
+} from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import BottomNav from "@/components/BottomNav";
-import AddressMapPicker from "@/components/AddressMapPicker";
+} from '@/components/ui/dropdown-menu';
 
 interface Address {
   id: string;
@@ -60,68 +37,40 @@ interface Address {
   landmark: string | null;
   latitude: number | null;
   longitude: number | null;
-  is_default: boolean;
+  is_default: boolean | null;
   created_at: string;
-  updated_at: string;
 }
 
-interface AddressForm {
-  label: string;
-  address_line1: string;
-  address_line2: string;
-  city: string;
-  state: string;
-  pincode: string;
-  landmark: string;
-  latitude?: number;
-  longitude?: number;
-}
-
-interface NominatimAddress {
-  house_number?: string;
-  road?: string;
-  neighbourhood?: string;
-  suburb?: string;
-  city?: string;
-  town?: string;
-  village?: string;
-  state?: string;
-  postcode?: string;
-  country?: string;
-}
-
-const labelIcons: Record<string, React.ReactNode> = {
-  Home: <Home className="h-4 w-4" />,
-  Work: <Briefcase className="h-4 w-4" />,
-  Other: <Heart className="h-4 w-4" />,
-};
-
-const labelOptions = ["Home", "Work", "Other"];
+const addressLabels = [
+  { id: 'home', label: 'Home', icon: Home },
+  { id: 'work', label: 'Work', icon: Briefcase },
+  { id: 'other', label: 'Other', icon: Heart },
+];
 
 const SavedAddresses = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
+  
   const [addresses, setAddresses] = useState<Address[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [addressToDelete, setAddressToDelete] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [detectingLocation, setDetectingLocation] = useState(false);
-  const [form, setForm] = useState<AddressForm>({
-    label: "Home",
-    address_line1: "",
-    address_line2: "",
-    city: "",
-    state: "",
-    pincode: "",
-    landmark: "",
-  });
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // Form states
+  const [selectedLabel, setSelectedLabel] = useState('home');
+  const [addressLine1, setAddressLine1] = useState('');
+  const [addressLine2, setAddressLine2] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  const [pincode, setPincode] = useState('');
+  const [landmark, setLandmark] = useState('');
+  const [isDefault, setIsDefault] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
-      navigate("/auth");
+      navigate('/auth');
     }
   }, [user, authLoading, navigate]);
 
@@ -132,298 +81,187 @@ const SavedAddresses = () => {
   }, [user]);
 
   const fetchAddresses = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("user_addresses")
-        .select("*")
-        .eq("user_id", user?.id)
-        .order("is_default", { ascending: false })
-        .order("created_at", { ascending: false });
+    if (!user) return;
+    
+    const { data, error } = await supabase
+      .from('user_addresses')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('is_default', { ascending: false })
+      .order('created_at', { ascending: false });
 
-      if (error) throw error;
+    if (error) {
+      console.error('Error fetching addresses:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load addresses',
+        variant: 'destructive',
+      });
+    } else {
       setAddresses(data || []);
-    } catch (error) {
-      console.error("Error fetching addresses:", error);
-      toast.error("Failed to load addresses");
-    } finally {
-      setLoading(false);
     }
+    setIsLoading(false);
   };
 
   const resetForm = () => {
-    setForm({
-      label: "Home",
-      address_line1: "",
-      address_line2: "",
-      city: "",
-      state: "",
-      pincode: "",
-      landmark: "",
-    });
+    setSelectedLabel('home');
+    setAddressLine1('');
+    setAddressLine2('');
+    setCity('');
+    setState('');
+    setPincode('');
+    setLandmark('');
+    setIsDefault(false);
     setEditingAddress(null);
   };
 
   const openAddDialog = () => {
     resetForm();
-    setDialogOpen(true);
+    if (addresses.length === 0) {
+      setIsDefault(true);
+    }
+    setIsDialogOpen(true);
   };
 
   const openEditDialog = (address: Address) => {
     setEditingAddress(address);
-    setForm({
-      label: address.label,
-      address_line1: address.address_line1,
-      address_line2: address.address_line2 || "",
-      city: address.city,
-      state: address.state,
-      pincode: address.pincode,
-      landmark: address.landmark || "",
-    });
-    setDialogOpen(true);
-  };
-
-  const detectCurrentLocation = async () => {
-    if (!navigator.geolocation) {
-      toast.error("Geolocation is not supported by your browser");
-      return;
-    }
-
-    setDetectingLocation(true);
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        
-        try {
-          // Use OpenStreetMap Nominatim for reverse geocoding (free, no API key needed)
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`,
-            {
-              headers: {
-                'Accept-Language': 'en',
-              },
-            }
-          );
-
-          if (!response.ok) throw new Error("Failed to fetch address");
-
-          const data = await response.json();
-          const address: NominatimAddress = data.address || {};
-
-          // Build address components
-          const houseNumber = address.house_number || "";
-          const road = address.road || "";
-          const neighbourhood = address.neighbourhood || address.suburb || "";
-          const city = address.city || address.town || address.village || "";
-          const state = address.state || "";
-          const pincode = address.postcode || "";
-
-          // Construct address line 1
-          const addressLine1Parts = [houseNumber, road].filter(Boolean);
-          const addressLine1 = addressLine1Parts.join(" ") || neighbourhood;
-
-          setForm((prev) => ({
-            ...prev,
-            address_line1: addressLine1 || prev.address_line1,
-            address_line2: neighbourhood && addressLine1 !== neighbourhood ? neighbourhood : prev.address_line2,
-            city: city || prev.city,
-            state: state || prev.state,
-            pincode: pincode.replace(/\s/g, "").slice(0, 6) || prev.pincode,
-            latitude,
-            longitude,
-          }));
-
-          toast.success("Location detected successfully");
-        } catch (error) {
-          console.error("Reverse geocoding error:", error);
-          toast.error("Could not fetch address details");
-          // Still save coordinates even if reverse geocoding fails
-          setForm((prev) => ({
-            ...prev,
-            latitude,
-            longitude,
-          }));
-        } finally {
-          setDetectingLocation(false);
-        }
-      },
-      (error) => {
-        setDetectingLocation(false);
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            toast.error("Location permission denied. Please enable location access.");
-            break;
-          case error.POSITION_UNAVAILABLE:
-            toast.error("Location information unavailable");
-            break;
-          case error.TIMEOUT:
-            toast.error("Location request timed out");
-            break;
-          default:
-            toast.error("An error occurred while detecting location");
-        }
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
-      }
-    );
-  };
-
-  const handleMapLocationChange = async (lat: number, lng: number) => {
-    setForm((prev) => ({
-      ...prev,
-      latitude: lat,
-      longitude: lng,
-    }));
-
-    // Reverse geocode the new position
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`,
-        {
-          headers: {
-            'Accept-Language': 'en',
-          },
-        }
-      );
-
-      if (!response.ok) return;
-
-      const data = await response.json();
-      const address: NominatimAddress = data.address || {};
-
-      const houseNumber = address.house_number || "";
-      const road = address.road || "";
-      const neighbourhood = address.neighbourhood || address.suburb || "";
-      const city = address.city || address.town || address.village || "";
-      const state = address.state || "";
-      const pincode = address.postcode || "";
-
-      const addressLine1Parts = [houseNumber, road].filter(Boolean);
-      const addressLine1 = addressLine1Parts.join(" ") || neighbourhood;
-
-      setForm((prev) => ({
-        ...prev,
-        address_line1: addressLine1 || prev.address_line1,
-        address_line2: neighbourhood && addressLine1 !== neighbourhood ? neighbourhood : prev.address_line2,
-        city: city || prev.city,
-        state: state || prev.state,
-        pincode: pincode.replace(/\s/g, "").slice(0, 6) || prev.pincode,
-      }));
-    } catch (error) {
-      console.error("Reverse geocoding error:", error);
-    }
+    setSelectedLabel(address.label.toLowerCase());
+    setAddressLine1(address.address_line1);
+    setAddressLine2(address.address_line2 || '');
+    setCity(address.city);
+    setState(address.state);
+    setPincode(address.pincode);
+    setLandmark(address.landmark || '');
+    setIsDefault(address.is_default || false);
+    setIsDialogOpen(true);
   };
 
   const handleSave = async () => {
-    if (!form.address_line1 || !form.city || !form.state || !form.pincode) {
-      toast.error("Please fill all required fields");
+    if (!user) return;
+    
+    if (!addressLine1.trim() || !city.trim() || !state.trim() || !pincode.trim()) {
+      toast({
+        title: 'Missing fields',
+        description: 'Please fill in all required fields',
+        variant: 'destructive',
+      });
       return;
     }
 
-    if (!/^\d{6}$/.test(form.pincode)) {
-      toast.error("Please enter a valid 6-digit pincode");
-      return;
-    }
+    setIsSaving(true);
 
-    setSaving(true);
-    try {
-      if (editingAddress) {
-        const { error } = await supabase
-          .from("user_addresses")
-          .update({
-            label: form.label,
-            address_line1: form.address_line1,
-            address_line2: form.address_line2 || null,
-            city: form.city,
-            state: form.state,
-            pincode: form.pincode,
-            landmark: form.landmark || null,
-          })
-          .eq("id", editingAddress.id);
-
-        if (error) throw error;
-        toast.success("Address updated successfully");
-      } else {
-        const { error } = await supabase.from("user_addresses").insert({
-          user_id: user?.id,
-          label: form.label,
-          address_line1: form.address_line1,
-          address_line2: form.address_line2 || null,
-          city: form.city,
-          state: form.state,
-          pincode: form.pincode,
-          landmark: form.landmark || null,
-          latitude: form.latitude || null,
-          longitude: form.longitude || null,
-          is_default: addresses.length === 0,
-        });
-
-        if (error) throw error;
-        toast.success("Address added successfully");
-      }
-
-      setDialogOpen(false);
-      resetForm();
-      fetchAddresses();
-    } catch (error) {
-      console.error("Error saving address:", error);
-      toast.error("Failed to save address");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!addressToDelete) return;
-
-    try {
-      const { error } = await supabase
-        .from("user_addresses")
-        .delete()
-        .eq("id", addressToDelete);
-
-      if (error) throw error;
-      toast.success("Address deleted");
-      fetchAddresses();
-    } catch (error) {
-      console.error("Error deleting address:", error);
-      toast.error("Failed to delete address");
-    } finally {
-      setDeleteDialogOpen(false);
-      setAddressToDelete(null);
-    }
-  };
-
-  const setAsDefault = async (addressId: string) => {
-    try {
-      // First, remove default from all addresses
+    // If setting as default, unset other defaults first
+    if (isDefault) {
       await supabase
-        .from("user_addresses")
+        .from('user_addresses')
         .update({ is_default: false })
-        .eq("user_id", user?.id);
+        .eq('user_id', user.id);
+    }
 
-      // Then set the selected one as default
+    const addressData = {
+      user_id: user.id,
+      label: addressLabels.find(l => l.id === selectedLabel)?.label || 'Other',
+      address_line1: addressLine1.trim(),
+      address_line2: addressLine2.trim() || null,
+      city: city.trim(),
+      state: state.trim(),
+      pincode: pincode.trim(),
+      landmark: landmark.trim() || null,
+      is_default: isDefault,
+    };
+
+    if (editingAddress) {
       const { error } = await supabase
-        .from("user_addresses")
-        .update({ is_default: true })
-        .eq("id", addressId);
+        .from('user_addresses')
+        .update(addressData)
+        .eq('id', editingAddress.id);
 
-      if (error) throw error;
-      toast.success("Default address updated");
+      if (error) {
+        toast({
+          title: 'Error',
+          description: 'Failed to update address',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Address updated',
+          description: 'Your address has been updated successfully',
+        });
+      }
+    } else {
+      const { error } = await supabase
+        .from('user_addresses')
+        .insert(addressData);
+
+      if (error) {
+        toast({
+          title: 'Error',
+          description: 'Failed to add address',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Address added',
+          description: 'Your new address has been saved',
+        });
+      }
+    }
+
+    setIsSaving(false);
+    setIsDialogOpen(false);
+    resetForm();
+    fetchAddresses();
+  };
+
+  const handleDelete = async (addressId: string) => {
+    const { error } = await supabase
+      .from('user_addresses')
+      .delete()
+      .eq('id', addressId);
+
+    if (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete address',
+        variant: 'destructive',
+      });
+    } else {
+      toast({
+        title: 'Address deleted',
+        description: 'Address has been removed',
+      });
       fetchAddresses();
-    } catch (error) {
-      console.error("Error setting default:", error);
-      toast.error("Failed to update default address");
     }
   };
 
-  if (authLoading || loading) {
+  const handleSetDefault = async (addressId: string) => {
+    if (!user) return;
+
+    await supabase
+      .from('user_addresses')
+      .update({ is_default: false })
+      .eq('user_id', user.id);
+
+    await supabase
+      .from('user_addresses')
+      .update({ is_default: true })
+      .eq('id', addressId);
+
+    toast({
+      title: 'Default address updated',
+    });
+    fetchAddresses();
+  };
+
+  const getLabelIcon = (label: string) => {
+    const found = addressLabels.find(l => l.label.toLowerCase() === label.toLowerCase());
+    return found?.icon || MapPin;
+  };
+
+  if (authLoading || isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -431,63 +269,78 @@ const SavedAddresses = () => {
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background border-b border-border">
-        <div className="flex items-center gap-3 p-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate(-1)}
-            className="shrink-0"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-lg font-semibold">Saved Addresses</h1>
-        </div>
-      </div>
-
-      <div className="p-4 space-y-4">
-        {/* Add New Address Button */}
-        <Button
-          onClick={openAddDialog}
-          variant="outline"
-          className="w-full justify-start gap-3 h-14 border-dashed"
-        >
-          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-            <Plus className="h-4 w-4 text-primary" />
+      <header className="bg-card border-b border-border px-4 py-3 sticky top-0 z-10">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => navigate(-1)} 
+              className="p-2 -ml-2 rounded-full hover:bg-muted transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5 text-foreground" />
+            </button>
+            <h1 className="font-display text-lg font-semibold text-foreground">Saved Addresses</h1>
           </div>
-          <span className="font-medium">Add New Address</span>
-        </Button>
+          <Button onClick={openAddDialog} size="sm" className="gap-1.5">
+            <Plus className="w-4 h-4" />
+            Add New
+          </Button>
+        </div>
+      </header>
 
-        {/* Addresses List */}
+      {/* Content */}
+      <div className="p-4 space-y-3">
         {addresses.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-              <MapPin className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">No saved addresses yet</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Add an address to get started
-              </p>
-            </CardContent>
-          </Card>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center py-12"
+          >
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
+              <Navigation className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <h3 className="font-semibold text-foreground mb-1">No saved addresses</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Add your addresses for quick checkout
+            </p>
+            <Button onClick={openAddDialog} className="gap-2">
+              <Plus className="w-4 h-4" />
+              Add Address
+            </Button>
+          </motion.div>
         ) : (
-          <div className="space-y-3">
-            {addresses.map((address) => (
-              <Card key={address.id} className="relative overflow-hidden">
-                <CardContent className="p-4">
+          <AnimatePresence>
+            {addresses.map((address, index) => {
+              const LabelIcon = getLabelIcon(address.label);
+              return (
+                <motion.div
+                  key={address.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, x: -100 }}
+                  transition={{ delay: index * 0.05 }}
+                  className={`bg-card rounded-xl border p-4 ${
+                    address.is_default ? 'border-primary/50 bg-primary/5' : 'border-border'
+                  }`}
+                >
                   <div className="flex items-start gap-3">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      {labelIcons[address.label] || <MapPin className="h-5 w-5 text-primary" />}
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      address.is_default ? 'bg-primary/20' : 'bg-muted'
+                    }`}>
+                      <LabelIcon className={`w-5 h-5 ${
+                        address.is_default ? 'text-primary' : 'text-muted-foreground'
+                      }`} />
                     </div>
+                    
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold">{address.label}</span>
+                        <span className="font-semibold text-foreground">{address.label}</span>
                         {address.is_default && (
-                          <Badge variant="secondary" className="text-xs">
-                            Default
-                          </Badge>
+                          <span className="text-[10px] font-medium bg-primary/20 text-primary px-1.5 py-0.5 rounded">
+                            DEFAULT
+                          </span>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground line-clamp-2">
+                      <p className="text-sm text-muted-foreground leading-relaxed">
                         {address.address_line1}
                         {address.address_line2 && `, ${address.address_line2}`}
                       </p>
@@ -500,221 +353,171 @@ const SavedAddresses = () => {
                         </p>
                       )}
                     </div>
+
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="shrink-0">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
+                        <button className="p-1.5 rounded-full hover:bg-muted transition-colors">
+                          <MoreVertical className="w-4 h-4 text-muted-foreground" />
+                        </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => openEditDialog(address)}>
-                          <Pencil className="h-4 w-4 mr-2" />
+                          <Edit2 className="w-4 h-4 mr-2" />
                           Edit
                         </DropdownMenuItem>
                         {!address.is_default && (
-                          <DropdownMenuItem onClick={() => setAsDefault(address.id)}>
-                            <Check className="h-4 w-4 mr-2" />
+                          <DropdownMenuItem onClick={() => handleSetDefault(address.id)}>
+                            <Check className="w-4 h-4 mr-2" />
                             Set as Default
                           </DropdownMenuItem>
                         )}
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setAddressToDelete(address.id);
-                            setDeleteDialogOpen(true);
-                          }}
+                        <DropdownMenuItem 
+                          onClick={() => handleDelete(address.id)}
                           className="text-destructive focus:text-destructive"
                         >
-                          <Trash2 className="h-4 w-4 mr-2" />
+                          <Trash2 className="w-4 h-4 mr-2" />
                           Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
         )}
       </div>
 
-      {/* Add/Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      {/* Add/Edit Address Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingAddress ? "Edit Address" : "Add New Address"}
+              {editingAddress ? 'Edit Address' : 'Add New Address'}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+
+          <div className="space-y-4 pt-2">
             {/* Label Selection */}
             <div className="space-y-2">
-              <Label>Save as</Label>
+              <Label className="text-xs text-muted-foreground">Save as</Label>
               <div className="flex gap-2">
-                {labelOptions.map((label) => (
-                  <Button
-                    key={label}
-                    type="button"
-                    variant={form.label === label ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setForm({ ...form, label })}
-                    className="gap-2"
+                {addressLabels.map((labelOption) => (
+                  <button
+                    key={labelOption.id}
+                    onClick={() => setSelectedLabel(labelOption.id)}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg border transition-all ${
+                      selectedLabel === labelOption.id
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border text-muted-foreground hover:border-primary/30'
+                    }`}
                   >
-                    {labelIcons[label]}
-                    {label}
-                  </Button>
+                    <labelOption.icon className="w-4 h-4" />
+                    <span className="text-sm font-medium">{labelOption.label}</span>
+                  </button>
                 ))}
               </div>
             </div>
 
-            {/* Use Current Location Button */}
-            {!editingAddress && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={detectCurrentLocation}
-                disabled={detectingLocation}
-                className="w-full gap-2"
-              >
-                {detectingLocation ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Detecting location...
-                  </>
-                ) : (
-                  <>
-                    <Locate className="h-4 w-4" />
-                    Use Current Location
-                  </>
-                )}
-              </Button>
-            )}
-
-            {/* Map Preview */}
-            <div className="space-y-2">
-              <Label>Location on Map</Label>
-              <AddressMapPicker
-                latitude={form.latitude || null}
-                longitude={form.longitude || null}
-                onLocationChange={handleMapLocationChange}
-              />
-              <p className="text-xs text-muted-foreground">
-                Drag the pin or tap the map to adjust location
-              </p>
-            </div>
-
-            {/* Address Line 1 */}
-            <div className="space-y-2">
-              <Label htmlFor="address_line1">
-                Flat / House No / Building *
-              </Label>
-              <Input
-                id="address_line1"
-                value={form.address_line1}
-                onChange={(e) =>
-                  setForm({ ...form, address_line1: e.target.value })
-                }
-                placeholder="Enter flat, house no, building"
-              />
-            </div>
-
-            {/* Address Line 2 */}
-            <div className="space-y-2">
-              <Label htmlFor="address_line2">Area / Sector / Locality</Label>
-              <Input
-                id="address_line2"
-                value={form.address_line2}
-                onChange={(e) =>
-                  setForm({ ...form, address_line2: e.target.value })
-                }
-                placeholder="Enter area, sector, locality"
-              />
-            </div>
-
-            {/* City and State */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="city">City *</Label>
+            {/* Address Fields */}
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="addressLine1" className="text-xs text-muted-foreground">
+                  Flat / House No / Building *
+                </Label>
                 <Input
-                  id="city"
-                  value={form.city}
-                  onChange={(e) => setForm({ ...form, city: e.target.value })}
-                  placeholder="Enter city"
+                  id="addressLine1"
+                  value={addressLine1}
+                  onChange={(e) => setAddressLine1(e.target.value)}
+                  placeholder="e.g., 123, Sunrise Apartments"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="state">State *</Label>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="addressLine2" className="text-xs text-muted-foreground">
+                  Area / Sector / Locality
+                </Label>
                 <Input
-                  id="state"
-                  value={form.state}
-                  onChange={(e) => setForm({ ...form, state: e.target.value })}
-                  placeholder="Enter state"
+                  id="addressLine2"
+                  value={addressLine2}
+                  onChange={(e) => setAddressLine2(e.target.value)}
+                  placeholder="e.g., Sector 15, Koramangala"
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="city" className="text-xs text-muted-foreground">City *</Label>
+                  <Input
+                    id="city"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    placeholder="e.g., Bangalore"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="state" className="text-xs text-muted-foreground">State *</Label>
+                  <Input
+                    id="state"
+                    value={state}
+                    onChange={(e) => setState(e.target.value)}
+                    placeholder="e.g., Karnataka"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="pincode" className="text-xs text-muted-foreground">Pincode *</Label>
+                  <Input
+                    id="pincode"
+                    value={pincode}
+                    onChange={(e) => setPincode(e.target.value)}
+                    placeholder="e.g., 560001"
+                    maxLength={6}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="landmark" className="text-xs text-muted-foreground">Landmark</Label>
+                  <Input
+                    id="landmark"
+                    value={landmark}
+                    onChange={(e) => setLandmark(e.target.value)}
+                    placeholder="e.g., Near Metro"
+                  />
+                </div>
               </div>
             </div>
 
-            {/* Pincode */}
-            <div className="space-y-2">
-              <Label htmlFor="pincode">Pincode *</Label>
-              <Input
-                id="pincode"
-                value={form.pincode}
-                onChange={(e) =>
-                  setForm({ ...form, pincode: e.target.value.replace(/\D/g, "").slice(0, 6) })
-                }
-                placeholder="Enter 6-digit pincode"
-                maxLength={6}
+            {/* Default Checkbox */}
+            <label className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/50 cursor-pointer transition-colors">
+              <input
+                type="checkbox"
+                checked={isDefault}
+                onChange={(e) => setIsDefault(e.target.checked)}
+                className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
               />
-            </div>
+              <span className="text-sm text-foreground">Set as default address</span>
+            </label>
 
-            {/* Landmark */}
-            <div className="space-y-2">
-              <Label htmlFor="landmark">Nearby Landmark (Optional)</Label>
-              <Input
-                id="landmark"
-                value={form.landmark}
-                onChange={(e) =>
-                  setForm({ ...form, landmark: e.target.value })
-                }
-                placeholder="E.g., Near City Mall"
-              />
-            </div>
-          </div>
-          <DialogFooter>
+            {/* Save Button */}
             <Button
-              variant="outline"
-              onClick={() => setDialogOpen(false)}
-              disabled={saving}
+              onClick={handleSave}
+              disabled={isSaving}
+              className="w-full"
             >
-              Cancel
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Saving...
+                </>
+              ) : (
+                editingAddress ? 'Update Address' : 'Save Address'
+              )}
             </Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? "Saving..." : editingAddress ? "Update" : "Save Address"}
-            </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
-
-      {/* Delete Confirmation */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Address?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the
-              saved address.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       <BottomNav />
     </div>
