@@ -940,6 +940,7 @@ const SalonDetail = () => {
           upiApp: selectedUpiApp,
           discount: totalDiscount.toString(),
           pending: 'true', // Mark as pending UPI verification
+          bookingId: bookingData.id, // Include booking ID for status verification
           ...(appliedPromo && { promoCode: appliedPromo.code, promoDiscount: promoDiscount.toString() }),
           ...(appliedVoucher && { voucherCode: appliedVoucher.code, voucherDiscount: voucherDiscount.toString() }),
           ...(rewardDiscount > 0 && { rewardDiscount: rewardDiscount.toString() }),
