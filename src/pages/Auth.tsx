@@ -125,42 +125,57 @@ const Auth = () => {
     }
   };
 
-  const handlePhoneOTP = async () => {
+  const sendOtp = async (mode: boolean) => {
     if (!validateField('phone', phone)) return;
-    
+
     const formattedPhone = `+91${phone}`;
-    
+
     setIsLoading(true);
-    
+
     try {
-      // Call the edge function to send OTP via Fast2SMS
+      // Call the backend function to send OTP
       const { data, error } = await supabase.functions.invoke('send-sms-otp', {
-        body: { phone: formattedPhone, isSignUp },
+        body: { phone: formattedPhone, isSignUp: mode },
       });
 
-      // Handle non-2xx responses - the error object contains the response
+      // Handle non-2xx responses (e.g. 409 ACCOUNT_EXISTS)
       if (error) {
-        // Try to parse the error context for ACCOUNT_EXISTS
-        try {
-          const errorData = JSON.parse(error.context?.body || '{}');
-          if (errorData?.code === 'ACCOUNT_EXISTS') {
-            setShowExistingAccountModal(true);
-            return;
+        if (mode) {
+          try {
+            const res = (error as any)?.context?.response;
+            const bodyText = res ? await res.clone().text() : '';
+            const bodyJson = bodyText ? JSON.parse(bodyText) : null;
+
+            if (bodyJson?.code === 'ACCOUNT_EXISTS') {
+              setShowExistingAccountModal(true);
+              return;
+            }
+          } catch {
+            // ignore parse failures
           }
-        } catch {
-          // If parsing fails, continue with default error handling
         }
-        throw new Error(error.message || 'Failed to send OTP');
+
+        toast({
+          title: 'Error',
+          description: (error as any).message || 'Failed to send OTP',
+          variant: 'destructive',
+        });
+        return;
       }
 
-      // Check if account already exists (signup mode) - for 200 responses with code
-      if (data?.code === 'ACCOUNT_EXISTS') {
+      // If account exists (in case function ever returns 200 with code)
+      if (mode && data?.code === 'ACCOUNT_EXISTS') {
         setShowExistingAccountModal(true);
         return;
       }
 
       if (!data?.success) {
-        throw new Error(data?.error || 'Failed to send OTP');
+        toast({
+          title: 'Error',
+          description: data?.error || 'Failed to send OTP',
+          variant: 'destructive',
+        });
+        return;
       }
 
       setStep('otp');
@@ -177,20 +192,19 @@ const Auth = () => {
           description: `OTP: ${data.debug_otp}`,
         });
       }
-    } catch (error: any) {
-      // Check if this is the account exists error from message
-      if (error.message?.includes('ACCOUNT_EXISTS') || error.message?.includes('already exists')) {
-        setShowExistingAccountModal(true);
-        return;
-      }
+    } catch (err: any) {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to send OTP',
+        description: err?.message || 'Failed to send OTP',
         variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handlePhoneOTP = async () => {
+    await sendOtp(isSignUp);
   };
 
   const handleVerifyOTP = async (otp: string) => {
@@ -1001,32 +1015,31 @@ const Auth = () => {
       <Dialog open={showExistingAccountModal} onOpenChange={setShowExistingAccountModal}>
         <DialogContent className="max-w-sm">
           <DialogHeader className="text-center">
-            <motion.div 
-              className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center"
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", stiffness: 200 }}
-            >
-              <Smartphone className="w-8 h-8 text-primary" />
-            </motion.div>
-            <DialogTitle className="text-xl">Account Already Exists</DialogTitle>
+            <DialogTitle className="text-xl">Mobile number already exists</DialogTitle>
             <DialogDescription className="text-center pt-2">
-              This mobile number is already registered with us. We'll log you into your existing account.
+              This number is already registered. Switch to login to receive an OTP.
             </DialogDescription>
           </DialogHeader>
           <div className="pt-4 space-y-3">
             <Button 
               onClick={() => {
                 setShowExistingAccountModal(false);
+
+                // If we already have a verified magic-link redirect (post-OTP), use it
                 if (pendingRedirectUrl) {
                   window.location.href = pendingRedirectUrl;
-                } else {
-                  navigate('/');
+                  return;
                 }
+
+                // Otherwise (signup attempt blocked), switch to login and send OTP
+                setIsSignUp(false);
+                setTimeout(() => {
+                  void sendOtp(false);
+                }, 0);
               }} 
               className="w-full h-12"
             >
-              Continue to Login
+              Login & Send OTP
             </Button>
             <Button 
               variant="outline"
