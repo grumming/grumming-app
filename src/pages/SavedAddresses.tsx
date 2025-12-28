@@ -35,7 +35,9 @@ import {
   MoreVertical,
   Pencil,
   Trash2,
-  Check
+  Check,
+  Locate,
+  Loader2
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -70,6 +72,21 @@ interface AddressForm {
   state: string;
   pincode: string;
   landmark: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+interface NominatimAddress {
+  house_number?: string;
+  road?: string;
+  neighbourhood?: string;
+  suburb?: string;
+  city?: string;
+  town?: string;
+  village?: string;
+  state?: string;
+  postcode?: string;
+  country?: string;
 }
 
 const labelIcons: Record<string, React.ReactNode> = {
@@ -90,6 +107,7 @@ const SavedAddresses = () => {
   const [addressToDelete, setAddressToDelete] = useState<string | null>(null);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
   const [saving, setSaving] = useState(false);
+  const [detectingLocation, setDetectingLocation] = useState(false);
   const [form, setForm] = useState<AddressForm>({
     label: "Home",
     address_line1: "",
@@ -163,6 +181,95 @@ const SavedAddresses = () => {
     setDialogOpen(true);
   };
 
+  const detectCurrentLocation = async () => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser");
+      return;
+    }
+
+    setDetectingLocation(true);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        
+        try {
+          // Use OpenStreetMap Nominatim for reverse geocoding (free, no API key needed)
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`,
+            {
+              headers: {
+                'Accept-Language': 'en',
+              },
+            }
+          );
+
+          if (!response.ok) throw new Error("Failed to fetch address");
+
+          const data = await response.json();
+          const address: NominatimAddress = data.address || {};
+
+          // Build address components
+          const houseNumber = address.house_number || "";
+          const road = address.road || "";
+          const neighbourhood = address.neighbourhood || address.suburb || "";
+          const city = address.city || address.town || address.village || "";
+          const state = address.state || "";
+          const pincode = address.postcode || "";
+
+          // Construct address line 1
+          const addressLine1Parts = [houseNumber, road].filter(Boolean);
+          const addressLine1 = addressLine1Parts.join(" ") || neighbourhood;
+
+          setForm((prev) => ({
+            ...prev,
+            address_line1: addressLine1 || prev.address_line1,
+            address_line2: neighbourhood && addressLine1 !== neighbourhood ? neighbourhood : prev.address_line2,
+            city: city || prev.city,
+            state: state || prev.state,
+            pincode: pincode.replace(/\s/g, "").slice(0, 6) || prev.pincode,
+            latitude,
+            longitude,
+          }));
+
+          toast.success("Location detected successfully");
+        } catch (error) {
+          console.error("Reverse geocoding error:", error);
+          toast.error("Could not fetch address details");
+          // Still save coordinates even if reverse geocoding fails
+          setForm((prev) => ({
+            ...prev,
+            latitude,
+            longitude,
+          }));
+        } finally {
+          setDetectingLocation(false);
+        }
+      },
+      (error) => {
+        setDetectingLocation(false);
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            toast.error("Location permission denied. Please enable location access.");
+            break;
+          case error.POSITION_UNAVAILABLE:
+            toast.error("Location information unavailable");
+            break;
+          case error.TIMEOUT:
+            toast.error("Location request timed out");
+            break;
+          default:
+            toast.error("An error occurred while detecting location");
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
+  };
+
   const handleSave = async () => {
     if (!form.address_line1 || !form.city || !form.state || !form.pincode) {
       toast.error("Please fill all required fields");
@@ -202,6 +309,8 @@ const SavedAddresses = () => {
           state: form.state,
           pincode: form.pincode,
           landmark: form.landmark || null,
+          latitude: form.latitude || null,
+          longitude: form.longitude || null,
           is_default: addresses.length === 0,
         });
 
@@ -409,6 +518,29 @@ const SavedAddresses = () => {
                 ))}
               </div>
             </div>
+
+            {/* Use Current Location Button */}
+            {!editingAddress && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={detectCurrentLocation}
+                disabled={detectingLocation}
+                className="w-full gap-2"
+              >
+                {detectingLocation ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Detecting location...
+                  </>
+                ) : (
+                  <>
+                    <Locate className="h-4 w-4" />
+                    Use Current Location
+                  </>
+                )}
+              </Button>
+            )}
 
             {/* Address Line 1 */}
             <div className="space-y-2">
