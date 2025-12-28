@@ -83,20 +83,20 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative py-8 flex items-center justify-center overflow-hidden">
-      <div className="relative z-10 container mx-auto px-4 text-center">
+    <section className="relative py-4 overflow-hidden">
+      <div className="container mx-auto px-4">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-          className="max-w-2xl mx-auto"
+          transition={{ duration: 0.4 }}
+          className="max-w-xl mx-auto"
         >
           {/* Search Card */}
-          <div className="glass rounded-2xl p-2 shadow-card">
-            <div className="flex flex-col sm:flex-row gap-2">
+          <div className="glass rounded-xl p-1.5 shadow-card">
+            <div className="flex flex-col sm:flex-row gap-1.5">
               {/* Location Input with Autocomplete */}
               <div ref={locationInputRef} className="relative flex-1">
-                <div className="flex items-center gap-2 px-4 py-3 bg-background rounded-xl">
+                <div className="flex items-center gap-2 px-3 py-2.5 bg-background rounded-lg">
                   <MapPin className="w-5 h-5 text-primary flex-shrink-0" />
                   <input
                     type="text"
