@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   CheckCircle, Calendar, Clock, MapPin, 
-  CalendarPlus, ArrowLeft, Home, Share2, Gift, Tag, Wallet 
+  CalendarPlus, ArrowLeft, Home, Share2, Gift, Tag, Wallet, Ticket 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -32,6 +32,8 @@ const BookingConfirmation = () => {
     walletDiscount: 0,
     paymentMethod: '',
     walletPaid: 0,
+    voucherCode: '',
+    voucherDiscount: 0,
   });
 
   useEffect(() => {
@@ -47,6 +49,8 @@ const BookingConfirmation = () => {
     const walletDiscount = parseInt(searchParams.get('walletDiscount') || '0', 10);
     const paymentMethod = searchParams.get('paymentMethod') || 'online';
     const walletPaid = parseInt(searchParams.get('walletPaid') || '0', 10);
+    const voucherCode = searchParams.get('voucherCode') || '';
+    const voucherDiscount = parseInt(searchParams.get('voucherDiscount') || '0', 10);
 
     setBookingDetails({
       salonName,
@@ -61,10 +65,12 @@ const BookingConfirmation = () => {
       walletDiscount,
       paymentMethod,
       walletPaid,
+      voucherCode,
+      voucherDiscount,
     });
   }, [searchParams]);
 
-  const { salonName, serviceName, servicePrice, bookingDate, bookingTime, discount, promoCode, promoDiscount, rewardDiscount, walletDiscount, paymentMethod, walletPaid } = bookingDetails;
+  const { salonName, serviceName, servicePrice, bookingDate, bookingTime, discount, promoCode, promoDiscount, rewardDiscount, walletDiscount, paymentMethod, walletPaid, voucherCode, voucherDiscount } = bookingDetails;
   const originalPrice = servicePrice + discount;
 
   // Determine payment status text
@@ -305,6 +311,24 @@ END:VCALENDAR`;
                       </div>
                       <span className="font-semibold text-blue-600 dark:text-blue-400">
                         -₹{promoDiscount}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Voucher Discount */}
+                  {voucherCode && voucherDiscount > 0 && (
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800">
+                      <div className="flex items-center gap-2">
+                        <Ticket className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                        <div>
+                          <span className="text-sm font-medium text-purple-700 dark:text-purple-300">
+                            Voucher Applied
+                          </span>
+                          <p className="text-xs text-purple-600 dark:text-purple-400 font-mono">{voucherCode}</p>
+                        </div>
+                      </div>
+                      <span className="font-semibold text-purple-600 dark:text-purple-400">
+                        -₹{voucherDiscount}
                       </span>
                     </div>
                   )}

@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, Star, MapPin, Clock, Phone, Heart, Share2, 
   ChevronRight, Calendar, Check, User, MessageSquare, CreditCard, Gift, X,
-  Tag, Loader2, Wallet
+  Tag, Loader2, Wallet, Ticket
 } from 'lucide-react';
 import { PaymentMethodSelector, PaymentMethodType } from '@/components/PaymentMethodSelector';
 import { Input } from '@/components/ui/input';
@@ -537,6 +537,28 @@ const SalonDetail = () => {
     min_order_value: number | null;
   }>>([]);
 
+  // User voucher states
+  const [userVouchers, setUserVouchers] = useState<Array<{
+    id: string;
+    code: string;
+    title: string;
+    description: string | null;
+    discount_type: string;
+    discount_value: number;
+    max_discount: number | null;
+    min_order_value: number | null;
+    valid_until: string | null;
+    source: string;
+  }>>([]);
+  const [appliedVoucher, setAppliedVoucher] = useState<{
+    id: string;
+    code: string;
+    title: string;
+    discountType: 'fixed' | 'percentage';
+    discountValue: number;
+    maxDiscount: number | null;
+  } | null>(null);
+
   // Fetch available promo codes
   useEffect(() => {
     const fetchPromoCodes = async () => {
@@ -557,6 +579,28 @@ const SalonDetail = () => {
     
     fetchPromoCodes();
   }, []);
+
+  // Fetch user vouchers
+  useEffect(() => {
+    const fetchUserVouchers = async () => {
+      if (!user) return;
+      
+      const now = new Date().toISOString();
+      const { data } = await supabase
+        .from('user_vouchers')
+        .select('id, code, title, description, discount_type, discount_value, max_discount, min_order_value, valid_until, source')
+        .eq('user_id', user.id)
+        .eq('is_used', false)
+        .or(`valid_until.is.null,valid_until.gt.${now}`)
+        .order('discount_value', { ascending: false });
+      
+      if (data) {
+        setUserVouchers(data);
+      }
+    };
+    
+    fetchUserVouchers();
+  }, [user]);
 
   const salon = id ? salonsData[id] : null;
 
@@ -589,9 +633,22 @@ const SalonDetail = () => {
   const priceAfterReward = subtotalPrice - rewardDiscount;
   const walletCreditsDiscount = applyWalletCredits ? Math.min(walletBalance, priceAfterReward) : 0;
   
-  // Calculate promo discount
+  // Calculate voucher discount
+  const calculateVoucherDiscount = () => {
+    if (!appliedVoucher) return 0;
+    const priceAfterWallet = subtotalPrice - rewardDiscount - walletCreditsDiscount;
+    if (appliedVoucher.discountType === 'percentage') {
+      const discount = (priceAfterWallet * appliedVoucher.discountValue) / 100;
+      return appliedVoucher.maxDiscount ? Math.min(discount, appliedVoucher.maxDiscount) : discount;
+    }
+    return Math.min(appliedVoucher.discountValue, priceAfterWallet);
+  };
+  
+  const voucherDiscount = calculateVoucherDiscount();
+  
+  // Calculate promo discount (only if no voucher applied)
   const calculatePromoDiscount = () => {
-    if (!appliedPromo) return 0;
+    if (!appliedPromo || appliedVoucher) return 0; // Voucher takes priority over promo
     const priceAfterCredits = subtotalPrice - rewardDiscount - walletCreditsDiscount;
     if (appliedPromo.discountType === 'percentage') {
       const discount = (priceAfterCredits * appliedPromo.discountValue) / 100;
@@ -601,12 +658,48 @@ const SalonDetail = () => {
   };
   
   const promoDiscount = calculatePromoDiscount();
-  const totalPrice = Math.max(0, subtotalPrice - rewardDiscount - walletCreditsDiscount - promoDiscount);
-  const totalDiscount = rewardDiscount + walletCreditsDiscount + promoDiscount;
+  const totalPrice = Math.max(0, subtotalPrice - rewardDiscount - walletCreditsDiscount - voucherDiscount - promoDiscount);
+  const totalDiscount = rewardDiscount + walletCreditsDiscount + voucherDiscount + promoDiscount;
   const totalDuration = selectedServicesData.reduce((sum: string, s: any) => {
     const match = s.duration.match(/(\d+\.?\d*)/);
     return match ? sum + parseFloat(match[0]) : sum;
   }, 0);
+
+  // Apply a user voucher
+  const applyVoucher = (voucher: typeof userVouchers[0]) => {
+    // Check min order value
+    if (voucher.min_order_value && subtotalPrice < voucher.min_order_value) {
+      toast({
+        title: 'Minimum order not met',
+        description: `This voucher requires a minimum order of ₹${voucher.min_order_value}`,
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    setAppliedVoucher({
+      id: voucher.id,
+      code: voucher.code,
+      title: voucher.title,
+      discountType: voucher.discount_type as 'fixed' | 'percentage',
+      discountValue: voucher.discount_value,
+      maxDiscount: voucher.max_discount,
+    });
+    
+    // Remove promo if voucher is applied
+    if (appliedPromo) {
+      setAppliedPromo(null);
+    }
+    
+    toast({
+      title: 'Voucher Applied!',
+      description: `${voucher.title} - ${voucher.discount_type === 'percentage' ? `${voucher.discount_value}% OFF` : `₹${voucher.discount_value} OFF`}`,
+    });
+  };
+
+  const removeVoucher = () => {
+    setAppliedVoucher(null);
+  };
 
   // Validate and apply promo code
   const applyPromoCode = async () => {
@@ -805,11 +898,24 @@ const SalonDetail = () => {
           });
         }
 
+        // Mark voucher as used
+        if (appliedVoucher && user) {
+          await supabase
+            .from('user_vouchers')
+            .update({ 
+              is_used: true, 
+              used_at: new Date().toISOString(),
+              booking_id: bookingData.id 
+            })
+            .eq('id', appliedVoucher.id);
+        }
+
         setShowBookingModal(false);
         setSelectedServices([]);
         setApplyReward(false);
         setApplyWalletCredits(false);
         setAppliedPromo(null);
+        setAppliedVoucher(null);
         setIsSplitPayment(false);
         setSplitWalletAmount(0);
         
@@ -830,6 +936,7 @@ const SalonDetail = () => {
           paymentMethod: paymentMethod,
           discount: totalDiscount.toString(),
           ...(appliedPromo && { promoCode: appliedPromo.code, promoDiscount: promoDiscount.toString() }),
+          ...(appliedVoucher && { voucherCode: appliedVoucher.code, voucherDiscount: voucherDiscount.toString() }),
           ...(rewardDiscount > 0 && { rewardDiscount: rewardDiscount.toString() }),
           ...(walletCreditsDiscount > 0 && { walletDiscount: walletCreditsDiscount.toString() }),
         });
@@ -875,12 +982,25 @@ const SalonDetail = () => {
         });
       }
 
+      // Mark voucher as used for salon payment
+      if (appliedVoucher && user) {
+        await supabase
+          .from('user_vouchers')
+          .update({ 
+            is_used: true, 
+            used_at: new Date().toISOString(),
+            booking_id: bookingData.id 
+          })
+          .eq('id', appliedVoucher.id);
+      }
+
       setIsBooking(false);
       setShowBookingModal(false);
       setSelectedServices([]);
       setApplyReward(false);
       setApplyWalletCredits(false);
       setAppliedPromo(null);
+      setAppliedVoucher(null);
       setIsSplitPayment(false);
       setSplitWalletAmount(0);
 
@@ -905,6 +1025,7 @@ const SalonDetail = () => {
         discount: totalDiscount.toString(),
         ...(paymentMethod === 'split' && { walletPaid: walletPaymentAmount.toString() }),
         ...(appliedPromo && { promoCode: appliedPromo.code, promoDiscount: promoDiscount.toString() }),
+        ...(appliedVoucher && { voucherCode: appliedVoucher.code, voucherDiscount: voucherDiscount.toString() }),
         ...(rewardDiscount > 0 && { rewardDiscount: rewardDiscount.toString() }),
         ...(!isSplitPayment && walletCreditsDiscount > 0 && { walletDiscount: walletCreditsDiscount.toString() }),
       });
@@ -1332,6 +1453,87 @@ const SalonDetail = () => {
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* User Vouchers Section */}
+            {userVouchers.length > 0 && !appliedVoucher && !appliedPromo && (
+              <div className="space-y-3 pt-2 border-t">
+                <h4 className="font-medium text-sm flex items-center gap-2">
+                  <Ticket className="w-4 h-4 text-purple-500" />
+                  My Vouchers
+                  <span className="text-xs text-muted-foreground">({userVouchers.length} available)</span>
+                </h4>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {userVouchers.map((voucher) => {
+                    const discountText = voucher.discount_type === 'percentage'
+                      ? `${voucher.discount_value}% OFF`
+                      : `₹${voucher.discount_value} OFF`;
+                    const canApply = !voucher.min_order_value || subtotalPrice >= voucher.min_order_value;
+                    
+                    return (
+                      <button
+                        key={voucher.id}
+                        onClick={() => applyVoucher(voucher)}
+                        disabled={!canApply}
+                        className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-colors text-left ${
+                          canApply 
+                            ? 'border-dashed border-purple-300 dark:border-purple-700 bg-purple-50/50 dark:bg-purple-900/10 hover:bg-purple-100 dark:hover:bg-purple-900/30' 
+                            : 'border-border bg-muted/50 opacity-60 cursor-not-allowed'
+                        }`}
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
+                          <Ticket className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-semibold text-purple-700 dark:text-purple-300 truncate">
+                              {voucher.title}
+                            </p>
+                            <span className="text-xs font-bold text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/50 px-1.5 py-0.5 rounded">
+                              {discountText}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            {voucher.min_order_value ? `Min ₹${voucher.min_order_value}` : 'No minimum'}
+                            {voucher.valid_until && ` • Expires ${format(new Date(voucher.valid_until), 'MMM dd')}`}
+                          </p>
+                        </div>
+                        {canApply && (
+                          <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">Apply</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Applied Voucher Display */}
+            {appliedVoucher && (
+              <div className="pt-2 border-t">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800">
+                  <div className="flex items-center gap-2">
+                    <Ticket className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                    <div>
+                      <span className="text-sm font-medium text-purple-700 dark:text-purple-300">
+                        {appliedVoucher.title}
+                      </span>
+                      <p className="text-[10px] text-purple-600/70 dark:text-purple-400/70">{appliedVoucher.code}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-purple-600 dark:text-purple-400">
+                      -₹{voucherDiscount.toFixed(0)}
+                    </span>
+                    <button 
+                      onClick={removeVoucher}
+                      className="p-1 hover:bg-purple-100 dark:hover:bg-purple-800 rounded"
+                    >
+                      <X className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
 
