@@ -32,12 +32,20 @@ const WelcomeBanner = () => {
     <AnimatePresence>
       {isVisible && (
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-          className="fixed top-20 left-4 right-4 z-50 md:left-1/2 md:-translate-x-1/2 md:max-w-lg"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-background/60 backdrop-blur-sm p-4"
+          onClick={handleDismiss}
         >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-sm"
+          >
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500 p-4 shadow-2xl">
             {/* Decorative elements */}
             <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-white/20 blur-xl" />
@@ -91,6 +99,7 @@ const WelcomeBanner = () => {
               </div>
             </div>
           </div>
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
