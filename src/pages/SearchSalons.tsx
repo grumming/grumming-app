@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
-  ArrowLeft, Search, Star, MapPin, SlidersHorizontal, X, Scissors, Clock 
+  ArrowLeft, Search, Star, MapPin, SlidersHorizontal, X, Scissors, Clock, Car 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,7 +20,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { getFilteredSalons, SalonBasic } from '@/data/salonsData';
 import { useRecentSearches } from '@/hooks/useRecentSearches';
-
+import { useLocation } from '@/contexts/LocationContext';
+import { calculateDistance, formatDistance, estimateTravelTime } from '@/lib/distance';
+import { salonsData } from '@/components/FeaturedSalons';
 interface Salon {
   id: number;
   name: string;
@@ -157,6 +159,7 @@ const SearchSalons = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
+  const isNearbyMode = searchParams.get('nearby') === 'true';
   
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -167,6 +170,7 @@ const SearchSalons = () => {
   const [salonSuggestions, setSalonSuggestions] = useState<SalonBasic[]>([]);
   const searchInputRef = useRef<HTMLDivElement>(null);
   const { recentSearches, addRecentSearch, clearRecentSearches } = useRecentSearches();
+  const { coordinates } = useLocation();
 
   useEffect(() => {
     const filtered = getFilteredSalons(searchQuery);
@@ -195,8 +199,37 @@ const SearchSalons = () => {
     navigate(`/salon/${salon.id}`);
   };
 
+  // Nearby salons sorted by distance
+  const nearbySalons = useMemo(() => {
+    if (!coordinates) return [];
+    
+    return salonsData
+      .map(salon => ({
+        id: salon.id,
+        name: salon.name,
+        image: salon.image,
+        rating: salon.rating,
+        reviews: salon.reviews,
+        location: salon.location,
+        city: salon.city,
+        services: salon.services,
+        price: salon.price,
+        priceValue: salon.price === "₹₹₹" ? 800 : salon.price === "₹₹" ? 500 : 300,
+        categories: salon.services,
+        distance: calculateDistance(
+          coordinates.lat,
+          coordinates.lng,
+          salon.coordinates.lat,
+          salon.coordinates.lng
+        ),
+      }))
+      .sort((a, b) => a.distance - b.distance);
+  }, [coordinates]);
+
   const filteredSalons = useMemo(() => {
-    return allSalons.filter(salon => {
+    const baseSalons = isNearbyMode && coordinates ? nearbySalons : allSalons.map(s => ({ ...s, distance: null as number | null }));
+    
+    return baseSalons.filter(salon => {
       // Search query filter
       const matchesSearch = 
         searchQuery === '' ||
@@ -219,7 +252,7 @@ const SearchSalons = () => {
 
       return matchesSearch && matchesCategory && matchesPrice && matchesRating;
     });
-  }, [searchQuery, selectedCategories, priceRange, minRating]);
+  }, [searchQuery, selectedCategories, priceRange, minRating, isNearbyMode, coordinates, nearbySalons]);
 
   const toggleCategory = (category: string) => {
     setSelectedCategories(prev =>
@@ -441,10 +474,12 @@ const SearchSalons = () => {
         )}
       </header>
 
-      {/* Results */}
       <div className="p-4">
         <p className="text-sm text-muted-foreground mb-4">
-          {filteredSalons.length} salon{filteredSalons.length !== 1 ? 's' : ''} found
+          {isNearbyMode && coordinates 
+            ? `${filteredSalons.length} nearby salon${filteredSalons.length !== 1 ? 's' : ''} sorted by distance`
+            : `${filteredSalons.length} salon${filteredSalons.length !== 1 ? 's' : ''} found`
+          }
         </p>
 
         {filteredSalons.length === 0 ? (
@@ -488,10 +523,22 @@ const SearchSalons = () => {
                         </div>
                       </div>
                       
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
                         <MapPin className="w-3 h-3" />
                         <span>{salon.location}, {salon.city}</span>
+                        {salon.distance !== null && (
+                          <span className="ml-auto text-xs font-medium bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                            {formatDistance(salon.distance)}
+                          </span>
+                        )}
                       </div>
+                      
+                      {salon.distance !== null && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
+                          <Car className="w-3 h-3" />
+                          <span>{estimateTravelTime(salon.distance).driving} drive</span>
+                        </div>
+                      )}
 
                       <div className="flex flex-wrap gap-1 mb-2">
                         {salon.services.slice(0, 3).map((service) => (
