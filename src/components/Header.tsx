@@ -91,18 +91,31 @@ const Header = () => {
           
           {/* City Suggestions Dropdown */}
           {showSuggestions && suggestions.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto min-w-48">
-              {suggestions.map((city, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleSelectCity(city)}
-                  className="w-full px-4 py-2.5 text-left hover:bg-muted transition-colors flex items-center gap-2 first:rounded-t-xl last:rounded-b-xl text-sm"
-                >
-                  <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                  <span className="text-foreground font-body">{city}</span>
-                </button>
-              ))}
-            </div>
+            <motion.div 
+              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="absolute top-full left-0 mt-2 bg-background/95 backdrop-blur-md border border-border/80 rounded-xl shadow-xl z-50 max-h-60 overflow-y-auto min-w-52"
+            >
+              <div className="p-1.5">
+                {suggestions.map((city, index) => (
+                  <motion.button
+                    key={index}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.15, delay: index * 0.03 }}
+                    onClick={() => handleSelectCity(city)}
+                    className="w-full px-3 py-2.5 text-left hover:bg-primary/10 rounded-lg transition-all duration-200 flex items-center gap-2.5 text-sm group"
+                  >
+                    <div className="p-1.5 rounded-md bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                      <MapPin className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                    </div>
+                    <span className="text-foreground font-body group-hover:text-primary transition-colors">{city}</span>
+                  </motion.button>
+                ))}
+              </div>
+            </motion.div>
           )}
         </div>
         
