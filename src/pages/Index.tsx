@@ -7,7 +7,6 @@ import FeaturedSalons from "@/components/FeaturedSalons";
 import AppPromo from "@/components/AppPromo";
 import BottomNav from "@/components/BottomNav";
 import WelcomeBanner from "@/components/WelcomeBanner";
-import QuickAccessMenu from "@/components/QuickAccessMenu";
 
 const Index = () => {
   return (
@@ -16,7 +15,6 @@ const Index = () => {
       <WelcomeBanner />
       <main className="pt-16 pb-24">
         <HeroSection />
-        <QuickAccessMenu />
         <FirstBookingBanner />
         <CashbackBanner />
         <ReferEarnBanner />
