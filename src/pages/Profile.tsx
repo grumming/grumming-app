@@ -21,6 +21,7 @@ interface Profile {
   user_id: string;
   full_name: string | null;
   phone: string | null;
+  email: string | null;
   avatar_url: string | null;
 }
 
@@ -70,9 +71,11 @@ const Profile = () => {
       setProfile(data);
       setFullName(data.full_name || '');
       setPhone(data.phone || '');
+      setEmail(data.email || user.email || '');
       setAvatarUrl(data.avatar_url);
+    } else {
+      setEmail(user.email || '');
     }
-    setEmail(user.email || '');
     setIsLoading(false);
   };
 
@@ -86,6 +89,7 @@ const Profile = () => {
       .update({
         full_name: fullName,
         phone: phone,
+        email: email,
         avatar_url: avatarUrl,
       })
       .eq('user_id', user.id);
@@ -100,19 +104,8 @@ const Profile = () => {
       return;
     }
 
-    if (email !== user.email) {
-      const { error: emailError } = await supabase.auth.updateUser({ email });
-      if (emailError) {
-        setIsSaving(false);
-        toast({
-          title: 'Email update pending',
-          description: 'Check your new email for a confirmation link.',
-        });
-      }
-    }
-
     setIsSaving(false);
-    setProfile(prev => prev ? { ...prev, full_name: fullName, phone, avatar_url: avatarUrl } : null);
+    setProfile(prev => prev ? { ...prev, full_name: fullName, phone, email, avatar_url: avatarUrl } : null);
     setIsEditing(false);
     toast({
       title: 'Profile updated',
@@ -271,8 +264,8 @@ const Profile = () => {
                 <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Enter your full name" />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="email" className="text-xs text-muted-foreground">Email Address</Label>
-                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter your email" />
+                <Label htmlFor="email" className="text-xs text-muted-foreground">Email Address (for booking confirmations & receipts)</Label>
+                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter your email for booking updates" />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="phone" className="text-xs text-muted-foreground">Phone Number</Label>
@@ -295,9 +288,9 @@ const Profile = () => {
               <h2 className="font-display text-lg font-semibold text-foreground truncate">
                 {fullName || 'Guest User'}
               </h2>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
-                {user?.phone && <span>{user.phone}</span>}
-                {user?.email && !user?.phone && <span className="truncate">{user.email}</span>}
+              <div className="flex flex-col gap-0.5 text-sm text-muted-foreground mt-0.5">
+                {email && <span className="truncate flex items-center gap-1"><Mail className="w-3 h-3" />{email}</span>}
+                {phone && <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{phone}</span>}
               </div>
               <button 
                 onClick={() => setIsEditing(true)}
