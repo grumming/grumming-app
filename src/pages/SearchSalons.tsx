@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
-  ArrowLeft, Search, Star, MapPin, SlidersHorizontal, X, Scissors, Clock, Car, ChevronDown 
+  ArrowLeft, Search, Star, MapPin, SlidersHorizontal, X, Scissors, Clock, Car, ChevronDown, ArrowUpDown 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -168,6 +168,7 @@ const SearchSalons = () => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [salonSuggestions, setSalonSuggestions] = useState<SalonBasic[]>([]);
+  const [sortBy, setSortBy] = useState<'distance' | 'rating' | 'price_low' | 'price_high'>('distance');
   const searchInputRef = useRef<HTMLDivElement>(null);
   const { recentSearches, addRecentSearch, clearRecentSearches } = useRecentSearches();
   const { coordinates } = useLocation();
@@ -229,7 +230,7 @@ const SearchSalons = () => {
   const filteredSalons = useMemo(() => {
     const baseSalons = isNearbyMode && coordinates ? nearbySalons : allSalons.map(s => ({ ...s, distance: null as number | null }));
     
-    return baseSalons.filter(salon => {
+    const filtered = baseSalons.filter(salon => {
       // Search query filter
       const matchesSearch = 
         searchQuery === '' ||
@@ -252,7 +253,26 @@ const SearchSalons = () => {
 
       return matchesSearch && matchesCategory && matchesPrice && matchesRating;
     });
-  }, [searchQuery, selectedCategories, priceRange, minRating, isNearbyMode, coordinates, nearbySalons]);
+
+    // Sort results
+    return filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'distance':
+          if (a.distance === null && b.distance === null) return 0;
+          if (a.distance === null) return 1;
+          if (b.distance === null) return -1;
+          return a.distance - b.distance;
+        case 'rating':
+          return b.rating - a.rating;
+        case 'price_low':
+          return a.priceValue - b.priceValue;
+        case 'price_high':
+          return b.priceValue - a.priceValue;
+        default:
+          return 0;
+      }
+    });
+  }, [searchQuery, selectedCategories, priceRange, minRating, isNearbyMode, coordinates, nearbySalons, sortBy]);
 
   const toggleCategory = (category: string) => {
     setSelectedCategories(prev =>
@@ -509,6 +529,44 @@ const SearchSalons = () => {
                 </div>
               </div>
             </div>
+
+            {/* Sort Dropdown */}
+            <div className="relative group ml-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 h-9 px-3 rounded-full"
+              >
+                <ArrowUpDown className="w-3.5 h-3.5" />
+                {sortBy === 'distance' && 'Distance'}
+                {sortBy === 'rating' && 'Rating'}
+                {sortBy === 'price_low' && 'Price: Low'}
+                {sortBy === 'price_high' && 'Price: High'}
+                <ChevronDown className="w-3.5 h-3.5 transition-transform group-hover:rotate-180" />
+              </Button>
+              <div className="absolute top-full right-0 mt-1 bg-background border border-border rounded-xl shadow-lg z-50 min-w-36 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                <div className="p-2 space-y-1">
+                  {[
+                    { value: 'distance' as const, label: 'Distance' },
+                    { value: 'rating' as const, label: 'Rating' },
+                    { value: 'price_low' as const, label: 'Price: Low to High' },
+                    { value: 'price_high' as const, label: 'Price: High to Low' },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => setSortBy(option.value)}
+                      className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${
+                        sortBy === option.value 
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'hover:bg-muted'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
             
             {/* Clear Filters */}
             {(minRating > 0 || selectedCategories.length > 0) && (
@@ -560,10 +618,8 @@ const SearchSalons = () => {
 
       <div className="p-4">
         <p className="text-sm text-muted-foreground mb-4">
-          {isNearbyMode && coordinates 
-            ? `${filteredSalons.length} nearby salon${filteredSalons.length !== 1 ? 's' : ''} sorted by distance`
-            : `${filteredSalons.length} salon${filteredSalons.length !== 1 ? 's' : ''} found`
-          }
+          {filteredSalons.length} salon{filteredSalons.length !== 1 ? 's' : ''} found
+          {sortBy !== 'distance' && ` • Sorted by ${sortBy === 'rating' ? 'rating' : sortBy === 'price_low' ? 'price (low to high)' : 'price (high to low)'}`}
         </p>
 
         {filteredSalons.length === 0 ? (
