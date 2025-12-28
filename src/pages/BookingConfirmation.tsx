@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   CheckCircle, Calendar, Clock, MapPin, 
   CalendarPlus, ArrowLeft, Home, Share2, Gift, Tag, Wallet, Ticket,
-  Loader2, AlertCircle, RefreshCw
+  Loader2, AlertCircle, RefreshCw, CreditCard
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -409,7 +409,7 @@ END:VCALENDAR`;
         </motion.div>
 
         {/* Manual Verification Button for Pending Payments */}
-        {(paymentStatus === 'pending' || paymentStatus === 'failed') && bookingDetails.bookingId && (
+        {paymentStatus === 'pending' && bookingDetails.bookingId && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -418,16 +418,56 @@ END:VCALENDAR`;
             <Button
               onClick={() => checkPaymentStatus(bookingDetails.bookingId)}
               className="w-full gap-2"
-              variant={paymentStatus === 'failed' ? 'destructive' : 'outline'}
+              variant="outline"
             >
               <RefreshCw className="w-4 h-4" />
               Check Payment Status
             </Button>
-            {verificationAttempts > 0 && paymentStatus === 'pending' && (
+            {verificationAttempts > 0 && (
               <p className="text-xs text-center text-muted-foreground mt-2">
                 Checked {verificationAttempts} time{verificationAttempts > 1 ? 's' : ''}
               </p>
             )}
+          </motion.div>
+        )}
+
+        {/* Payment Failed - Retry Options */}
+        {paymentStatus === 'failed' && bookingDetails.bookingId && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 w-full max-w-md space-y-3"
+          >
+            <Button
+              onClick={() => checkPaymentStatus(bookingDetails.bookingId)}
+              className="w-full gap-2"
+              variant="outline"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Check Payment Status Again
+            </Button>
+            <Button
+              onClick={() => {
+                // Navigate back to salon page with retry params
+                const retryParams = new URLSearchParams({
+                  retry: 'true',
+                  service: bookingDetails.serviceName,
+                  price: bookingDetails.servicePrice.toString(),
+                  date: bookingDetails.bookingDate,
+                  time: bookingDetails.bookingTime,
+                  bookingId: bookingDetails.bookingId,
+                });
+                navigate(`/salon/${encodeURIComponent(bookingDetails.salonName)}?${retryParams.toString()}`);
+              }}
+              className="w-full gap-2"
+              variant="default"
+            >
+              <CreditCard className="w-4 h-4" />
+              Try Different Payment Method
+            </Button>
+            <p className="text-xs text-center text-muted-foreground">
+              Your booking is saved. Choose a different payment method to complete it.
+            </p>
           </motion.div>
         )}
 
