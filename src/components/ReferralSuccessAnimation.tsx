@@ -1,6 +1,8 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Gift, Sparkles, PartyPopper, Check } from 'lucide-react';
+import { Gift, Sparkles, PartyPopper, Check, Wallet } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 
 interface ReferralSuccessAnimationProps {
   isVisible: boolean;
@@ -63,6 +65,7 @@ export const ReferralSuccessAnimation = ({
   rewardAmount = 100 
 }: ReferralSuccessAnimationProps) => {
   const [showConfetti, setShowConfetti] = useState(false);
+  const navigate = useNavigate();
 
   const playSound = useCallback(() => {
     playCelebrationSound();
@@ -74,7 +77,7 @@ export const ReferralSuccessAnimation = ({
       playSound();
       const timer = setTimeout(() => {
         onComplete?.();
-      }, 3500);
+      }, 8000); // Extended timeout to give time for button click
       return () => clearTimeout(timer);
     }
   }, [isVisible, onComplete, playSound]);
@@ -82,6 +85,12 @@ export const ReferralSuccessAnimation = ({
   const handleDismiss = useCallback(() => {
     onComplete?.();
   }, [onComplete]);
+
+  const handleViewWallet = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent triggering the dismiss
+    onComplete?.();
+    navigate('/wallet');
+  }, [onComplete, navigate]);
 
   return (
     <AnimatePresence>
@@ -258,14 +267,31 @@ export const ReferralSuccessAnimation = ({
               </motion.div>
             </motion.div>
 
+            {/* View Wallet Button */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1 }}
+              className="mt-6"
+            >
+              <Button
+                onClick={handleViewWallet}
+                className="gap-2"
+                size="lg"
+              >
+                <Wallet className="w-4 h-4" />
+                View Wallet
+              </Button>
+            </motion.div>
+
             {/* Dismiss hint */}
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 1.5 }}
-              className="text-xs text-muted-foreground mt-6"
+              className="text-xs text-muted-foreground mt-4"
             >
-              Tap anywhere to dismiss
+              or tap anywhere to dismiss
             </motion.p>
           </motion.div>
         </motion.div>
