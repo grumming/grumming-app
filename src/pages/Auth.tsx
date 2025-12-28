@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Phone, ArrowLeft, Loader2, Gift } from 'lucide-react';
@@ -11,6 +11,7 @@ import { useReferral } from '@/hooks/useReferral';
 import { supabase } from '@/integrations/supabase/client';
 import { ReferralSuccessAnimation } from '@/components/ReferralSuccessAnimation';
 import { z } from 'zod';
+import confetti from 'canvas-confetti';
 
 
 const phoneSchema = z.string().min(10, 'Phone number must be at least 10 digits').regex(/^[0-9]+$/, 'Please enter a valid phone number');
@@ -170,6 +171,37 @@ const Auth = () => {
       }
 
       triggerHaptic('success');
+      
+      // Fire confetti celebration
+      const fireConfetti = () => {
+        // Center burst
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#7c3aed', '#a78bfa', '#c4b5fd', '#22c55e', '#4ade80']
+        });
+        
+        // Side bursts
+        setTimeout(() => {
+          confetti({
+            particleCount: 50,
+            angle: 60,
+            spread: 55,
+            origin: { x: 0, y: 0.6 },
+            colors: ['#7c3aed', '#a78bfa', '#22c55e']
+          });
+          confetti({
+            particleCount: 50,
+            angle: 120,
+            spread: 55,
+            origin: { x: 1, y: 0.6 },
+            colors: ['#7c3aed', '#a78bfa', '#22c55e']
+          });
+        }, 150);
+      };
+      fireConfetti();
+      
       toast({
         title: data.isNewUser ? 'Account Created!' : 'Welcome Back!',
         description: 'Logging you in...',
