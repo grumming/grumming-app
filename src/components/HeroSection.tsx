@@ -267,9 +267,11 @@ const HeroSection = ({ onSearchActiveChange }: HeroSectionProps) => {
                             onClick={() => handleSelectService(service)}
                             className="w-full px-4 py-3 text-left hover:bg-muted transition-colors flex items-center gap-3 bg-background"
                           >
-                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                              <Sparkles className="w-5 h-5 text-primary" />
-                            </div>
+                            <img 
+                              src={service.image} 
+                              alt={service.serviceName}
+                              className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                            />
                             <div className="flex-1 min-w-0">
                               <p className="text-base font-semibold text-foreground">{service.serviceName}</p>
                               <p className="text-sm text-muted-foreground truncate">
@@ -302,9 +304,11 @@ const HeroSection = ({ onSearchActiveChange }: HeroSectionProps) => {
                             onClick={() => handleSelectSalon(salon)}
                             className="w-full px-4 py-3 text-left hover:bg-muted transition-colors flex items-center gap-3 bg-background"
                           >
-                            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                              <Scissors className="w-5 h-5 text-foreground" />
-                            </div>
+                            <img 
+                              src={salon.image} 
+                              alt={salon.name}
+                              className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                            />
                             <div>
                               <p className="text-base font-semibold text-foreground">{salon.name}</p>
                               <p className="text-sm text-muted-foreground">{salon.location}, {salon.city}</p>

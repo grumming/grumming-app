@@ -3,6 +3,7 @@ export interface SalonBasic {
   name: string;
   location: string;
   city: string;
+  image: string;
 }
 
 export interface ServiceResult {
@@ -14,34 +15,70 @@ export interface ServiceResult {
   category: string;
   location: string;
   city: string;
+  image: string;
 }
+
+// Service category images
+const serviceImages: Record<string, string> = {
+  Hair: "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=100&h=100&fit=crop",
+  Haircut: "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=100&h=100&fit=crop",
+  Color: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=100&h=100&fit=crop",
+  Makeup: "https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=100&h=100&fit=crop",
+  Spa: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=100&h=100&fit=crop",
+  Massage: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=100&h=100&fit=crop",
+  Skincare: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=100&h=100&fit=crop",
+  Nails: "https://images.unsplash.com/photo-1604654894610-df63bc536371?w=100&h=100&fit=crop",
+  Waxing: "https://images.unsplash.com/photo-1515377905703-c4788e51af15?w=100&h=100&fit=crop",
+  Threading: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=100&h=100&fit=crop",
+  Grooming: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=100&h=100&fit=crop",
+  Treatment: "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=100&h=100&fit=crop",
+  Bridal: "https://images.unsplash.com/photo-1519741497674-611481863552?w=100&h=100&fit=crop",
+  Body: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=100&h=100&fit=crop",
+  Aromatherapy: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=100&h=100&fit=crop",
+};
+
+const getServiceImage = (category: string): string => {
+  return serviceImages[category] || "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=100&h=100&fit=crop";
+};
 
 export const allSalonsList: SalonBasic[] = [
   // Mumbai
-  { id: 1, name: "Luxe Beauty Lounge", location: "Bandra West", city: "Mumbai" },
-  { id: 2, name: "Glow Studio", location: "Andheri East", city: "Mumbai" },
-  { id: 3, name: "The Hair Bar", location: "Juhu", city: "Mumbai" },
-  { id: 4, name: "Serenity Spa", location: "Powai", city: "Mumbai" },
+  { id: 1, name: "Luxe Beauty Lounge", location: "Bandra West", city: "Mumbai", image: "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=100&h=100&fit=crop" },
+  { id: 2, name: "Glow Studio", location: "Andheri East", city: "Mumbai", image: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=100&h=100&fit=crop" },
+  { id: 3, name: "The Hair Bar", location: "Juhu", city: "Mumbai", image: "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=100&h=100&fit=crop" },
+  { id: 4, name: "Serenity Spa", location: "Powai", city: "Mumbai", image: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=100&h=100&fit=crop" },
   // Bihar - Patna
-  { id: 5, name: "Royal Cuts Salon", location: "Boring Road", city: "Patna" },
-  { id: 6, name: "Glamour Zone", location: "Fraser Road", city: "Patna" },
-  { id: 7, name: "Style Studio Patna", location: "Kankarbagh", city: "Patna" },
-  { id: 14, name: "The Grooming Lounge", location: "Patliputra Colony", city: "Patna" },
+  { id: 5, name: "Royal Cuts Salon", location: "Boring Road", city: "Patna", image: "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=100&h=100&fit=crop" },
+  { id: 6, name: "Glamour Zone", location: "Fraser Road", city: "Patna", image: "https://images.unsplash.com/photo-1633681926022-84c23e8cb2d6?w=100&h=100&fit=crop" },
+  { id: 7, name: "Style Studio Patna", location: "Kankarbagh", city: "Patna", image: "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=100&h=100&fit=crop" },
+  { id: 14, name: "The Grooming Lounge", location: "Patliputra Colony", city: "Patna", image: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=100&h=100&fit=crop" },
   // Bihar - Gaya
-  { id: 8, name: "Buddha Beauty Parlour", location: "Bodhgaya Road", city: "Gaya" },
-  { id: 9, name: "Gaya Men's Salon", location: "Station Road", city: "Gaya" },
+  { id: 8, name: "Buddha Beauty Parlour", location: "Bodhgaya Road", city: "Gaya", image: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=100&h=100&fit=crop" },
+  { id: 9, name: "Gaya Men's Salon", location: "Station Road", city: "Gaya", image: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=100&h=100&fit=crop" },
   // Bihar - Muzaffarpur
-  { id: 10, name: "Lichi City Salon", location: "Saraiya Ganj", city: "Muzaffarpur" },
-  { id: 11, name: "New Look Unisex Salon", location: "Mithanpura", city: "Muzaffarpur" },
+  { id: 10, name: "Lichi City Salon", location: "Saraiya Ganj", city: "Muzaffarpur", image: "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=100&h=100&fit=crop" },
+  { id: 11, name: "New Look Unisex Salon", location: "Mithanpura", city: "Muzaffarpur", image: "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=100&h=100&fit=crop" },
   // Bihar - Bhagalpur
-  { id: 12, name: "Silk City Beauty Hub", location: "Khalifabagh", city: "Bhagalpur" },
-  { id: 13, name: "Trendy Looks Bhagalpur", location: "Adampur", city: "Bhagalpur" },
+  { id: 12, name: "Silk City Beauty Hub", location: "Khalifabagh", city: "Bhagalpur", image: "https://images.unsplash.com/photo-1633681926022-84c23e8cb2d6?w=100&h=100&fit=crop" },
+  { id: 13, name: "Trendy Looks Bhagalpur", location: "Adampur", city: "Bhagalpur", image: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=100&h=100&fit=crop" },
   // Bihar - Chakia
-  { id: 15, name: "Expert Hair and Skin Salon", location: "Main Road", city: "Chakia" },
+  { id: 15, name: "Expert Hair and Skin Salon", location: "Main Road", city: "Chakia", image: "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=100&h=100&fit=crop" },
 ];
 
+// Internal service type without image
+interface ServiceData {
+  salonId: number;
+  salonName: string;
+  serviceName: string;
+  price: number;
+  duration: string;
+  category: string;
+  location: string;
+  city: string;
+}
+
 // All services from salons for search
-const allServices: ServiceResult[] = [
+const allServicesData: ServiceData[] = [
   // Luxe Beauty Lounge
   { salonId: 1, salonName: "Luxe Beauty Lounge", serviceName: "Haircut & Styling", price: 49, duration: "45 min", category: "Hair", location: "Bandra West", city: "Mumbai" },
   { salonId: 1, salonName: "Luxe Beauty Lounge", serviceName: "Hair Coloring", price: 49, duration: "2 hrs", category: "Hair", location: "Bandra West", city: "Mumbai" },
@@ -124,11 +161,15 @@ export const getFilteredServices = (query: string): ServiceResult[] => {
   if (!query || query.length < 2) return [];
   
   const lowerQuery = query.toLowerCase();
-  return allServices
+  return allServicesData
     .filter(service => 
       service.serviceName.toLowerCase().includes(lowerQuery) ||
       service.category.toLowerCase().includes(lowerQuery)
     )
+    .map(service => ({
+      ...service,
+      image: getServiceImage(service.category)
+    }))
     .slice(0, 6);
 };
 
@@ -150,11 +191,15 @@ export const getSearchResults = (query: string): SearchResults => {
     )
     .slice(0, 4);
   
-  const services = allServices
+  const services = allServicesData
     .filter(service => 
       service.serviceName.toLowerCase().includes(lowerQuery) ||
       service.category.toLowerCase().includes(lowerQuery)
     )
+    .map(service => ({
+      ...service,
+      image: getServiceImage(service.category)
+    }))
     .slice(0, 4);
   
   return { salons, services };
