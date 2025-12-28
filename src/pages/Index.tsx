@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import HeroSection from "@/components/HeroSection";
+import FirstBookingBanner from "@/components/FirstBookingBanner";
 import CashbackBanner from "@/components/CashbackBanner";
 import FeaturedSalons from "@/components/FeaturedSalons";
 import AppPromo from "@/components/AppPromo";
@@ -11,6 +12,7 @@ const Index = () => {
       <Header />
       <main className="pt-16 pb-24">
         <HeroSection />
+        <FirstBookingBanner />
         <CashbackBanner />
         <FeaturedSalons />
         <AppPromo />
