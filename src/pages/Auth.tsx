@@ -169,23 +169,22 @@ const Auth = () => {
       );
 
       const data = await response.json();
+      const errorCode = data?.code;
 
-      // Handle non-2xx responses
-      if (!response.ok) {
-        console.log('OTP send error:', data);
-        const errorCode = data?.code;
+      // Handle expected flows (regardless of status code)
+      if (mode && errorCode === 'ACCOUNT_EXISTS') {
+        setShowExistingAccountModal(true);
+        return;
+      }
 
-        if (mode && errorCode === 'ACCOUNT_EXISTS') {
-          setShowExistingAccountModal(true);
-          return;
-        }
+      if (!mode && errorCode === 'NO_ACCOUNT') {
+        // Switch to sign up mode silently; let the user explicitly request OTP again
+        setIsSignUp(true);
+        return;
+      }
 
-        if (!mode && errorCode === 'NO_ACCOUNT') {
-          // Switch to sign up mode silently; let the user explicitly request OTP again
-          setIsSignUp(true);
-          return;
-        }
-
+      // Handle errors
+      if (!response.ok || !data?.success) {
         toast({
           title: 'Error',
           description: data?.error || data?.message || 'Failed to send OTP',
