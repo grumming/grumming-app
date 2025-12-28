@@ -12,6 +12,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { ReferralSuccessAnimation } from '@/components/ReferralSuccessAnimation';
 import { z } from 'zod';
 import confetti from 'canvas-confetti';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 
 const phoneSchema = z.string().min(10, 'Phone number must be at least 10 digits').regex(/^[0-9]+$/, 'Please enter a valid phone number');
@@ -32,6 +40,8 @@ const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showReferralSuccess, setShowReferralSuccess] = useState(false);
   const [showReferralInput, setShowReferralInput] = useState(!!referralCodeFromUrl);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   
   // Form fields
   const [phone, setPhone] = useState('');
@@ -450,9 +460,21 @@ const Auth = () => {
 
                 <p className="text-xs text-center text-muted-foreground leading-relaxed">
                   By clicking on Continue, I accept the{' '}
-                  <span className="text-primary font-medium">Terms & Conditions</span>
+                  <button 
+                    type="button"
+                    onClick={() => setShowTermsModal(true)}
+                    className="text-primary font-medium hover:underline"
+                  >
+                    Terms & Conditions
+                  </button>
                   {' '}and{' '}
-                  <span className="text-primary font-medium">Privacy Policy</span>
+                  <button 
+                    type="button"
+                    onClick={() => setShowPrivacyModal(true)}
+                    className="text-primary font-medium hover:underline"
+                  >
+                    Privacy Policy
+                  </button>
                 </p>
               </div>
             </motion.div>
@@ -634,6 +656,126 @@ const Auth = () => {
         </div>
       </div>
       </div>
+
+      {/* Terms & Conditions Modal */}
+      <Dialog open={showTermsModal} onOpenChange={setShowTermsModal}>
+        <DialogContent className="max-w-lg max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Terms & Conditions</DialogTitle>
+            <DialogDescription>
+              Last updated: December 2024
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="h-[50vh] pr-4">
+            <div className="space-y-4 text-sm text-muted-foreground">
+              <section>
+                <h3 className="font-semibold text-foreground mb-2">1. Acceptance of Terms</h3>
+                <p>By accessing and using Grumming, you agree to be bound by these Terms and Conditions. If you do not agree with any part of these terms, you may not use our services.</p>
+              </section>
+              
+              <section>
+                <h3 className="font-semibold text-foreground mb-2">2. Services</h3>
+                <p>Grumming provides a platform to discover and book appointments at salons and spas. We act as an intermediary between customers and service providers.</p>
+              </section>
+              
+              <section>
+                <h3 className="font-semibold text-foreground mb-2">3. User Accounts</h3>
+                <p>You are responsible for maintaining the confidentiality of your account credentials. You agree to provide accurate information and keep it updated.</p>
+              </section>
+              
+              <section>
+                <h3 className="font-semibold text-foreground mb-2">4. Bookings & Cancellations</h3>
+                <p>Bookings are subject to availability. Cancellation policies vary by salon. Please review individual salon policies before booking.</p>
+              </section>
+              
+              <section>
+                <h3 className="font-semibold text-foreground mb-2">5. Payments</h3>
+                <p>All payments are processed securely. Prices displayed include applicable taxes unless stated otherwise. Refunds are subject to our refund policy.</p>
+              </section>
+              
+              <section>
+                <h3 className="font-semibold text-foreground mb-2">6. User Conduct</h3>
+                <p>Users must not misuse the platform, engage in fraudulent activities, or violate any applicable laws while using our services.</p>
+              </section>
+              
+              <section>
+                <h3 className="font-semibold text-foreground mb-2">7. Limitation of Liability</h3>
+                <p>Grumming is not liable for any damages arising from the use of our platform or services provided by third-party salons.</p>
+              </section>
+              
+              <section>
+                <h3 className="font-semibold text-foreground mb-2">8. Changes to Terms</h3>
+                <p>We reserve the right to modify these terms at any time. Continued use of the platform constitutes acceptance of updated terms.</p>
+              </section>
+            </div>
+          </ScrollArea>
+          <div className="pt-4 border-t">
+            <Button onClick={() => setShowTermsModal(false)} className="w-full">
+              I Understand
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Privacy Policy Modal */}
+      <Dialog open={showPrivacyModal} onOpenChange={setShowPrivacyModal}>
+        <DialogContent className="max-w-lg max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Privacy Policy</DialogTitle>
+            <DialogDescription>
+              Last updated: December 2024
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="h-[50vh] pr-4">
+            <div className="space-y-4 text-sm text-muted-foreground">
+              <section>
+                <h3 className="font-semibold text-foreground mb-2">1. Information We Collect</h3>
+                <p>We collect information you provide directly, including your name, phone number, and booking preferences to deliver our services.</p>
+              </section>
+              
+              <section>
+                <h3 className="font-semibold text-foreground mb-2">2. How We Use Your Information</h3>
+                <p>Your information is used to process bookings, provide customer support, send notifications, and improve our services.</p>
+              </section>
+              
+              <section>
+                <h3 className="font-semibold text-foreground mb-2">3. Information Sharing</h3>
+                <p>We share necessary booking details with salons to fulfill your appointments. We do not sell your personal information to third parties.</p>
+              </section>
+              
+              <section>
+                <h3 className="font-semibold text-foreground mb-2">4. Data Security</h3>
+                <p>We implement industry-standard security measures to protect your data. However, no method of transmission is 100% secure.</p>
+              </section>
+              
+              <section>
+                <h3 className="font-semibold text-foreground mb-2">5. Cookies & Tracking</h3>
+                <p>We use cookies to enhance your experience, analyze usage patterns, and personalize content.</p>
+              </section>
+              
+              <section>
+                <h3 className="font-semibold text-foreground mb-2">6. Your Rights</h3>
+                <p>You have the right to access, correct, or delete your personal information. Contact us to exercise these rights.</p>
+              </section>
+              
+              <section>
+                <h3 className="font-semibold text-foreground mb-2">7. Data Retention</h3>
+                <p>We retain your data as long as your account is active or as needed to provide services and comply with legal obligations.</p>
+              </section>
+              
+              <section>
+                <h3 className="font-semibold text-foreground mb-2">8. Contact Us</h3>
+                <p>For privacy-related inquiries, please contact us at privacy@grumming.com</p>
+              </section>
+            </div>
+          </ScrollArea>
+          <div className="pt-4 border-t">
+            <Button onClick={() => setShowPrivacyModal(false)} className="w-full">
+              I Understand
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
