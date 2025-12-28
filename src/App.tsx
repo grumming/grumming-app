@@ -8,6 +8,7 @@ import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/hooks/useAuth";
 import { LocationProvider } from "@/contexts/LocationContext";
 import { PushNotificationSetup } from "@/components/PushNotificationSetup";
+import { ReferralRewardListener } from "@/components/ReferralRewardListener";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
@@ -33,6 +34,7 @@ const App = () => {
           <LocationProvider>
             <TooltipProvider>
               <PushNotificationSetup />
+              <ReferralRewardListener />
               <Toaster />
               <Sonner />
               <BrowserRouter>
