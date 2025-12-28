@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Phone, ArrowLeft, Loader2, Gift, ChevronDown, ClipboardPaste } from 'lucide-react';
+import { Phone, ArrowLeft, Loader2, Gift, ChevronDown, ClipboardPaste, Sparkles, Shield, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -269,127 +269,214 @@ const Auth = () => {
         rewardAmount={100}
       />
       
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/10 flex flex-col relative overflow-hidden">
-        {/* Decorative background elements */}
+      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-accent/10 flex flex-col relative overflow-hidden">
+        {/* Animated background elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {/* Floating orbs */}
           <motion.div 
-            className="absolute -top-40 -right-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl"
+            className="absolute -top-20 -right-20 w-72 h-72 bg-gradient-to-br from-primary/30 to-accent/20 rounded-full blur-3xl"
             animate={{ 
-              y: [0, -20, 0],
-              x: [0, 10, 0],
-              scale: [1, 1.05, 1]
+              y: [0, -30, 0],
+              x: [0, 20, 0],
+              scale: [1, 1.1, 1],
+              rotate: [0, 10, 0]
             }}
             transition={{ 
-              duration: 8,
+              duration: 10,
               repeat: Infinity,
               ease: "easeInOut"
             }}
           />
           <motion.div 
-            className="absolute -bottom-40 -left-40 w-80 h-80 bg-secondary/10 rounded-full blur-3xl"
+            className="absolute -bottom-32 -left-32 w-80 h-80 bg-gradient-to-tr from-accent/25 to-primary/15 rounded-full blur-3xl"
             animate={{ 
-              y: [0, 20, 0],
-              x: [0, -10, 0],
-              scale: [1, 1.08, 1]
+              y: [0, 25, 0],
+              x: [0, -15, 0],
+              scale: [1, 1.15, 1]
             }}
             transition={{ 
-              duration: 10,
+              duration: 12,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 2
+            }}
+          />
+          <motion.div 
+            className="absolute top-1/3 right-1/4 w-48 h-48 bg-primary/10 rounded-full blur-2xl"
+            animate={{ 
+              scale: [1, 1.3, 1],
+              opacity: [0.3, 0.6, 0.3]
+            }}
+            transition={{ 
+              duration: 8,
               repeat: Infinity,
               ease: "easeInOut",
               delay: 1
             }}
           />
-          <motion.div 
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-primary/5 rounded-full blur-3xl"
-            animate={{ 
-              scale: [1, 1.1, 1],
-              opacity: [0.5, 0.8, 0.5]
-            }}
-            transition={{ 
-              duration: 6,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: 0.5
-            }}
-          />
+          
+          {/* Subtle grid pattern */}
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(139,92,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(139,92,246,0.03)_1px,transparent_1px)] bg-[size:60px_60px]" />
+          
+          {/* Floating sparkles */}
+          <motion.div
+            className="absolute top-1/4 left-1/4"
+            animate={{ y: [0, -10, 0], opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 3, repeat: Infinity }}
+          >
+            <Sparkles className="w-4 h-4 text-primary/40" />
+          </motion.div>
+          <motion.div
+            className="absolute bottom-1/3 right-1/3"
+            animate={{ y: [0, -15, 0], opacity: [0.3, 0.8, 0.3] }}
+            transition={{ duration: 4, repeat: Infinity, delay: 1 }}
+          >
+            <Star className="w-3 h-3 text-accent/50" />
+          </motion.div>
         </div>
-      {/* Header */}
-      <header className="relative z-10 p-4 flex items-center justify-start">
-        <button onClick={goBack} className="p-2 rounded-full hover:bg-muted transition-colors">
-          <ArrowLeft className="w-6 h-6 text-foreground" />
-        </button>
-      </header>
+        
+        {/* Header */}
+        <header className="relative z-10 p-4 flex items-center justify-between">
+          <motion.button 
+            onClick={goBack} 
+            className="p-2.5 rounded-full bg-background/60 backdrop-blur-md border border-border/50 hover:bg-background/80 transition-all shadow-sm"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <ArrowLeft className="w-5 h-5 text-foreground" />
+          </motion.button>
+          
+          {/* Trust badge */}
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20"
+          >
+            <Shield className="w-3.5 h-3.5 text-green-600" />
+            <span className="text-xs font-medium text-green-700">100% Secure</span>
+          </motion.div>
+        </header>
 
-      <div className="flex-1 flex flex-col">
-        {/* Form Section */}
-        <div className="flex-1 flex flex-col px-6 py-8 lg:justify-center">
+      <div className="flex-1 flex flex-col px-6 py-6 lg:py-12 lg:justify-center relative z-10">
         <AnimatePresence mode="wait">
           {/* Phone Number Step */}
           {step === 'phone' && (
             <motion.div
               key="phone"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
               className="w-full max-w-md mx-auto"
             >
-              <div className="mb-8">
-                <h1 className="text-2xl font-bold text-foreground">
-                  {isSignUp ? 'Sign up' : 'Login'}
-                </h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  or{' '}
-                  <button 
-                    type="button"
-                    onClick={() => setIsSignUp(!isSignUp)}
-                    className="text-primary font-medium underline underline-offset-2 hover:text-primary/80 transition-colors"
+              {/* Glassmorphism card */}
+              <motion.div 
+                className="bg-background/70 backdrop-blur-xl rounded-3xl p-8 shadow-xl border border-border/50"
+                initial={{ scale: 0.95 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.1, duration: 0.3 }}
+              >
+                {/* Header with icon */}
+                <div className="text-center mb-8">
+                  <motion.div 
+                    className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-accent mb-4 shadow-lg shadow-primary/25"
+                    initial={{ scale: 0, rotate: -20 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
                   >
-                    {isSignUp ? 'login to your account' : 'create an account'}
-                  </button>
-                </p>
-              </div>
-              
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="phone" className="text-sm font-medium">
-                    Phone Number
-                  </Label>
-                  <div className="flex gap-3">
-                    <div className="w-20 h-12 rounded-lg border border-input bg-muted/50 flex items-center justify-center text-sm font-medium">
-                      🇮🇳 +91
-                    </div>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      placeholder="Enter mobile number"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                      onBlur={() => phone && validateField('phone', phone)}
-                      className={`flex-1 h-12 text-lg ${errors.phone ? 'border-destructive' : ''}`}
-                    />
-                  </div>
-                  {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
+                    <Sparkles className="w-8 h-8 text-primary-foreground" />
+                  </motion.div>
+                  
+                  <motion.h1 
+                    className="text-3xl font-bold text-foreground"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                  >
+                    {isSignUp ? 'Sign up' : 'Welcome back'}
+                  </motion.h1>
+                  <motion.p 
+                    className="text-muted-foreground mt-2"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.4 }}
+                  >
+                    or{' '}
+                    <button 
+                      type="button"
+                      onClick={() => setIsSignUp(!isSignUp)}
+                      className="text-primary font-semibold hover:text-primary/80 transition-colors underline underline-offset-4 decoration-2 decoration-primary/50 hover:decoration-primary"
+                    >
+                      {isSignUp ? 'login to your account' : 'create an account'}
+                    </button>
+                  </motion.p>
                 </div>
-
-                {/* Referral Code Field - Collapsible */}
-                <div className="space-y-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowReferralInput(!showReferralInput)}
-                    className="w-full flex items-center justify-between p-3 rounded-lg border border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors"
+              
+                <div className="space-y-5">
+                  <motion.div 
+                    className="space-y-2"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.4 }}
                   >
-                    <div className="flex items-center gap-2">
-                      <Gift className="w-4 h-4 text-primary" />
-                      <span className="text-sm font-medium text-foreground">
-                        {referralCode ? `Referral: ${referralCode}` : 'Have a referral code?'}
-                      </span>
+                    <Label htmlFor="phone" className="text-sm font-semibold text-foreground">
+                      Phone Number
+                    </Label>
+                    <div className="flex gap-3">
+                      <motion.div 
+                        className="w-20 h-13 rounded-xl border border-border bg-muted/50 flex items-center justify-center text-sm font-semibold shadow-sm"
+                        whileHover={{ scale: 1.02 }}
+                      >
+                        🇮🇳 +91
+                      </motion.div>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        placeholder="Enter mobile number"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                        onBlur={() => phone && validateField('phone', phone)}
+                        className={`flex-1 h-13 text-lg font-medium rounded-xl border-2 bg-background/50 focus:bg-background transition-all ${errors.phone ? 'border-destructive' : 'border-border focus:border-primary'}`}
+                      />
                     </div>
-                    <ChevronDown 
-                      className={`w-4 h-4 text-primary transition-transform duration-200 ${
-                        showReferralInput ? 'rotate-180' : ''
-                      }`} 
-                    />
-                  </button>
+                    {errors.phone && (
+                      <motion.p 
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-xs text-destructive font-medium"
+                      >
+                        {errors.phone}
+                      </motion.p>
+                    )}
+                  </motion.div>
+
+                  {/* Referral Code Field - Collapsible */}
+                  <motion.div 
+                    className="space-y-2"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.5 }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setShowReferralInput(!showReferralInput)}
+                      className="w-full flex items-center justify-between p-4 rounded-xl border-2 border-dashed border-primary/30 bg-gradient-to-r from-primary/5 to-accent/5 hover:from-primary/10 hover:to-accent/10 transition-all group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                          <Gift className="w-4 h-4 text-primary" />
+                        </div>
+                        <span className="text-sm font-semibold text-foreground">
+                          {referralCode ? `Referral: ${referralCode}` : 'Have a referral code?'}
+                        </span>
+                      </div>
+                      <ChevronDown 
+                        className={`w-5 h-5 text-primary transition-transform duration-300 ${
+                          showReferralInput ? 'rotate-180' : ''
+                        }`} 
+                      />
+                    </button>
                   
                   <AnimatePresence>
                     {showReferralInput && (
@@ -453,40 +540,47 @@ const Auth = () => {
                       </motion.div>
                     )}
                   </AnimatePresence>
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6 }}
+                  >
+                    <Button
+                      className="w-full h-14 text-base font-semibold rounded-xl bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity shadow-lg shadow-primary/25"
+                      onClick={handlePhoneOTP}
+                      disabled={isLoading || phone.length < 10}
+                    >
+                      {isLoading ? (
+                        <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                      ) : (
+                        <Phone className="w-5 h-5 mr-2" />
+                      )}
+                      Continue
+                    </Button>
+                  </motion.div>
+
+                  <p className="text-xs text-center text-muted-foreground leading-relaxed">
+                    By clicking on Continue, I accept the{' '}
+                    <button 
+                      type="button"
+                      onClick={() => setShowTermsModal(true)}
+                      className="text-primary font-medium hover:underline"
+                    >
+                      Terms & Conditions
+                    </button>
+                    {' '}and{' '}
+                    <button 
+                      type="button"
+                      onClick={() => setShowPrivacyModal(true)}
+                      className="text-primary font-medium hover:underline"
+                    >
+                      Privacy Policy
+                    </button>
+                  </p>
                 </div>
-
-                <Button
-                  className="w-full h-14 text-base font-semibold"
-                  onClick={handlePhoneOTP}
-                  disabled={isLoading || phone.length < 10}
-                >
-                  {isLoading ? (
-                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                  ) : (
-                    <Phone className="w-5 h-5 mr-2" />
-                  )}
-                  Continue
-                </Button>
-
-                <p className="text-xs text-center text-muted-foreground leading-relaxed">
-                  By clicking on Continue, I accept the{' '}
-                  <button 
-                    type="button"
-                    onClick={() => setShowTermsModal(true)}
-                    className="text-primary font-medium hover:underline"
-                  >
-                    Terms & Conditions
-                  </button>
-                  {' '}and{' '}
-                  <button 
-                    type="button"
-                    onClick={() => setShowPrivacyModal(true)}
-                    className="text-primary font-medium hover:underline"
-                  >
-                    Privacy Policy
-                  </button>
-                </p>
-              </div>
+              </motion.div>
             </motion.div>
           )}
 
@@ -494,22 +588,52 @@ const Auth = () => {
           {step === 'otp' && (
             <motion.div
               key="otp"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
               className="w-full max-w-md mx-auto"
             >
-              <h1 className="text-2xl font-bold text-foreground mb-2">
-                Verify with OTP
-              </h1>
-              <p className="text-muted-foreground mb-8">
-                Sent to +91 {phone}
-              </p>
+              {/* Glassmorphism card */}
+              <motion.div 
+                className="bg-background/70 backdrop-blur-xl rounded-3xl p-8 shadow-xl border border-border/50"
+                initial={{ scale: 0.95 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.1, duration: 0.3 }}
+              >
+                {/* Header with icon */}
+                <div className="text-center mb-8">
+                  <motion.div 
+                    className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-accent mb-4 shadow-lg shadow-primary/25"
+                    initial={{ scale: 0, rotate: -20 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
+                  >
+                    <Shield className="w-8 h-8 text-primary-foreground" />
+                  </motion.div>
+                  
+                  <motion.h1 
+                    className="text-3xl font-bold text-foreground"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                  >
+                    Verify OTP
+                  </motion.h1>
+                  <motion.p 
+                    className="text-muted-foreground mt-2"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.4 }}
+                  >
+                    Sent to <span className="font-semibold text-foreground">+91 {phone}</span>
+                  </motion.p>
+                </div>
               
-              <div className="space-y-6">
-                <div className="space-y-4">
-                  {/* Individual OTP digit boxes */}
-                  <div className="flex justify-center gap-3 sm:gap-4">
+                <div className="space-y-6">
+                  <div className="space-y-4">
+                    {/* Individual OTP digit boxes */}
+                    <div className="flex justify-center gap-3 sm:gap-4">
                     {otpDigits.map((digit, index) => (
                       <motion.div
                         key={index}
@@ -625,45 +749,51 @@ const Auth = () => {
                   </div>
                 )}
 
-                <Button
-                  className="w-full h-14 text-base font-semibold"
-                  onClick={() => handleVerifyOTP(otpDigits.join(''))}
-                  disabled={isLoading || otpDigits.join('').length < 6}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 }}
                 >
-                  {isLoading ? (
-                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                  ) : null}
-                  Verify
-                </Button>
+                  <Button
+                    className="w-full h-14 text-base font-semibold rounded-xl bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity shadow-lg shadow-primary/25"
+                    onClick={() => handleVerifyOTP(otpDigits.join(''))}
+                    disabled={isLoading || otpDigits.join('').length < 6}
+                  >
+                    {isLoading ? (
+                      <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                    ) : null}
+                    Verify
+                  </Button>
+                </motion.div>
 
-                <div className="text-center">
+                <div className="text-center space-y-3">
                   <button
                     onClick={() => {
                       setStep('phone');
                       setOtpDigits(['', '', '', '', '', '']);
                     }}
                     disabled={isLoading}
-                    className="text-sm text-primary font-medium hover:underline disabled:opacity-50"
+                    className="text-sm text-primary font-semibold hover:underline disabled:opacity-50"
                   >
                     Change phone number
                   </button>
-                </div>
 
-                <p className="text-xs text-center text-muted-foreground">
-                  Didn't receive OTP?{' '}
-                  <button
-                    onClick={handlePhoneOTP}
-                    disabled={isLoading}
-                    className="text-primary font-medium hover:underline disabled:opacity-50"
-                  >
-                    Resend
-                  </button>
-                </p>
+                  <p className="text-xs text-muted-foreground">
+                    Didn't receive OTP?{' '}
+                    <button
+                      onClick={handlePhoneOTP}
+                      disabled={isLoading}
+                      className="text-primary font-semibold hover:underline disabled:opacity-50"
+                    >
+                      Resend
+                    </button>
+                  </p>
+                </div>
               </div>
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
-        </div>
       </div>
       </div>
 
