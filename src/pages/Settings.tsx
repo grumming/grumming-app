@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
-  ArrowLeft, Bell, Moon, Sun, Globe, Lock, 
+  ArrowLeft, Bell, Moon, Sun, Globe, Lock, Shield, HelpCircle,
   ChevronRight, Eye, EyeOff, Volume2, VolumeX, Vibrate
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
@@ -143,7 +143,7 @@ const Settings = () => {
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
+        transition={{ delay: 0.2 }}
         className="px-4 pb-4"
       >
         <h2 className="text-sm font-semibold text-muted-foreground mb-3 px-1">MORE</h2>
@@ -156,8 +156,36 @@ const Settings = () => {
               <Bell className="w-4.5 h-4.5 text-muted-foreground" />
             </div>
             <div className="flex-1 text-left">
-              <span className="text-sm font-medium text-foreground">Advanced Notification Settings</span>
-              <p className="text-xs text-muted-foreground mt-0.5">Configure push notification preferences</p>
+              <span className="text-sm font-medium text-foreground">Notifications</span>
+              <p className="text-xs text-muted-foreground mt-0.5">Manage notification preferences</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </button>
+
+          <button
+            onClick={() => navigate('/privacy-security')}
+            className="w-full flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors border-b border-border"
+          >
+            <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
+              <Shield className="w-4.5 h-4.5 text-muted-foreground" />
+            </div>
+            <div className="flex-1 text-left">
+              <span className="text-sm font-medium text-foreground">Privacy & Security</span>
+              <p className="text-xs text-muted-foreground mt-0.5">Manage your data and account security</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </button>
+
+          <button
+            onClick={() => {}}
+            className="w-full flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors border-b border-border"
+          >
+            <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
+              <HelpCircle className="w-4.5 h-4.5 text-muted-foreground" />
+            </div>
+            <div className="flex-1 text-left">
+              <span className="text-sm font-medium text-foreground">Help & Support</span>
+              <p className="text-xs text-muted-foreground mt-0.5">FAQs, contact us, feedback</p>
             </div>
             <ChevronRight className="w-4 h-4 text-muted-foreground" />
           </button>
