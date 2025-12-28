@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from '@/hooks/use-toast';
 
 interface FavoritesContextType {
   favorites: string[];
@@ -15,7 +15,6 @@ const FavoritesContext = createContext<FavoritesContextType | undefined>(undefin
 
 export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
-  const { toast } = useToast();
   const [favorites, setFavorites] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -26,15 +25,19 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    const { data, error } = await supabase
-      .from('favorite_salons')
-      .select('salon_id')
-      .eq('user_id', user.id);
+    try {
+      const { data, error } = await supabase
+        .from('favorite_salons')
+        .select('salon_id')
+        .eq('user_id', user.id);
 
-    if (error) {
-      console.error('Error fetching favorites:', error);
-    } else {
-      setFavorites(data?.map(f => f.salon_id) || []);
+      if (error) {
+        console.error('Error fetching favorites:', error);
+      } else {
+        setFavorites(data?.map(f => f.salon_id) || []);
+      }
+    } catch (err) {
+      console.error('Error fetching favorites:', err);
     }
     setIsLoading(false);
   }, [user]);
@@ -114,7 +117,7 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
         variant: 'destructive',
       });
     }
-  }, [user, favorites, toast]);
+  }, [user, favorites]);
 
   return (
     <FavoritesContext.Provider value={{ favorites, isLoading, isFavorite, toggleFavorite, refetch: fetchFavorites }}>
