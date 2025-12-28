@@ -11,7 +11,7 @@ import { useReferral } from '@/hooks/useReferral';
 import { supabase } from '@/integrations/supabase/client';
 import { ReferralSuccessAnimation } from '@/components/ReferralSuccessAnimation';
 import { z } from 'zod';
-import authIllustration from '@/assets/auth-illustration.png';
+
 
 const phoneSchema = z.string().min(10, 'Phone number must be at least 10 digits').regex(/^[0-9]+$/, 'Please enter a valid phone number');
 const otpSchema = z.string().length(6, 'OTP must be 6 digits');
@@ -238,31 +238,7 @@ const Auth = () => {
         <div className="w-10" />
       </header>
 
-      <div className="flex-1 flex flex-col lg:flex-row">
-        {/* Illustration - Hidden on mobile, visible on desktop */}
-        <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary/10 via-background to-secondary/10 items-center justify-center p-12">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5 }}
-            className="max-w-md"
-          >
-            <img
-              src={authIllustration}
-              alt="Salon illustration"
-              className="w-full h-auto rounded-2xl shadow-elegant"
-            />
-            <div className="text-center mt-8">
-              <h2 className="text-2xl font-bold text-foreground mb-2">
-                Book Your Perfect Look
-              </h2>
-              <p className="text-muted-foreground">
-                Find the best salons near you and book appointments in seconds
-              </p>
-            </div>
-          </motion.div>
-        </div>
-
+      <div className="flex-1 flex flex-col">
         {/* Form Section */}
         <div className="flex-1 flex flex-col px-6 py-8 lg:justify-center">
         <AnimatePresence mode="wait">
