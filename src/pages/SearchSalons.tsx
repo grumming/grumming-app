@@ -442,41 +442,53 @@ const SearchSalons = () => {
 
         {/* Quick Filters for Nearby Mode */}
         {isNearbyMode && coordinates && (
-          <div className="px-4 pb-3 space-y-3">
+          <div className="px-4 pb-3 space-y-2 border-b border-border">
             {/* Rating Quick Filter */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1">
-              <span className="text-xs text-muted-foreground flex-shrink-0">Rating:</span>
-              {[0, 3.5, 4, 4.5].map((rating) => (
-                <Button
-                  key={rating}
-                  variant={minRating === rating ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setMinRating(rating)}
-                  className="gap-1 flex-shrink-0 h-7 text-xs"
-                >
-                  {rating === 0 ? 'Any' : (
-                    <>
-                      <Star className="w-3 h-3 fill-current" />
-                      {rating}+
-                    </>
-                  )}
-                </Button>
-              ))}
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-muted-foreground w-16 flex-shrink-0">Rating:</span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {[0, 3.5, 4, 4.5].map((rating) => (
+                  <Button
+                    key={rating}
+                    variant={minRating === rating ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setMinRating(rating)}
+                    className={`gap-1 h-8 px-3 text-xs rounded-full transition-all ${
+                      minRating === rating 
+                        ? 'shadow-sm' 
+                        : 'hover:bg-primary/10 hover:border-primary/50'
+                    }`}
+                  >
+                    {rating === 0 ? 'Any' : (
+                      <>
+                        <Star className="w-3 h-3 fill-current" />
+                        {rating}+
+                      </>
+                    )}
+                  </Button>
+                ))}
+              </div>
             </div>
             
             {/* Service Type Quick Filter */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1">
-              <span className="text-xs text-muted-foreground flex-shrink-0">Services:</span>
-              {serviceCategories.slice(0, 6).map((category) => (
-                <Badge
-                  key={category}
-                  variant={selectedCategories.includes(category) ? "default" : "outline"}
-                  className="cursor-pointer flex-shrink-0"
-                  onClick={() => toggleCategory(category)}
-                >
-                  {category}
-                </Badge>
-              ))}
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-muted-foreground w-16 flex-shrink-0">Services:</span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {serviceCategories.slice(0, 6).map((category) => (
+                  <Badge
+                    key={category}
+                    variant={selectedCategories.includes(category) ? "default" : "outline"}
+                    className={`cursor-pointer px-3 py-1 rounded-full transition-all ${
+                      selectedCategories.includes(category)
+                        ? 'shadow-sm'
+                        : 'hover:bg-primary/10 hover:border-primary/50'
+                    }`}
+                    onClick={() => toggleCategory(category)}
+                  >
+                    {category}
+                  </Badge>
+                ))}
+              </div>
             </div>
           </div>
         )}
