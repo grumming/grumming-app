@@ -96,15 +96,6 @@ const HeroSection = () => {
       
       <div className="relative z-10 container mx-auto px-4 text-center">
         
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="text-muted-foreground text-lg md:text-xl max-w-2xl mx-auto mb-10"
-        >
-          Discover top-rated salons & spas near you. <span className="font-bold text-foreground">Book appointments instantly</span> with India's most trusted beauty platform.
-        </motion.p>
-        
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
