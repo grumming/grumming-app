@@ -34,10 +34,10 @@ const App = () => {
           <LocationProvider>
             <TooltipProvider>
               <PushNotificationSetup />
-              <ReferralRewardListener />
               <Toaster />
               <Sonner />
               <BrowserRouter>
+                <ReferralRewardListener />
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/auth" element={<Auth />} />
