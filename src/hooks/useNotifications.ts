@@ -66,75 +66,7 @@ export const useNotifications = () => {
   const queryClient = useQueryClient();
   const hasRequestedPermission = useRef(false);
 
-  // Request permission on mount
-  useEffect(() => {
-    if (user && !hasRequestedPermission.current) {
-      hasRequestedPermission.current = true;
-      requestNotificationPermission();
-    }
-  }, [user]);
-
-  // Handle new notification
-  const handleNewNotification = useCallback((payload: any) => {
-    const notification = payload.new as Notification;
-    
-    // Play sound
-    playNotificationSound();
-    
-    // Show browser notification
-    showBrowserNotification(notification.title, notification.message);
-    
-    // Invalidate queries to refresh the list
-    queryClient.invalidateQueries({ queryKey: ["notifications", user?.id] });
-  }, [queryClient, user?.id]);
-
-  // Subscribe to realtime notifications
-  useEffect(() => {
-    if (!user) return;
-
-    const channel = supabase
-      .channel('notifications-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
-        },
-        handleNewNotification
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["notifications", user.id] });
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["notifications", user.id] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, queryClient, handleNewNotification]);
-
+  // Query must come first to ensure consistent hook order
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ["notifications", user?.id],
     queryFn: async () => {
@@ -152,8 +84,6 @@ export const useNotifications = () => {
     },
     enabled: !!user,
   });
-
-  const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   const markAsReadMutation = useMutation({
     mutationFn: async (notificationId: string) => {
@@ -199,6 +129,76 @@ export const useNotifications = () => {
       queryClient.invalidateQueries({ queryKey: ["notifications", user?.id] });
     },
   });
+
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
+
+  // Request permission on mount
+  useEffect(() => {
+    if (user && !hasRequestedPermission.current) {
+      hasRequestedPermission.current = true;
+      requestNotificationPermission();
+    }
+  }, [user]);
+
+  // Subscribe to realtime notifications
+  useEffect(() => {
+    if (!user) return;
+
+    const handleNewNotification = (payload: any) => {
+      const notification = payload.new as Notification;
+      
+      // Play sound
+      playNotificationSound();
+      
+      // Show browser notification
+      showBrowserNotification(notification.title, notification.message);
+      
+      // Invalidate queries to refresh the list
+      queryClient.invalidateQueries({ queryKey: ["notifications", user.id] });
+    };
+
+    const channel = supabase
+      .channel('notifications-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        handleNewNotification
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["notifications", user.id] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["notifications", user.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient]);
 
   return {
     notifications,
