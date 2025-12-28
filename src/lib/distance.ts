@@ -26,3 +26,24 @@ export const formatDistance = (km: number): string => {
   }
   return `${km.toFixed(1)} km`;
 };
+
+// Estimate travel time based on distance
+export const estimateTravelTime = (km: number): { walking: string; driving: string } => {
+  // Average walking speed: 5 km/h
+  // Average city driving speed: 25 km/h (accounting for traffic)
+  const walkingMinutes = Math.round((km / 5) * 60);
+  const drivingMinutes = Math.round((km / 25) * 60);
+
+  const formatTime = (minutes: number): string => {
+    if (minutes < 1) return '< 1 min';
+    if (minutes < 60) return `${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return mins > 0 ? `${hours} hr ${mins} min` : `${hours} hr`;
+  };
+
+  return {
+    walking: formatTime(walkingMinutes),
+    driving: formatTime(drivingMinutes),
+  };
+};

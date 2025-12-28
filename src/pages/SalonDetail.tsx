@@ -4,10 +4,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, Star, MapPin, Clock, Phone, Heart, Share2, 
   ChevronRight, Calendar, Check, User, MessageSquare, CreditCard, Gift, X,
-  Tag, Loader2, Wallet, Ticket, Navigation
+  Tag, Loader2, Wallet, Ticket, Navigation, Car
 } from 'lucide-react';
 import { useLocation } from '@/contexts/LocationContext';
-import { calculateDistance, formatDistance } from '@/lib/distance';
+import { calculateDistance, formatDistance, estimateTravelTime } from '@/lib/distance';
 import { PaymentMethodSelector, PaymentMethodType } from '@/components/PaymentMethodSelector';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -1329,6 +1329,12 @@ const SalonDetail = () => {
                 {salon.phone}
               </a>
             </div>
+            {salonDistance !== null && (
+              <div className="flex items-center gap-2 text-sm">
+                <Car className="w-4 h-4 text-muted-foreground" />
+                <span>{estimateTravelTime(salonDistance).driving} drive</span>
+              </div>
+            )}
             {salon.coordinates && (
               <a
                 href={`https://www.google.com/maps/dir/?api=1&destination=${salon.coordinates.lat},${salon.coordinates.lng}`}
