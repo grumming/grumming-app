@@ -9,7 +9,7 @@ import { LocationProvider } from "@/contexts/LocationContext";
 import { FavoritesProvider } from "@/contexts/FavoritesContext";
 import { PushNotificationSetup } from "@/components/PushNotificationSetup";
 import { ReferralRewardListener } from "@/components/ReferralRewardListener";
-import FloatingMicButton from "@/components/FloatingMicButton";
+
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
@@ -44,7 +44,7 @@ const App = () => {
                 <Sonner />
                 <BrowserRouter>
                   <ReferralRewardListener />
-                  <FloatingMicButton />
+                  
                   <Routes>
                     <Route path="/" element={<Index />} />
                     <Route path="/auth" element={<Auth />} />
