@@ -113,12 +113,36 @@ serve(async (req) => {
 
     // Check if user exists with this phone or temp email
     const tempEmail = `${phone.replace('+', '')}@phone.grumming.app`;
-    const { data: existingUsers } = await supabase.auth.admin.listUsers();
     
-    // Look for user by phone OR by the temp email we would create
-    const existingUser = existingUsers?.users.find(u => 
-      u.phone === phone || u.email === tempEmail
-    );
+    // Search for existing user with pagination
+    let existingUser = null;
+    let page = 1;
+    const perPage = 1000;
+    
+    while (!existingUser && page <= 10) {
+      const { data: usersPage } = await supabase.auth.admin.listUsers({
+        page,
+        perPage,
+      });
+      
+      if (usersPage?.users && usersPage.users.length > 0) {
+        existingUser = usersPage.users.find(u => 
+          u.phone === phone || u.email === tempEmail
+        );
+        
+        if (!existingUser && usersPage.users.length === perPage) {
+          page++;
+        } else {
+          break;
+        }
+      } else {
+        break;
+      }
+    }
+    
+    if (existingUser) {
+      console.log(`Found existing user: ${existingUser.id}`);
+    }
 
     let userId: string;
     let isNewUser = false;
@@ -127,7 +151,7 @@ serve(async (req) => {
     if (existingUser) {
       userId = existingUser.id;
       userEmail = existingUser.email || tempEmail;
-      console.log(`Found existing user: ${userId} with email: ${userEmail}`);
+      console.log(`Using existing user: ${userId} with email: ${userEmail}`);
     } else {
       // Create new user with phone
       const tempPassword = crypto.randomUUID();
@@ -145,16 +169,57 @@ serve(async (req) => {
 
       if (createError) {
         console.error('Create user error:', createError);
-        return new Response(
-          JSON.stringify({ error: 'Failed to create account' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        
+        // If user already exists error, try to find them again by listing all users
+        if (createError.message?.includes('already') || createError.message?.includes('duplicate') || createError.message?.includes('exists')) {
+          console.log('User creation failed - user may already exist, searching again...');
+          
+          // Re-search with fresh pagination
+          let retryPage = 1;
+          while (!existingUser && retryPage <= 10) {
+            const { data: retryUsersPage } = await supabase.auth.admin.listUsers({
+              page: retryPage,
+              perPage: 1000,
+            });
+            
+            if (retryUsersPage?.users && retryUsersPage.users.length > 0) {
+              existingUser = retryUsersPage.users.find(u => 
+                u.phone === phone || u.email === tempEmail
+              );
+              
+              if (!existingUser && retryUsersPage.users.length === 1000) {
+                retryPage++;
+              } else {
+                break;
+              }
+            } else {
+              break;
+            }
+          }
+          
+          if (existingUser) {
+            userId = existingUser.id;
+            userEmail = existingUser.email || tempEmail;
+            isNewUser = false;
+            console.log(`Found user on retry: ${userId}`);
+          } else {
+            return new Response(
+              JSON.stringify({ error: 'Failed to create account. Please try again.' }),
+              { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+        } else {
+          return new Response(
+            JSON.stringify({ error: 'Failed to create account' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      } else {
+        userId = newUser.user!.id;
+        userEmail = tempEmail;
+        isNewUser = true;
+        console.log(`Created new user: ${userId}`);
       }
-
-      userId = newUser.user!.id;
-      userEmail = tempEmail;
-      isNewUser = true;
-      console.log(`Created new user: ${userId}`);
     }
 
     // Generate a magic link that the client can use to establish a session
