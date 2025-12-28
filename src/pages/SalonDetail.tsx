@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, Star, MapPin, Clock, Phone, Heart, Share2, 
@@ -500,6 +500,7 @@ const timeSlots = [
 const SalonDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { user } = useAuth();
   const { initiatePayment, isLoading: isPaymentLoading } = useRazorpay();
@@ -507,6 +508,13 @@ const SalonDetail = () => {
   const { userReward } = useReferral();
   const { wallet, useCredits } = useWallet();
   const { isFavorite: checkIsFavorite, toggleFavorite } = useFavorites();
+  
+  // Retry payment mode
+  const isRetryMode = searchParams.get('retry') === 'true';
+  const retryBookingId = searchParams.get('bookingId') || '';
+  const retryService = searchParams.get('service') || '';
+  const retryDate = searchParams.get('date') || '';
+  const retryTime = searchParams.get('time') || '';
   
   const isFavorite = id ? checkIsFavorite(id) : false;
   const [selectedServices, setSelectedServices] = useState<number[]>([]);
@@ -609,6 +617,38 @@ const SalonDetail = () => {
   }, [user]);
 
   const salon = id ? salonsData[id] : null;
+
+  // Handle retry payment mode - pre-fill booking details
+  useEffect(() => {
+    if (!isRetryMode || !salon) return;
+    
+    // Pre-select service by matching name
+    if (retryService) {
+      const matchingService = salon.services.find((s: any) => s.name === retryService);
+      if (matchingService) {
+        setSelectedServices([matchingService.id]);
+      }
+    }
+    
+    // Pre-select date
+    if (retryDate) {
+      setSelectedDate(new Date(retryDate));
+    }
+    
+    // Pre-select time
+    if (retryTime) {
+      setSelectedTime(retryTime);
+    }
+    
+    // Show booking modal for payment retry
+    if (retryBookingId) {
+      setShowBookingModal(true);
+      toast({
+        title: 'Retry Payment',
+        description: 'Select a different payment method to complete your booking.',
+      });
+    }
+  }, [isRetryMode, retryService, retryDate, retryTime, retryBookingId, salon, toast]);
 
   if (!salon) {
     return (
@@ -826,28 +866,52 @@ const SalonDetail = () => {
     const walletPaymentAmount = paymentMethod === 'split' ? splitWalletAmount : 0;
     const remainingAmount = paymentMethod === 'split' ? totalPrice - splitWalletAmount : totalPrice;
 
-    // Create booking first
+    // Create new booking or update existing one (retry mode)
     const bookingStatus = paymentMethod === 'online' || paymentMethod === 'upi' 
       ? 'pending_payment' 
       : paymentMethod === 'split' 
         ? 'partial_paid' 
         : 'upcoming';
 
-    const { data: bookingData, error: bookingError } = await supabase
-      .from('bookings')
-      .insert({
-        user_id: user.id,
-        salon_name: salon.name,
-        service_name: serviceNames,
-        service_price: totalPrice,
-        booking_date: format(selectedDate, 'yyyy-MM-dd'),
-        booking_time: selectedTime,
-        status: bookingStatus,
-      })
-      .select()
-      .single();
+    let bookingData: { id: string } | null = null;
+    let bookingError: Error | null = null;
 
-    if (bookingError) {
+    if (isRetryMode && retryBookingId) {
+      // Update existing booking for retry
+      const { data, error } = await supabase
+        .from('bookings')
+        .update({
+          service_price: totalPrice,
+          status: bookingStatus,
+        })
+        .eq('id', retryBookingId)
+        .eq('user_id', user.id)
+        .select()
+        .single();
+      
+      bookingData = data;
+      bookingError = error;
+    } else {
+      // Create new booking
+      const { data, error } = await supabase
+        .from('bookings')
+        .insert({
+          user_id: user.id,
+          salon_name: salon.name,
+          service_name: serviceNames,
+          service_price: totalPrice,
+          booking_date: format(selectedDate, 'yyyy-MM-dd'),
+          booking_time: selectedTime,
+          status: bookingStatus,
+        })
+        .select()
+        .single();
+      
+      bookingData = data;
+      bookingError = error;
+    }
+
+    if (bookingError || !bookingData) {
       setIsBooking(false);
       toast({
         title: 'Booking failed',
