@@ -56,27 +56,6 @@ export type Database = {
         }
         Relationships: []
       }
-      favorite_salons: {
-        Row: {
-          created_at: string
-          id: string
-          salon_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          salon_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          salon_id?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       notifications: {
         Row: {
           created_at: string
@@ -418,57 +397,6 @@ export type Database = {
           specialties?: string[] | null
           total_reviews?: number | null
           updated_at?: string
-        }
-        Relationships: []
-      }
-      user_addresses: {
-        Row: {
-          address_line1: string
-          address_line2: string | null
-          city: string
-          created_at: string
-          id: string
-          is_default: boolean | null
-          label: string
-          landmark: string | null
-          latitude: number | null
-          longitude: number | null
-          pincode: string
-          state: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          address_line1: string
-          address_line2?: string | null
-          city: string
-          created_at?: string
-          id?: string
-          is_default?: boolean | null
-          label?: string
-          landmark?: string | null
-          latitude?: number | null
-          longitude?: number | null
-          pincode: string
-          state: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          address_line1?: string
-          address_line2?: string | null
-          city?: string
-          created_at?: string
-          id?: string
-          is_default?: boolean | null
-          label?: string
-          landmark?: string | null
-          latitude?: number | null
-          longitude?: number | null
-          pincode?: string
-          state?: string
-          updated_at?: string
-          user_id?: string
         }
         Relationships: []
       }

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   ArrowLeft, User, Mail, Phone, Calendar, Edit2, Save, X, Loader2, Camera, 
-  Bell, ChevronRight, Gift, Settings, LogOut, CreditCard, HelpCircle, Shield, Star, Wallet, Ticket, MapPin, Heart
+  Bell, ChevronRight, Gift, Settings, LogOut, CreditCard, HelpCircle, Shield, Star, Wallet, Ticket
 } from 'lucide-react';
 import { useWallet } from '@/hooks/useWallet';
 import { Button } from '@/components/ui/button';
@@ -198,13 +198,12 @@ const Profile = () => {
 
   const quickActions = [
     { icon: Wallet, label: 'Wallet', onClick: () => navigate('/wallet'), color: 'text-green-500', badge: `₹${wallet?.balance?.toFixed(0) || 0}` },
-    { icon: Heart, label: 'Favorites', onClick: () => navigate('/favorites'), color: 'text-red-500' },
     { icon: Ticket, label: 'My Vouchers', onClick: () => navigate('/my-vouchers'), color: 'text-purple-500' },
     { icon: Calendar, label: 'My Bookings', onClick: () => navigate('/my-bookings'), color: 'text-primary' },
+    { icon: Gift, label: 'Refer & Earn', onClick: () => navigate('/referrals'), color: 'text-accent' },
   ];
 
   const menuItems = [
-    { icon: MapPin, label: 'Saved Addresses', onClick: () => navigate('/saved-addresses') },
     { icon: CreditCard, label: 'Payment Methods', onClick: () => {}, badge: 'Coming Soon' },
     { icon: Shield, label: 'Privacy & Security', onClick: () => {} },
     { icon: HelpCircle, label: 'Help & Support', onClick: () => {} },
