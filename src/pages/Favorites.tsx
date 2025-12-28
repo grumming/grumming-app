@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Heart, MapPin, Star, Clock, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { useFavorites } from '@/hooks/useFavorites';
+import { useFavorites } from '@/contexts/FavoritesContext';
 import BottomNav from '@/components/BottomNav';
 import { salonsData } from '@/components/FeaturedSalons';
 

@@ -1,15 +1,24 @@
-import { useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
-export const useFavorites = () => {
+interface FavoritesContextType {
+  favorites: string[];
+  isLoading: boolean;
+  isFavorite: (salonId: string | number) => boolean;
+  toggleFavorite: (salonId: string | number, e?: React.MouseEvent) => Promise<void>;
+  refetch: () => Promise<void>;
+}
+
+const FavoritesContext = createContext<FavoritesContextType | undefined>(undefined);
+
+export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [favorites, setFavorites] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch favorites from database
   const fetchFavorites = useCallback(async () => {
     if (!user) {
       setFavorites([]);
@@ -107,11 +116,17 @@ export const useFavorites = () => {
     }
   }, [user, favorites, toast]);
 
-  return {
-    favorites,
-    isLoading,
-    isFavorite,
-    toggleFavorite,
-    refetch: fetchFavorites,
-  };
+  return (
+    <FavoritesContext.Provider value={{ favorites, isLoading, isFavorite, toggleFavorite, refetch: fetchFavorites }}>
+      {children}
+    </FavoritesContext.Provider>
+  );
+};
+
+export const useFavorites = () => {
+  const context = useContext(FavoritesContext);
+  if (context === undefined) {
+    throw new Error('useFavorites must be used within a FavoritesProvider');
+  }
+  return context;
 };
