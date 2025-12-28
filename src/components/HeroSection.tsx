@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Search, Scissors, Clock, Mic, MicOff, Sparkles } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
@@ -154,8 +154,23 @@ const HeroSection = ({ onSearchActiveChange }: HeroSectionProps) => {
   const hasRecentSearches = searchQuery === '' && recentSearches.length > 0;
 
   return (
-    <section className="relative py-4 overflow-hidden">
-      <div className="container mx-auto px-4">
+    <>
+      {/* Backdrop overlay */}
+      <AnimatePresence>
+        {showSuggestions && (hasResults || hasRecentSearches) && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 bg-background/60 backdrop-blur-sm z-[90]"
+            onClick={() => setShowSuggestions(false)}
+          />
+        )}
+      </AnimatePresence>
+      
+      <section className="relative py-4 overflow-hidden z-[95]">
+        <div className="container mx-auto px-4">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -300,6 +315,7 @@ const HeroSection = ({ onSearchActiveChange }: HeroSectionProps) => {
         </motion.div>
       </div>
     </section>
+    </>
   );
 };
 
