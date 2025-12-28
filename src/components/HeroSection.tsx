@@ -95,16 +95,6 @@ const HeroSection = () => {
       <div className="absolute bottom-20 left-10 w-80 h-80 rounded-full bg-accent/10 blur-3xl" />
       
       <div className="relative z-10 container mx-auto px-4 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          <h1 className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-foreground mb-4 leading-tight">
-            Book Your Perfect
-            <span className="block gradient-text">Haircut</span>
-          </h1>
-        </motion.div>
         
         <motion.p
           initial={{ opacity: 0, y: 20 }}
