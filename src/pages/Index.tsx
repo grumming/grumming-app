@@ -2,7 +2,6 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import Header from "@/components/Header";
 import HeroSection from "@/components/HeroSection";
-import LocationSelector from "@/components/LocationSelector";
 import FirstBookingBanner from "@/components/FirstBookingBanner";
 import CashbackBanner from "@/components/CashbackBanner";
 import FeaturedSalons from "@/components/FeaturedSalons";
@@ -17,7 +16,6 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Header />
       <main className="pt-16 pb-24">
-        <LocationSelector />
         <HeroSection onSearchActiveChange={setIsSearchActive} />
         <WelcomeBanner />
         <AnimatePresence>
