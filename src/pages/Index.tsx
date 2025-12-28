@@ -8,6 +8,7 @@ import FeaturedSalons from "@/components/FeaturedSalons";
 import AppPromo from "@/components/AppPromo";
 import BottomNav from "@/components/BottomNav";
 import WelcomeBanner from "@/components/WelcomeBanner";
+import Footer from "@/components/Footer";
 
 const Index = () => {
   const [isSearchActive, setIsSearchActive] = useState(false);
@@ -33,6 +34,7 @@ const Index = () => {
         </AnimatePresence>
         <FeaturedSalons />
         <AppPromo />
+        <Footer />
       </main>
       <BottomNav />
     </div>
