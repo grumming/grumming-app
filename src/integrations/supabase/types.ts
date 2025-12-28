@@ -161,6 +161,54 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_methods: {
+        Row: {
+          card_brand: string | null
+          card_expiry_month: number | null
+          card_expiry_year: number | null
+          card_last4: string | null
+          created_at: string
+          id: string
+          is_default: boolean | null
+          label: string | null
+          razorpay_token: string | null
+          type: string
+          updated_at: string
+          upi_id: string | null
+          user_id: string
+        }
+        Insert: {
+          card_brand?: string | null
+          card_expiry_month?: number | null
+          card_expiry_year?: number | null
+          card_last4?: string | null
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          label?: string | null
+          razorpay_token?: string | null
+          type: string
+          updated_at?: string
+          upi_id?: string | null
+          user_id: string
+        }
+        Update: {
+          card_brand?: string | null
+          card_expiry_month?: number | null
+          card_expiry_year?: number | null
+          card_last4?: string | null
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          label?: string | null
+          razorpay_token?: string | null
+          type?: string
+          updated_at?: string
+          upi_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       phone_otps: {
         Row: {
           created_at: string

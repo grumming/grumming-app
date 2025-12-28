@@ -207,7 +207,7 @@ const Profile = () => {
 
   const menuItems = [
     { icon: Heart, label: 'Favorites', onClick: () => navigate('/favorites'), badge: favorites.length > 0 ? `${favorites.length}` : undefined },
-    { icon: CreditCard, label: 'Payment Methods', onClick: () => {}, badge: 'Coming Soon' },
+    { icon: CreditCard, label: 'Payment Methods', onClick: () => navigate('/payment-methods') },
     { icon: Settings, label: 'Settings', onClick: () => navigate('/settings') },
   ];
 
