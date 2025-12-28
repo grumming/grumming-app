@@ -1,10 +1,10 @@
 import { motion } from "framer-motion";
-import { Star, MapPin, Clock, Heart } from "lucide-react";
+import { Star, MapPin, Clock, Heart, Car } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "@/contexts/LocationContext";
-import { calculateDistance, formatDistance } from "@/lib/distance";
+import { calculateDistance, formatDistance, estimateTravelTime } from "@/lib/distance";
 import { useFavorites } from "@/contexts/FavoritesContext";
 
 export interface Salon {
@@ -279,6 +279,12 @@ const FeaturedSalons = () => {
                         </span>
                       )}
                     </div>
+                    {salon.distance !== null && (
+                      <div className="flex items-center gap-2">
+                        <Car className="w-4 h-4" />
+                        <span>{estimateTravelTime(salon.distance).driving} drive</span>
+                      </div>
+                    )}
                     <div className="flex items-center gap-2">
                       <Clock className="w-4 h-4" />
                       <span>{salon.timing}</span>
