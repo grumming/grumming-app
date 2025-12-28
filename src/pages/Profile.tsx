@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { useFavorites } from '@/hooks/useFavorites';
 import BottomNav from '@/components/BottomNav';
 
 interface Profile {
@@ -28,6 +29,7 @@ const Profile = () => {
   const { toast } = useToast();
   const { user, loading: authLoading, signOut } = useAuth();
   const { wallet } = useWallet();
+  const { favorites } = useFavorites();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -204,7 +206,7 @@ const Profile = () => {
   ];
 
   const menuItems = [
-    { icon: Heart, label: 'Favorites', onClick: () => navigate('/favorites') },
+    { icon: Heart, label: 'Favorites', onClick: () => navigate('/favorites'), badge: favorites.length > 0 ? `${favorites.length}` : undefined },
     { icon: MapPin, label: 'Saved Addresses', onClick: () => navigate('/saved-addresses') },
     { icon: CreditCard, label: 'Payment Methods', onClick: () => {}, badge: 'Coming Soon' },
     { icon: Settings, label: 'Settings', onClick: () => navigate('/settings') },
