@@ -46,6 +46,7 @@ const Auth = () => {
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [showExistingAccountModal, setShowExistingAccountModal] = useState(false);
+  const [showNoAccountModal, setShowNoAccountModal] = useState(false);
   const [pendingRedirectUrl, setPendingRedirectUrl] = useState<string | null>(null);
   
   // Form fields
@@ -158,21 +159,24 @@ const Auth = () => {
         body: { phone: formattedPhone, isSignUp: mode },
       });
 
-      // Handle non-2xx responses (e.g. 409 ACCOUNT_EXISTS)
+      // Handle non-2xx responses (e.g. 409 ACCOUNT_EXISTS, 404 NO_ACCOUNT)
       if (error) {
-        if (mode) {
-          try {
-            const res = (error as any)?.context?.response;
-            const bodyText = res ? await res.clone().text() : '';
-            const bodyJson = bodyText ? JSON.parse(bodyText) : null;
+        try {
+          const res = (error as any)?.context?.response;
+          const bodyText = res ? await res.clone().text() : '';
+          const bodyJson = bodyText ? JSON.parse(bodyText) : null;
 
-            if (bodyJson?.code === 'ACCOUNT_EXISTS') {
-              setShowExistingAccountModal(true);
-              return;
-            }
-          } catch {
-            // ignore parse failures
+          if (mode && bodyJson?.code === 'ACCOUNT_EXISTS') {
+            setShowExistingAccountModal(true);
+            return;
           }
+
+          if (!mode && bodyJson?.code === 'NO_ACCOUNT') {
+            setShowNoAccountModal(true);
+            return;
+          }
+        } catch {
+          // ignore parse failures
         }
 
         toast({
@@ -1072,6 +1076,44 @@ const Auth = () => {
               variant="outline"
               onClick={() => {
                 setShowExistingAccountModal(false);
+                setStep('phone');
+                setPhone('');
+                setOtpDigits(['', '', '', '', '', '']);
+              }} 
+              className="w-full"
+            >
+              Use Different Number
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* No Account Found Modal */}
+      <Dialog open={showNoAccountModal} onOpenChange={setShowNoAccountModal}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader className="text-center">
+            <DialogTitle className="text-xl">No account found</DialogTitle>
+            <DialogDescription className="text-center pt-2">
+              This number is not registered. Switch to sign up to create an account.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="pt-4 space-y-3">
+            <Button 
+              onClick={() => {
+                setShowNoAccountModal(false);
+                setIsSignUp(true);
+                setTimeout(() => {
+                  void sendOtp(true);
+                }, 0);
+              }} 
+              className="w-full h-12"
+            >
+              Sign Up & Send OTP
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => {
+                setShowNoAccountModal(false);
                 setStep('phone');
                 setPhone('');
                 setOtpDigits(['', '', '', '', '', '']);
