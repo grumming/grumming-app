@@ -1,10 +1,20 @@
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Wallet as WalletIcon, TrendingUp, TrendingDown, Gift, Loader2, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { ArrowLeft, Wallet as WalletIcon, TrendingUp, TrendingDown, Gift, Loader2, ArrowUpRight, ArrowDownLeft, Plus, X, CreditCard } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
 import { format } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
 import BottomNav from '@/components/BottomNav';
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 const categoryLabels: Record<string, string> = {
   referral_bonus: 'Referral Bonus',
@@ -13,7 +23,8 @@ const categoryLabels: Record<string, string> = {
   booking_discount: 'Booking Discount',
   cashback: 'Cashback',
   refund: 'Refund',
-  manual: 'Adjustment',
+  manual: 'Top-up',
+  referral: 'Referral Reward',
 };
 
 const categoryIcons: Record<string, typeof Gift> = {
@@ -24,12 +35,175 @@ const categoryIcons: Record<string, typeof Gift> = {
   cashback: TrendingUp,
   refund: TrendingUp,
   manual: WalletIcon,
+  referral: Gift,
 };
+
+const TOPUP_AMOUNTS = [100, 200, 500, 1000, 2000, 5000];
 
 const Wallet = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { wallet, transactions, isLoading } = useWallet();
+  const { wallet, transactions, isLoading, refetchWallet } = useWallet();
+  const { toast } = useToast();
+  
+  const [showTopupModal, setShowTopupModal] = useState(false);
+  const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
+  const [customAmount, setCustomAmount] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const loadRazorpayScript = useCallback((): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  }, []);
+
+  const handleTopup = async () => {
+    const amount = selectedAmount || parseInt(customAmount);
+    
+    if (!amount || amount < 50) {
+      toast({
+        title: 'Invalid Amount',
+        description: 'Minimum top-up amount is ₹50',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (amount > 10000) {
+      toast({
+        title: 'Invalid Amount',
+        description: 'Maximum top-up amount is ₹10,000',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!user) return;
+
+    setIsProcessing(true);
+
+    try {
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded) {
+        throw new Error('Failed to load payment gateway');
+      }
+
+      // Create order
+      const orderResponse = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-wallet-topup-order`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            amount,
+            user_id: user.id,
+          }),
+        }
+      );
+
+      if (!orderResponse.ok) {
+        const errorData = await orderResponse.json();
+        throw new Error(errorData.error || 'Failed to create order');
+      }
+
+      const orderData = await orderResponse.json();
+
+      // Open Razorpay checkout
+      const razorpayOptions = {
+        key: orderData.keyId,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: 'Grumming',
+        description: `Wallet Top-up - ₹${amount}`,
+        order_id: orderData.orderId,
+        prefill: {
+          email: user.email || '',
+        },
+        theme: {
+          color: '#f97316',
+        },
+        handler: async function (response: any) {
+          try {
+            // Verify payment
+            const verifyResponse = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-wallet-topup`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+                },
+                body: JSON.stringify({
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  user_id: user.id,
+                  amount,
+                }),
+              }
+            );
+
+            const verifyData = await verifyResponse.json();
+
+            if (verifyData.success) {
+              setIsProcessing(false);
+              setShowTopupModal(false);
+              setSelectedAmount(null);
+              setCustomAmount('');
+              refetchWallet();
+              toast({
+                title: '🎉 Top-up Successful!',
+                description: `₹${amount} has been added to your wallet.`,
+              });
+            } else {
+              throw new Error(verifyData.error || 'Payment verification failed');
+            }
+          } catch (error: any) {
+            setIsProcessing(false);
+            toast({
+              title: 'Payment Failed',
+              description: error.message,
+              variant: 'destructive',
+            });
+          }
+        },
+        modal: {
+          ondismiss: function () {
+            setIsProcessing(false);
+          },
+        },
+      };
+
+      const razorpay = new window.Razorpay(razorpayOptions);
+      razorpay.on('payment.failed', function (response: any) {
+        setIsProcessing(false);
+        toast({
+          title: 'Payment Failed',
+          description: response.error.description || 'Please try again.',
+          variant: 'destructive',
+        });
+      });
+      razorpay.open();
+    } catch (error: any) {
+      setIsProcessing(false);
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
 
   if (authLoading || isLoading) {
     return (
@@ -100,31 +274,41 @@ const Wallet = () => {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="mx-4 mt-4 grid grid-cols-2 gap-3"
+        className="mx-4 mt-4 grid grid-cols-3 gap-3"
       >
         <button
+          onClick={() => setShowTopupModal(true)}
+          className="flex flex-col items-center gap-2 p-4 bg-card rounded-xl border border-border hover:border-primary/30 transition-all"
+        >
+          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <Plus className="w-5 h-5 text-primary" />
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-medium text-foreground">Add Money</p>
+          </div>
+        </button>
+        
+        <button
           onClick={() => navigate('/referrals')}
-          className="flex items-center gap-3 p-4 bg-card rounded-xl border border-border hover:border-primary/30 transition-all"
+          className="flex flex-col items-center gap-2 p-4 bg-card rounded-xl border border-border hover:border-primary/30 transition-all"
         >
           <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
             <Gift className="w-5 h-5 text-accent" />
           </div>
-          <div className="text-left">
+          <div className="text-center">
             <p className="text-sm font-medium text-foreground">Refer & Earn</p>
-            <p className="text-xs text-muted-foreground">Get ₹100</p>
           </div>
         </button>
         
         <button
           onClick={() => navigate('/')}
-          className="flex items-center gap-3 p-4 bg-card rounded-xl border border-border hover:border-primary/30 transition-all"
+          className="flex flex-col items-center gap-2 p-4 bg-card rounded-xl border border-border hover:border-primary/30 transition-all"
         >
-          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-            <WalletIcon className="w-5 h-5 text-primary" />
+          <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
+            <WalletIcon className="w-5 h-5 text-green-500" />
           </div>
-          <div className="text-left">
+          <div className="text-center">
             <p className="text-sm font-medium text-foreground">Use Credits</p>
-            <p className="text-xs text-muted-foreground">Book now</p>
           </div>
         </button>
       </motion.div>
@@ -193,6 +377,109 @@ const Wallet = () => {
       </motion.div>
 
       <BottomNav />
+
+      {/* Top-up Modal */}
+      <Dialog open={showTopupModal} onOpenChange={setShowTopupModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-primary" />
+              Add Money to Wallet
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6 pt-4">
+            {/* Quick Amount Selection */}
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-foreground">Select Amount</p>
+              <div className="grid grid-cols-3 gap-2">
+                {TOPUP_AMOUNTS.map((amount) => (
+                  <button
+                    key={amount}
+                    onClick={() => {
+                      setSelectedAmount(amount);
+                      setCustomAmount('');
+                    }}
+                    className={`p-3 rounded-xl border text-center transition-all ${
+                      selectedAmount === amount
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'border-border hover:border-primary/50 bg-card'
+                    }`}
+                  >
+                    <span className="text-lg font-semibold">₹{amount}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Custom Amount */}
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-foreground">Or Enter Custom Amount</p>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-semibold text-muted-foreground">₹</span>
+                <input
+                  type="number"
+                  value={customAmount}
+                  onChange={(e) => {
+                    setCustomAmount(e.target.value);
+                    setSelectedAmount(null);
+                  }}
+                  placeholder="Enter amount (₹50 - ₹10,000)"
+                  min={50}
+                  max={10000}
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-card text-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">Min: ₹50 • Max: ₹10,000</p>
+            </div>
+
+            {/* Summary */}
+            {(selectedAmount || customAmount) && (
+              <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Amount to add</span>
+                  <span className="text-xl font-bold text-primary">
+                    ₹{selectedAmount || customAmount || 0}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  setShowTopupModal(false);
+                  setSelectedAmount(null);
+                  setCustomAmount('');
+                }}
+                disabled={isProcessing}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={handleTopup}
+                disabled={isProcessing || (!selectedAmount && !customAmount)}
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Money
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
