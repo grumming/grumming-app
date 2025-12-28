@@ -1,7 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { toast as sonnerToast } from 'sonner';
 
 interface Wallet {
   id: string;
@@ -19,7 +21,7 @@ interface WalletTransaction {
   user_id: string;
   amount: number;
   type: 'credit' | 'debit';
-  category: 'referral_bonus' | 'referee_bonus' | 'promo_code' | 'booking_discount' | 'cashback' | 'refund' | 'manual';
+  category: 'referral_bonus' | 'referee_bonus' | 'promo_code' | 'booking_discount' | 'cashback' | 'refund' | 'manual' | 'referral';
   description: string | null;
   reference_id: string | null;
   created_at: string;
@@ -29,6 +31,48 @@ export const useWallet = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Subscribe to realtime wallet transaction updates for referral rewards
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('wallet-referral-rewards')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'wallet_transactions',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const newTransaction = payload.new as WalletTransaction;
+          
+          // Show notification for referral rewards
+          if (newTransaction.category === 'referral') {
+            const isReferrerReward = newTransaction.description?.includes('Friend completed');
+            
+            sonnerToast.success(
+              isReferrerReward ? '🎉 Referral Reward!' : '🎁 Welcome Bonus!',
+              {
+                description: `₹${newTransaction.amount} has been added to your wallet${isReferrerReward ? ' - Your friend completed their first booking!' : ' for completing your first booking!'}`,
+                duration: 6000,
+              }
+            );
+            
+            // Refresh wallet data
+            queryClient.invalidateQueries({ queryKey: ['wallet', user.id] });
+            queryClient.invalidateQueries({ queryKey: ['wallet-transactions', user.id] });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient]);
 
   // Fetch wallet
   const { data: wallet, isLoading: isLoadingWallet, refetch: refetchWallet } = useQuery({
