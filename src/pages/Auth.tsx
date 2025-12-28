@@ -138,11 +138,22 @@ const Auth = () => {
         body: { phone: formattedPhone, isSignUp },
       });
 
+      // Handle non-2xx responses - the error object contains the response
       if (error) {
+        // Try to parse the error context for ACCOUNT_EXISTS
+        try {
+          const errorData = JSON.parse(error.context?.body || '{}');
+          if (errorData?.code === 'ACCOUNT_EXISTS') {
+            setShowExistingAccountModal(true);
+            return;
+          }
+        } catch {
+          // If parsing fails, continue with default error handling
+        }
         throw new Error(error.message || 'Failed to send OTP');
       }
 
-      // Check if account already exists (signup mode)
+      // Check if account already exists (signup mode) - for 200 responses with code
       if (data?.code === 'ACCOUNT_EXISTS') {
         setShowExistingAccountModal(true);
         return;
@@ -167,6 +178,11 @@ const Auth = () => {
         });
       }
     } catch (error: any) {
+      // Check if this is the account exists error from message
+      if (error.message?.includes('ACCOUNT_EXISTS') || error.message?.includes('already exists')) {
+        setShowExistingAccountModal(true);
+        return;
+      }
       toast({
         title: 'Error',
         description: error.message || 'Failed to send OTP',
