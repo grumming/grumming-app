@@ -43,6 +43,55 @@ export const useReferral = () => {
     enabled: !!user?.id,
   });
 
+  // Fetch top referrers leaderboard
+  const { data: leaderboard, isLoading: isLoadingLeaderboard } = useQuery({
+    queryKey: ['referralLeaderboard'],
+    queryFn: async () => {
+      // Get completed referrals grouped by referrer
+      const { data, error } = await supabase
+        .from('referrals')
+        .select('referrer_id')
+        .eq('status', 'completed');
+      
+      if (error) throw error;
+      if (!data || data.length === 0) return [];
+      
+      // Count referrals per user
+      const referralCounts: Record<string, number> = {};
+      data.forEach(r => {
+        referralCounts[r.referrer_id] = (referralCounts[r.referrer_id] || 0) + 1;
+      });
+      
+      // Get top 10 referrers
+      const topReferrers = Object.entries(referralCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+      
+      if (topReferrers.length === 0) return [];
+      
+      // Get profile info for top referrers
+      const userIds = topReferrers.map(([id]) => id);
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, avatar_url')
+        .in('user_id', userIds);
+      
+      // Combine data
+      return topReferrers.map(([userId, count], index) => {
+        const profile = profiles?.find(p => p.user_id === userId);
+        return {
+          rank: index + 1,
+          userId,
+          name: profile?.full_name || 'Anonymous User',
+          avatarUrl: profile?.avatar_url,
+          referralCount: count,
+          isCurrentUser: userId === user?.id,
+        };
+      });
+    },
+    staleTime: 60000, // Cache for 1 minute
+  });
+
   // Fetch user's available reward
   const { data: userReward, isLoading: isLoadingReward } = useQuery({
     queryKey: ['userReward', user?.id],
@@ -142,7 +191,9 @@ export const useReferral = () => {
     referralCode,
     referrals,
     userReward,
+    leaderboard,
     isLoading: isLoadingCode || isLoadingReferrals || isLoadingReward,
+    isLoadingLeaderboard,
     applyReferralCode,
     getShareUrl,
     getShareText,
