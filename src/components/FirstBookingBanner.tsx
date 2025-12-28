@@ -44,13 +44,13 @@ const FirstBookingBanner = () => {
         className="w-full relative overflow-hidden rounded-2xl group"
       >
         {/* Gradient border effect */}
-        <div className="absolute inset-0 bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 rounded-2xl" />
+        <div className="absolute inset-0 bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500 rounded-2xl" />
         
-        <div className="relative m-[2px] rounded-[14px] bg-gradient-to-br from-amber-500/90 via-orange-500/90 to-rose-500/90 px-5 py-4 overflow-hidden">
+        <div className="relative m-[2px] rounded-[14px] bg-gradient-to-br from-violet-500/90 via-purple-500/90 to-fuchsia-500/90 px-5 py-4 overflow-hidden">
           {/* Animated background elements */}
           <div className="absolute inset-0">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl animate-pulse" />
-            <div className="absolute -bottom-8 -left-8 w-40 h-40 bg-yellow-300/20 rounded-full blur-3xl animate-pulse delay-500" />
+            <div className="absolute -bottom-8 -left-8 w-40 h-40 bg-fuchsia-300/20 rounded-full blur-3xl animate-pulse delay-500" />
             
             {/* Floating stars */}
             <motion.div
