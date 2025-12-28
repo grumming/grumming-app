@@ -1,9 +1,9 @@
 import { motion } from "framer-motion";
-import { Bell, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import UserMenu from "@/components/UserMenu";
 import ThemeToggle from "@/components/ThemeToggle";
-
+import NotificationCenter from "@/components/NotificationCenter";
 const Header = () => {
   return (
     <motion.header
@@ -27,10 +27,7 @@ const Header = () => {
         {/* Actions */}
         <div className="flex items-center gap-2">
           <ThemeToggle />
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="w-5 h-5" />
-            <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full" />
-          </Button>
+          <NotificationCenter />
           <UserMenu />
           <Button variant="ghost" size="icon" className="md:hidden">
             <Menu className="w-5 h-5" />
