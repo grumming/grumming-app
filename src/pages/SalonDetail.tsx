@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useRazorpay } from '@/hooks/useRazorpay';
+import { useUpiPayment, getUpiAppName, isMobileDevice } from '@/hooks/useUpiPayment';
 import { supabase } from '@/integrations/supabase/client';
 import { format, addDays, parseISO } from 'date-fns';
 import { SalonReviews } from '@/components/SalonReviews';
@@ -502,6 +503,7 @@ const SalonDetail = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { initiatePayment, isLoading: isPaymentLoading } = useRazorpay();
+  const { initiateUpiPayment, isProcessing: isUpiProcessing } = useUpiPayment();
   const { userReward } = useReferral();
   const { wallet, useCredits } = useWallet();
   const { isFavorite: checkIsFavorite, toggleFavorite } = useFavorites();
@@ -865,7 +867,93 @@ const SalonDetail = () => {
       });
     }
 
-    // If online payment (cards, UPI) selected, initiate Razorpay
+    // If UPI payment with selected app, use deep link
+    if (paymentMethod === 'upi' && selectedUpiApp && isMobileDevice()) {
+      const upiResult = await initiateUpiPayment(selectedUpiApp, {
+        amount: totalPrice,
+        merchantVpa: 'merchant@upi', // This should be your actual merchant VPA
+        merchantName: salon.name,
+        transactionNote: `Booking at ${salon.name}`,
+        orderId: bookingData.id,
+      });
+
+      if (upiResult.success) {
+        // Mark reward as used if applied
+        if (applyReward && rewardDiscount > 0) {
+          await markRewardAsUsed();
+        }
+
+        // Deduct wallet credits if applied
+        if (applyWalletCredits && walletCreditsDiscount > 0) {
+          await useCredits({
+            amount: walletCreditsDiscount,
+            category: 'booking_discount',
+            description: `Used for booking at ${salon.name}`,
+            referenceId: bookingData.id,
+          });
+        }
+
+        // Record promo code usage
+        if (appliedPromo && user) {
+          await supabase.from('promo_code_usage').insert({
+            promo_code_id: appliedPromo.id,
+            user_id: user.id,
+            booking_id: bookingData.id,
+          });
+        }
+
+        // Mark voucher as used
+        if (appliedVoucher && user) {
+          await supabase
+            .from('user_vouchers')
+            .update({ 
+              is_used: true, 
+              used_at: new Date().toISOString(),
+              booking_id: bookingData.id 
+            })
+            .eq('id', appliedVoucher.id);
+        }
+
+        setShowBookingModal(false);
+        setSelectedServices([]);
+        setApplyReward(false);
+        setApplyWalletCredits(false);
+        setAppliedPromo(null);
+        setAppliedVoucher(null);
+        setIsSplitPayment(false);
+        setSplitWalletAmount(0);
+        setSelectedUpiApp(null);
+        
+        // Note: In production, you'd verify payment via webhook before confirming
+        toast({
+          title: `Opening ${getUpiAppName(selectedUpiApp)}`,
+          description: 'Complete payment in the app. Your booking will be confirmed after payment.',
+        });
+
+        const params = new URLSearchParams({
+          salon: salon.name,
+          service: serviceNames,
+          price: totalPrice.toString(),
+          date: format(selectedDate, 'yyyy-MM-dd'),
+          time: selectedTime,
+          paymentMethod: 'upi',
+          upiApp: selectedUpiApp,
+          discount: totalDiscount.toString(),
+          pending: 'true', // Mark as pending UPI verification
+          ...(appliedPromo && { promoCode: appliedPromo.code, promoDiscount: promoDiscount.toString() }),
+          ...(appliedVoucher && { voucherCode: appliedVoucher.code, voucherDiscount: voucherDiscount.toString() }),
+          ...(rewardDiscount > 0 && { rewardDiscount: rewardDiscount.toString() }),
+          ...(walletCreditsDiscount > 0 && { walletDiscount: walletCreditsDiscount.toString() }),
+        });
+        
+        navigate(`/booking-confirmation?${params.toString()}`);
+      }
+      
+      setIsBooking(false);
+      return;
+    }
+
+    // If online payment (cards, UPI without app selection) selected, initiate Razorpay
     if (paymentMethod === 'online' || paymentMethod === 'upi') {
       const paymentResult = await initiatePayment({
         amount: totalPrice,
@@ -1711,15 +1799,17 @@ const SalonDetail = () => {
             className="w-full mt-4"
             size="lg"
             onClick={handleBooking}
-            disabled={!selectedDate || !selectedTime || isBooking || isPaymentLoading}
+            disabled={!selectedDate || !selectedTime || isBooking || isPaymentLoading || isUpiProcessing}
           >
-            {isBooking || isPaymentLoading 
+            {isBooking || isPaymentLoading || isUpiProcessing
               ? 'Processing...' 
-              : paymentMethod === 'online' || paymentMethod === 'upi'
-                ? `Pay ₹${totalPrice}` 
-                : paymentMethod === 'split'
-                  ? `Pay ₹${splitWalletAmount} + ₹${totalPrice - splitWalletAmount}`
-                  : `Confirm Booking - ₹${totalPrice}`
+              : paymentMethod === 'upi' && selectedUpiApp
+                ? `Pay ₹${totalPrice} with ${getUpiAppName(selectedUpiApp)}`
+                : paymentMethod === 'online' || paymentMethod === 'upi'
+                  ? `Pay ₹${totalPrice}` 
+                  : paymentMethod === 'split'
+                    ? `Pay ₹${splitWalletAmount} + ₹${totalPrice - splitWalletAmount}`
+                    : `Confirm Booking - ₹${totalPrice}`
             }
           </Button>
         </DialogContent>
