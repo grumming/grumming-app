@@ -7,7 +7,8 @@ import {
   Token
 } from '@capacitor/push-notifications';
 import { toast } from '@/hooks/use-toast';
-
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 export interface PushNotificationState {
   isSupported: boolean;
   isRegistered: boolean;
@@ -16,12 +17,46 @@ export interface PushNotificationState {
 }
 
 export const usePushNotifications = () => {
+  const { user } = useAuth();
   const [state, setState] = useState<PushNotificationState>({
     isSupported: false,
     isRegistered: false,
     token: null,
     error: null,
   });
+
+  // Save FCM token to database
+  const saveTokenToDatabase = async (token: string) => {
+    if (!user) {
+      console.log('No user logged in, skipping token save');
+      return;
+    }
+
+    try {
+      const deviceType = Capacitor.getPlatform();
+      
+      // Upsert the token (insert or update if exists)
+      const { error } = await supabase
+        .from('fcm_tokens')
+        .upsert(
+          {
+            user_id: user.id,
+            token: token,
+            device_type: deviceType,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_id,token' }
+        );
+
+      if (error) {
+        console.error('Error saving FCM token:', error);
+      } else {
+        console.log('FCM token saved to database');
+      }
+    } catch (err) {
+      console.error('Error saving FCM token:', err);
+    }
+  };
 
   useEffect(() => {
     const isNative = Capacitor.isNativePlatform();
@@ -36,7 +71,7 @@ export const usePushNotifications = () => {
     // Set up listeners
     const setupListeners = async () => {
       // On registration success
-      await PushNotifications.addListener('registration', (token: Token) => {
+      await PushNotifications.addListener('registration', async (token: Token) => {
         console.log('Push registration success, token:', token.value);
         setState(prev => ({ 
           ...prev, 
@@ -44,6 +79,9 @@ export const usePushNotifications = () => {
           token: token.value,
           error: null 
         }));
+        
+        // Save token to database
+        await saveTokenToDatabase(token.value);
       });
 
       // On registration error
@@ -82,7 +120,7 @@ export const usePushNotifications = () => {
     return () => {
       PushNotifications.removeAllListeners();
     };
-  }, []);
+  }, [user]);
 
   const requestPermission = async (): Promise<boolean> => {
     if (!state.isSupported) {
