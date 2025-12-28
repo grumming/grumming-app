@@ -96,6 +96,7 @@ const SearchModal = ({ isOpen, onClose }: SearchModalProps) => {
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
             className="fixed top-4 left-4 right-4 sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-lg z-[301] bg-background border border-border rounded-2xl shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
           >
             {/* Search Input */}
             <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
