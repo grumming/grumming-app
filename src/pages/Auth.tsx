@@ -101,7 +101,7 @@ const Auth = () => {
   // Resend cooldown timer effect
   useEffect(() => {
     if (resendCooldown <= 0) return;
-    
+
     const timer = setInterval(() => {
       setResendCooldown((prev) => {
         if (prev <= 1) {
@@ -111,9 +111,16 @@ const Auth = () => {
         return prev - 1;
       });
     }, 1000);
-    
+
     return () => clearInterval(timer);
   }, [resendCooldown]);
+
+  // Keep "account exists" modal strictly sign-up only
+  useEffect(() => {
+    if (!isSignUp && showExistingAccountModal) {
+      setShowExistingAccountModal(false);
+    }
+  }, [isSignUp, showExistingAccountModal]);
 
   const handleReferralAnimationComplete = () => {
     setShowReferralSuccess(false);
@@ -307,11 +314,12 @@ const Auth = () => {
         }
         setStep('profile');
       } else {
-        // Existing user - show dialog before redirecting
+        // Existing user - complete login immediately
         if (data.verificationUrl) {
-          setPendingRedirectUrl(data.verificationUrl);
+          window.location.href = data.verificationUrl;
+          return;
         }
-        setShowExistingAccountModal(true);
+        navigate('/');
       }
     } catch (error: any) {
       triggerHaptic('error');
