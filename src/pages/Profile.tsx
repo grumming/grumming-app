@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   ArrowLeft, User, Mail, Phone, Calendar, Edit2, Save, X, Loader2, Camera, 
-  Bell, ChevronRight, Gift, Settings, LogOut, CreditCard, HelpCircle, Shield, Star, Wallet, Ticket
+  Bell, ChevronRight, Gift, Settings, LogOut, CreditCard, HelpCircle, Shield, Star, Wallet, Ticket, MapPin
 } from 'lucide-react';
 import { useWallet } from '@/hooks/useWallet';
 import { Button } from '@/components/ui/button';
@@ -204,6 +204,7 @@ const Profile = () => {
   ];
 
   const menuItems = [
+    { icon: MapPin, label: 'Saved Addresses', onClick: () => navigate('/saved-addresses') },
     { icon: CreditCard, label: 'Payment Methods', onClick: () => {}, badge: 'Coming Soon' },
     { icon: Shield, label: 'Privacy & Security', onClick: () => {} },
     { icon: HelpCircle, label: 'Help & Support', onClick: () => {} },
