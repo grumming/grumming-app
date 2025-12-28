@@ -40,6 +40,13 @@ const HeroSection = () => {
     navigate(`/salon/${salon.id}`);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && searchQuery.trim()) {
+      setShowSalonSuggestions(false);
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
   return (
     <section className="relative py-4 overflow-hidden">
       <div className="container mx-auto px-4">
@@ -60,6 +67,7 @@ const HeroSection = () => {
                     type="text"
                     value={searchQuery}
                     onChange={handleSearchChange}
+                    onKeyDown={handleKeyDown}
                     onFocus={() => setShowSalonSuggestions(true)}
                     placeholder="Search for salons, services..."
                     className="bg-transparent outline-none w-full text-foreground placeholder:text-muted-foreground font-body"
