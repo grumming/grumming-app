@@ -2,7 +2,6 @@ import { motion } from "framer-motion";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import UserMenu from "@/components/UserMenu";
-import ThemeToggle from "@/components/ThemeToggle";
 import NotificationCenter from "@/components/NotificationCenter";
 const Header = () => {
   return (
@@ -26,7 +25,6 @@ const Header = () => {
         
         {/* Actions */}
         <div className="flex items-center gap-2">
-          <ThemeToggle />
           <NotificationCenter />
           <UserMenu />
           <Button variant="ghost" size="icon" className="md:hidden">
