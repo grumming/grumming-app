@@ -191,7 +191,7 @@ const HeroSection = () => {
 
                 {/* Search Suggestions Dropdown */}
                 {showSuggestions && (hasResults || hasRecentSearches) && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-xl shadow-lg z-50 max-h-80 overflow-y-auto">
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-xl shadow-xl z-[100] max-h-80 overflow-y-auto">
                     {/* Recent Searches */}
                     {hasRecentSearches && (
                       <>
