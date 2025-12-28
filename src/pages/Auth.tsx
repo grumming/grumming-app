@@ -335,9 +335,6 @@ const Auth = () => {
               <h1 className="text-2xl font-bold text-foreground mb-2">
                 Login or create account
               </h1>
-              <p className="text-muted-foreground mb-8">
-                Enter your phone number to continue
-              </p>
               
               <div className="space-y-6">
                 <div className="space-y-2">
