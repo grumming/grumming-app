@@ -15,6 +15,7 @@ import SalonDetail from "./pages/SalonDetail";
 import BookingConfirmation from "./pages/BookingConfirmation";
 import NotificationSettings from "./pages/NotificationSettings";
 import MyBookings from "./pages/MyBookings";
+import MyVouchers from "./pages/MyVouchers";
 import SearchSalons from "./pages/SearchSalons";
 import Referrals from "./pages/Referrals";
 import AdminPromoCodes from "./pages/AdminPromoCodes";
@@ -42,6 +43,7 @@ const App = () => {
                   <Route path="/booking-confirmation" element={<BookingConfirmation />} />
                   <Route path="/notification-settings" element={<NotificationSettings />} />
                   <Route path="/my-bookings" element={<MyBookings />} />
+                  <Route path="/my-vouchers" element={<MyVouchers />} />
                   <Route path="/search" element={<SearchSalons />} />
                   <Route path="/referrals" element={<Referrals />} />
                   <Route path="/wallet" element={<Wallet />} />
