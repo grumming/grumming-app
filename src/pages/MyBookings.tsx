@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, Calendar, Clock, MapPin, 
-  Loader2, AlertCircle, CheckCircle2, XCircle, Star 
+  Loader2, AlertCircle, CheckCircle2, XCircle, Star, CreditCard 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -24,6 +24,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { format, parseISO, isPast, isToday } from 'date-fns';
 import { ReviewDialog } from '@/components/ReviewDialog';
+import { BookingPaymentSheet } from '@/components/BookingPaymentSheet';
 
 interface Booking {
   id: string;
@@ -49,6 +50,8 @@ const MyBookings = () => {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [reviewBooking, setReviewBooking] = useState<Booking | null>(null);
+  const [showPaymentSheet, setShowPaymentSheet] = useState(false);
+  const [paymentBooking, setPaymentBooking] = useState<Booking | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -244,21 +247,35 @@ const MyBookings = () => {
                             <span className="font-semibold text-lg text-primary">
                               ₹{booking.service_price}
                             </span>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedBooking(booking);
-                                setShowCancelDialog(true);
-                              }}
-                              disabled={cancellingId === booking.id}
-                            >
-                              {cancellingId === booking.id ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                'Cancel'
-                              )}
-                            </Button>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => {
+                                  setPaymentBooking(booking);
+                                  setShowPaymentSheet(true);
+                                }}
+                                className="gap-1"
+                              >
+                                <CreditCard className="w-4 h-4" />
+                                Pay Now
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedBooking(booking);
+                                  setShowCancelDialog(true);
+                                }}
+                                disabled={cancellingId === booking.id}
+                              >
+                                {cancellingId === booking.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  'Cancel'
+                                )}
+                              </Button>
+                            </div>
                           </div>
                         </CardContent>
                       </Card>
@@ -396,6 +413,17 @@ const MyBookings = () => {
           salonName={reviewBooking.salon_name}
           userId={user.id}
           onReviewSubmitted={fetchBookings}
+        />
+      )}
+
+      {/* Payment Sheet */}
+      {paymentBooking && (
+        <BookingPaymentSheet
+          open={showPaymentSheet}
+          onOpenChange={setShowPaymentSheet}
+          booking={paymentBooking}
+          customerPhone={user?.phone || undefined}
+          onPaymentSuccess={fetchBookings}
         />
       )}
     </div>
