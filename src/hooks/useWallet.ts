@@ -49,6 +49,10 @@ export const useWallet = () => {
         (payload) => {
           const newTransaction = payload.new as WalletTransaction;
           
+          // Refresh wallet data for any new transaction
+          queryClient.invalidateQueries({ queryKey: ['wallet', user.id] });
+          queryClient.invalidateQueries({ queryKey: ['wallet-transactions', user.id] });
+          
           // Show notification for referral rewards
           if (newTransaction.category === 'referral') {
             const isReferrerReward = newTransaction.description?.includes('Friend completed');
@@ -60,10 +64,17 @@ export const useWallet = () => {
                 duration: 6000,
               }
             );
-            
-            // Refresh wallet data
-            queryClient.invalidateQueries({ queryKey: ['wallet', user.id] });
-            queryClient.invalidateQueries({ queryKey: ['wallet-transactions', user.id] });
+          }
+          
+          // Show notification for cashback
+          if (newTransaction.category === 'cashback') {
+            sonnerToast.success(
+              '💰 Cashback Earned!',
+              {
+                description: `₹${newTransaction.amount} cashback credited for your booking!`,
+                duration: 5000,
+              }
+            );
           }
         }
       )
