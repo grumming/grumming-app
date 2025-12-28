@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Phone, ArrowLeft, Loader2, Gift, ChevronDown, ClipboardPaste } from 'lucide-react';
+import { Phone, ArrowLeft, Loader2, Gift, ChevronDown, ClipboardPaste, User, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,8 +24,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 
 const phoneSchema = z.string().min(10, 'Phone number must be at least 10 digits').regex(/^[0-9]+$/, 'Please enter a valid phone number');
 const otpSchema = z.string().length(6, 'OTP must be 6 digits');
+const nameSchema = z.string().min(2, 'Name must be at least 2 characters').max(100, 'Name must be less than 100 characters');
+const emailSchema = z.string().email('Please enter a valid email').max(255, 'Email must be less than 255 characters').optional().or(z.literal(''));
 
-type AuthStep = 'phone' | 'otp';
+type AuthStep = 'phone' | 'otp' | 'profile';
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -48,6 +50,9 @@ const Auth = () => {
   const [phone, setPhone] = useState('');
   const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [referralCode, setReferralCode] = useState(referralCodeFromUrl || '');
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [pendingVerificationUrl, setPendingVerificationUrl] = useState<string | null>(null);
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   
   // Errors
@@ -100,6 +105,12 @@ const Auth = () => {
           break;
         case 'otp':
           otpSchema.parse(value);
+          break;
+        case 'fullName':
+          nameSchema.parse(value);
+          break;
+        case 'email':
+          if (value) emailSchema.parse(value);
           break;
       }
       setErrors(prev => ({ ...prev, [field]: '' }));
@@ -214,19 +225,32 @@ const Auth = () => {
           }, 150);
         };
         fireConfetti();
-      }
-      
-      toast({
-        title: data.isNewUser ? 'Account Created!' : 'Welcome Back!',
-        description: 'Logging you in...',
-      });
-      
-      // Redirect to the magic link URL to establish session
-      if (data.verificationUrl) {
-        window.location.href = data.verificationUrl;
+        
+        // For new users, show profile completion step
+        toast({
+          title: 'Account Created!',
+          description: 'Please complete your profile.',
+        });
+        
+        // Store the verification URL for later use after profile completion
+        if (data.verificationUrl) {
+          setPendingVerificationUrl(data.verificationUrl);
+        }
+        setStep('profile');
       } else {
-        // Fallback: navigate to home and let auth state update
-        navigate('/');
+        // Existing user - redirect immediately
+        toast({
+          title: 'Welcome Back!',
+          description: 'Logging you in...',
+        });
+        
+        // Redirect to the magic link URL to establish session
+        if (data.verificationUrl) {
+          window.location.href = data.verificationUrl;
+        } else {
+          // Fallback: navigate to home and let auth state update
+          navigate('/');
+        }
       }
     } catch (error: any) {
       triggerHaptic('error');
@@ -243,10 +267,49 @@ const Auth = () => {
     }
   };
 
+  const handleProfileComplete = async () => {
+    if (!validateField('fullName', fullName)) return;
+    if (email && !validateField('email', email)) return;
+    
+    setIsLoading(true);
+    
+    try {
+      // We'll update the profile after authentication is complete
+      // Store the profile data in localStorage temporarily
+      localStorage.setItem('pendingProfile', JSON.stringify({
+        fullName: fullName.trim(),
+        email: email.trim() || null,
+      }));
+      
+      toast({
+        title: 'Profile saved!',
+        description: 'Welcome to Grumming!',
+      });
+      
+      // Now redirect to complete authentication
+      if (pendingVerificationUrl) {
+        window.location.href = pendingVerificationUrl;
+      } else {
+        navigate('/');
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to save profile',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const goBack = () => {
     if (step === 'otp') {
       setStep('phone');
       setOtpDigits(['', '', '', '', '', '']);
+    } else if (step === 'profile') {
+      // Can't go back from profile - must complete it
+      return;
     } else {
       navigate('/');
     }
@@ -661,6 +724,79 @@ const Auth = () => {
                     Resend
                   </button>
                 </p>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Profile Completion Step */}
+          {step === 'profile' && (
+            <motion.div
+              key="profile"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="w-full max-w-md mx-auto"
+            >
+              <h1 className="text-2xl font-bold text-foreground mb-2">
+                Complete your profile
+              </h1>
+              <p className="text-muted-foreground mb-8">
+                Help us personalize your experience
+              </p>
+              
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="fullName" className="text-sm font-medium">
+                    Full Name <span className="text-destructive">*</span>
+                  </Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <Input
+                      id="fullName"
+                      type="text"
+                      placeholder="Enter your full name"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      onBlur={() => fullName && validateField('fullName', fullName)}
+                      className={`h-12 pl-10 ${errors.fullName ? 'border-destructive' : ''}`}
+                      autoFocus
+                    />
+                  </div>
+                  {errors.fullName && <p className="text-xs text-destructive">{errors.fullName}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-sm font-medium">
+                    Email <span className="text-muted-foreground">(Optional)</span>
+                  </Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="Enter your email address"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      onBlur={() => email && validateField('email', email)}
+                      className={`h-12 pl-10 ${errors.email ? 'border-destructive' : ''}`}
+                    />
+                  </div>
+                  {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
+                  <p className="text-xs text-muted-foreground">
+                    We'll use this for booking confirmations and offers
+                  </p>
+                </div>
+
+                <Button
+                  className="w-full h-14 text-base font-semibold"
+                  onClick={handleProfileComplete}
+                  disabled={isLoading || !fullName.trim()}
+                >
+                  {isLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                  ) : null}
+                  Get Started
+                </Button>
               </div>
             </motion.div>
           )}
