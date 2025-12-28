@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Phone, ArrowLeft, Loader2, Gift } from 'lucide-react';
+import { Phone, ArrowLeft, Loader2, Gift, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,6 +31,7 @@ const Auth = () => {
   const [step, setStep] = useState<AuthStep>('phone');
   const [isLoading, setIsLoading] = useState(false);
   const [showReferralSuccess, setShowReferralSuccess] = useState(false);
+  const [showReferralInput, setShowReferralInput] = useState(!!referralCodeFromUrl);
   
   // Form fields
   const [phone, setPhone] = useState('');
@@ -350,24 +351,59 @@ const Auth = () => {
                   {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
                 </div>
 
-                {/* Referral Code Field */}
+                {/* Referral Code Field - Collapsible */}
                 <div className="space-y-2">
-                  <Label htmlFor="referral" className="text-sm font-medium flex items-center gap-2">
-                    <Gift className="w-4 h-4 text-primary" />
-                    Referral Code (Optional)
-                  </Label>
-                  <Input
-                    id="referral"
-                    type="text"
-                    placeholder="Enter referral code"
-                    value={referralCode}
-                    onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                    className="h-12 uppercase tracking-wider"
-                    maxLength={8}
-                  />
-                  {referralCode && (
-                    <p className="text-xs text-primary">🎁 You'll get ₹100 off your first booking!</p>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowReferralInput(!showReferralInput)}
+                    className="w-full flex items-center justify-between p-3 rounded-lg border border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Gift className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-medium text-foreground">
+                        {referralCode ? `Referral: ${referralCode}` : 'Have a referral code?'}
+                      </span>
+                    </div>
+                    <ChevronDown 
+                      className={`w-4 h-4 text-primary transition-transform duration-200 ${
+                        showReferralInput ? 'rotate-180' : ''
+                      }`} 
+                    />
+                  </button>
+                  
+                  <AnimatePresence>
+                    {showReferralInput && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="pt-2 space-y-2">
+                          <Input
+                            id="referral"
+                            type="text"
+                            placeholder="Enter referral code"
+                            value={referralCode}
+                            onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                            className="h-12 uppercase tracking-wider"
+                            maxLength={8}
+                            autoFocus
+                          />
+                          {referralCode && (
+                            <motion.p 
+                              initial={{ opacity: 0, y: -5 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="text-xs text-primary flex items-center gap-1"
+                            >
+                              🎁 You'll get ₹100 off your first booking!
+                            </motion.p>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 <Button
