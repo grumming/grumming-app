@@ -1,12 +1,61 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Gift, Sparkles, PartyPopper, Check } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
 interface ReferralSuccessAnimationProps {
   isVisible: boolean;
   onComplete?: () => void;
   rewardAmount?: number;
 }
+
+// Play celebration sound using Web Audio API
+const playCelebrationSound = () => {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const now = audioContext.currentTime;
+
+    // Create a cheerful ascending arpeggio
+    const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+    
+    notes.forEach((freq, index) => {
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(freq, now + index * 0.1);
+      
+      gainNode.gain.setValueAtTime(0, now + index * 0.1);
+      gainNode.gain.linearRampToValueAtTime(0.3, now + index * 0.1 + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, now + index * 0.1 + 0.3);
+      
+      oscillator.start(now + index * 0.1);
+      oscillator.stop(now + index * 0.1 + 0.35);
+    });
+
+    // Add a final sparkle effect
+    setTimeout(() => {
+      const sparkleOsc = audioContext.createOscillator();
+      const sparkleGain = audioContext.createGain();
+      
+      sparkleOsc.connect(sparkleGain);
+      sparkleGain.connect(audioContext.destination);
+      
+      sparkleOsc.type = 'triangle';
+      sparkleOsc.frequency.setValueAtTime(1318.5, audioContext.currentTime); // E6
+      
+      sparkleGain.gain.setValueAtTime(0.2, audioContext.currentTime);
+      sparkleGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+      
+      sparkleOsc.start();
+      sparkleOsc.stop(audioContext.currentTime + 0.5);
+    }, 450);
+  } catch (error) {
+    console.log('Audio playback not supported');
+  }
+};
 
 export const ReferralSuccessAnimation = ({ 
   isVisible, 
@@ -15,15 +64,20 @@ export const ReferralSuccessAnimation = ({
 }: ReferralSuccessAnimationProps) => {
   const [showConfetti, setShowConfetti] = useState(false);
 
+  const playSound = useCallback(() => {
+    playCelebrationSound();
+  }, []);
+
   useEffect(() => {
     if (isVisible) {
       setShowConfetti(true);
+      playSound();
       const timer = setTimeout(() => {
         onComplete?.();
       }, 3500);
       return () => clearTimeout(timer);
     }
-  }, [isVisible, onComplete]);
+  }, [isVisible, onComplete, playSound]);
 
   return (
     <AnimatePresence>
