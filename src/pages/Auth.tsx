@@ -47,6 +47,7 @@ const Auth = () => {
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [showExistingAccountModal, setShowExistingAccountModal] = useState(false);
   const [showNoAccountModal, setShowNoAccountModal] = useState(false);
+  const [accountExistsInline, setAccountExistsInline] = useState(false);
   const [pendingRedirectUrl, setPendingRedirectUrl] = useState<string | null>(null);
   
   // Form fields
@@ -115,12 +116,10 @@ const Auth = () => {
     return () => clearInterval(timer);
   }, [resendCooldown]);
 
-  // Keep "account exists" modal strictly sign-up only
+  // Clear inline account-exists message when switching modes or changing phone
   useEffect(() => {
-    if (!isSignUp && showExistingAccountModal) {
-      setShowExistingAccountModal(false);
-    }
-  }, [isSignUp, showExistingAccountModal]);
+    setAccountExistsInline(false);
+  }, [isSignUp, phone]);
 
   const handleReferralAnimationComplete = () => {
     setShowReferralSuccess(false);
@@ -180,7 +179,8 @@ const Auth = () => {
 
       // Handle expected flows (regardless of status code)
       if (mode && errorCode === 'ACCOUNT_EXISTS') {
-        setShowExistingAccountModal(true);
+        // Show inline message instead of modal
+        setAccountExistsInline(true);
         return;
       }
 
@@ -202,7 +202,7 @@ const Auth = () => {
 
       // If account exists (in case function ever returns 200 with code)
       if (mode && data?.code === 'ACCOUNT_EXISTS') {
-        setShowExistingAccountModal(true);
+        setAccountExistsInline(true);
         return;
       }
 
@@ -537,6 +537,36 @@ const Auth = () => {
                     />
                   </div>
                   {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
+                  
+                  {/* Inline account-exists message */}
+                  <AnimatePresence>
+                    {accountExistsInline && isSignUp && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400">
+                          <Smartphone className="w-4 h-4 flex-shrink-0" />
+                          <p className="text-sm">
+                            This number is already registered.{' '}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsSignUp(false);
+                                setAccountExistsInline(false);
+                              }}
+                              className="font-semibold underline underline-offset-2 hover:text-amber-800 dark:hover:text-amber-300 transition-colors"
+                            >
+                              Switch to Login
+                            </button>
+                          </p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 {/* Referral Code Field - Collapsible - Only show during signup */}
@@ -1092,51 +1122,6 @@ const Auth = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Existing Account Modal */}
-      <Dialog open={showExistingAccountModal} onOpenChange={setShowExistingAccountModal}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader className="text-center">
-            <DialogTitle className="text-xl">Mobile number already exists</DialogTitle>
-            <DialogDescription className="text-center pt-2">
-              This number is already registered. Switch to login to receive an OTP.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="pt-4 space-y-3">
-            <Button 
-              onClick={() => {
-                setShowExistingAccountModal(false);
-
-                // If we already have a verified magic-link redirect (post-OTP), use it
-                if (pendingRedirectUrl) {
-                  window.location.href = pendingRedirectUrl;
-                  return;
-                }
-
-                // Otherwise (signup attempt blocked), switch to login and send OTP
-                setIsSignUp(false);
-                setTimeout(() => {
-                  void sendOtp(false);
-                }, 0);
-              }} 
-              className="w-full h-12"
-            >
-              Login & Send OTP
-            </Button>
-            <Button 
-              variant="outline"
-              onClick={() => {
-                setShowExistingAccountModal(false);
-                setStep('phone');
-                setPhone('');
-                setOtpDigits(['', '', '', '', '', '']);
-              }} 
-              className="w-full"
-            >
-              Use Different Number
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* No Account Found Modal */}
       <Dialog open={showNoAccountModal} onOpenChange={setShowNoAccountModal}>
