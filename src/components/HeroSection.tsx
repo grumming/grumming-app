@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Scissors, Clock, Mic, MicOff, Sparkles } from "lucide-react";
+import { Search, Scissors, Clock, Mic, MicOff, Sparkles, History } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { getSearchResults, SalonBasic, ServiceResult } from "@/data/salonsData";
@@ -48,7 +48,7 @@ const HeroSection = ({ onSearchActiveChange }: HeroSectionProps) => {
   const [isListening, setIsListening] = useState(false);
   const searchInputRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
-  const { recentSearches, addRecentSearch, clearRecentSearches } = useRecentSearches();
+  const { recentSearches, addRecentSearch, clearRecentSearches, searchHistory, addSearchQuery, clearSearchHistory } = useRecentSearches();
 
   // Initialize speech recognition
   useEffect(() => {
@@ -145,19 +145,28 @@ const HeroSection = ({ onSearchActiveChange }: HeroSectionProps) => {
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && searchQuery.trim()) {
+      addSearchQuery(searchQuery.trim());
       setShowSuggestions(false);
       navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
 
+  const handleSearchHistoryClick = (query: string) => {
+    setSearchQuery(query);
+    addSearchQuery(query);
+    setShowSuggestions(false);
+    navigate(`/search?q=${encodeURIComponent(query)}`);
+  };
+
   const hasResults = salonResults.length > 0 || serviceResults.length > 0;
   const hasRecentSearches = searchQuery === '' && recentSearches.length > 0;
+  const hasSearchHistory = searchQuery === '' && searchHistory.length > 0;
 
   return (
     <>
       {/* Backdrop overlay */}
       <AnimatePresence>
-        {showSuggestions && (hasResults || hasRecentSearches) && (
+        {showSuggestions && (hasResults || hasRecentSearches || hasSearchHistory) && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -215,14 +224,46 @@ const HeroSection = ({ onSearchActiveChange }: HeroSectionProps) => {
                 </div>
 
                 {/* Search Suggestions Dropdown */}
-                {showSuggestions && (hasResults || hasRecentSearches) && (
+                {showSuggestions && (hasResults || hasRecentSearches || hasSearchHistory) && (
                   <div className="absolute top-full left-0 right-0 mt-2 bg-background border border-border rounded-xl shadow-xl z-[100] max-h-[400px] overflow-y-auto overflow-x-hidden">
-                    {/* Recent Searches */}
+                    {/* Search History */}
+                    {hasSearchHistory && (
+                      <>
+                        <div className="px-4 py-2 flex items-center justify-between border-b border-border bg-background">
+                          <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                            <History className="w-3 h-3" /> Search History
+                          </span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              clearSearchHistory();
+                            }}
+                            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            Clear
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap gap-2 p-3 bg-background">
+                          {searchHistory.map((query, index) => (
+                            <button
+                              key={`history-${index}`}
+                              onClick={() => handleSearchHistoryClick(query)}
+                              className="px-3 py-1.5 text-sm bg-muted hover:bg-muted/80 text-foreground rounded-full transition-colors flex items-center gap-1.5"
+                            >
+                              <Search className="w-3 h-3 text-muted-foreground" />
+                              {query}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+
+                    {/* Recent Salon Visits */}
                     {hasRecentSearches && (
                       <>
                         <div className="px-4 py-2 flex items-center justify-between border-b border-border bg-background">
                           <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                            <Clock className="w-3 h-3" /> Recent Searches
+                            <Clock className="w-3 h-3" /> Recently Viewed
                           </span>
                           <button
                             onClick={(e) => {
@@ -322,6 +363,7 @@ const HeroSection = ({ onSearchActiveChange }: HeroSectionProps) => {
                     {searchQuery.trim() && (
                       <button
                         onClick={() => {
+                          addSearchQuery(searchQuery.trim());
                           setShowSuggestions(false);
                           navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
                         }}
