@@ -78,8 +78,8 @@ serve(async (req) => {
   }
 
   try {
-    const { phone } = await req.json();
-    console.log('Received OTP request for phone:', phone);
+    const { phone, isSignUp } = await req.json();
+    console.log('Received OTP request for phone:', phone, 'isSignUp:', isSignUp);
 
     if (!phone) {
       return new Response(
@@ -99,6 +99,48 @@ serve(async (req) => {
 
     // Create Supabase client with service role
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+
+    // If signup mode, check if user already exists
+    if (isSignUp) {
+      const tempEmail = `${phone.replace('+', '')}@phone.grumming.app`;
+      
+      // Search for existing user
+      let existingUser = null;
+      let page = 1;
+      
+      while (!existingUser && page <= 5) {
+        const { data: usersPage } = await supabase.auth.admin.listUsers({
+          page,
+          perPage: 1000,
+        });
+        
+        if (usersPage?.users && usersPage.users.length > 0) {
+          existingUser = usersPage.users.find(u => 
+            u.phone === phone || u.email === tempEmail
+          );
+          
+          if (!existingUser && usersPage.users.length === 1000) {
+            page++;
+          } else {
+            break;
+          }
+        } else {
+          break;
+        }
+      }
+      
+      if (existingUser) {
+        console.log(`User already exists for phone ${phone}, blocking signup OTP`);
+        return new Response(
+          JSON.stringify({ 
+            error: 'Account already exists',
+            code: 'ACCOUNT_EXISTS',
+            message: 'This mobile number is already registered. Please login instead.'
+          }),
+          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
 
     // Check rate limit
     const rateLimitCutoff = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString();

@@ -135,11 +135,17 @@ const Auth = () => {
     try {
       // Call the edge function to send OTP via Fast2SMS
       const { data, error } = await supabase.functions.invoke('send-sms-otp', {
-        body: { phone: formattedPhone },
+        body: { phone: formattedPhone, isSignUp },
       });
 
       if (error) {
         throw new Error(error.message || 'Failed to send OTP');
+      }
+
+      // Check if account already exists (signup mode)
+      if (data?.code === 'ACCOUNT_EXISTS') {
+        setShowExistingAccountModal(true);
+        return;
       }
 
       if (!data?.success) {
