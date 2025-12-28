@@ -1,10 +1,11 @@
 import { motion } from "framer-motion";
 import { Star, MapPin, Clock, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "@/contexts/LocationContext";
 import { calculateDistance, formatDistance } from "@/lib/distance";
+import { useFavorites } from "@/hooks/useFavorites";
 
 export interface Salon {
   id: number;
@@ -147,9 +148,9 @@ export const salonsData: Salon[] = [
 ];
 
 const FeaturedSalons = () => {
-  const [favorites, setFavorites] = useState<number[]>([]);
   const navigate = useNavigate();
   const { coordinates } = useLocation();
+  const { isFavorite, toggleFavorite } = useFavorites();
 
   // Calculate distance and sort salons by proximity
   const sortedSalons = useMemo(() => {
@@ -169,13 +170,6 @@ const FeaturedSalons = () => {
       }))
       .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
   }, [coordinates]);
-
-  const toggleFavorite = (id: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setFavorites(prev => 
-      prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]
-    );
-  };
 
   const handleSalonClick = (id: number) => {
     navigate(`/salon/${id}`);
@@ -232,7 +226,7 @@ const FeaturedSalons = () => {
                   >
                     <Heart
                       className={`w-5 h-5 transition-colors ${
-                        favorites.includes(salon.id)
+                        isFavorite(salon.id)
                           ? "fill-primary text-primary"
                           : "text-foreground"
                       }`}
