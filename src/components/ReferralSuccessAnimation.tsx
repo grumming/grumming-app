@@ -79,6 +79,10 @@ export const ReferralSuccessAnimation = ({
     }
   }, [isVisible, onComplete, playSound]);
 
+  const handleDismiss = useCallback(() => {
+    onComplete?.();
+  }, [onComplete]);
+
   return (
     <AnimatePresence>
       {isVisible && (
@@ -86,7 +90,8 @@ export const ReferralSuccessAnimation = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+          onClick={handleDismiss}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm cursor-pointer"
         >
           {/* Confetti particles */}
           {showConfetti && (
@@ -260,7 +265,7 @@ export const ReferralSuccessAnimation = ({
               transition={{ delay: 1.5 }}
               className="text-xs text-muted-foreground mt-6"
             >
-              Redirecting you to the app...
+              Tap anywhere to dismiss
             </motion.p>
           </motion.div>
         </motion.div>
