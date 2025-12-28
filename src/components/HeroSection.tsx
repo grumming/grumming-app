@@ -1,6 +1,5 @@
 import { motion } from "framer-motion";
 import { Search, Scissors, Clock } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { getFilteredSalons, SalonBasic } from "@/data/salonsData";
@@ -39,10 +38,6 @@ const HeroSection = () => {
     addRecentSearch(salon);
     setShowSalonSuggestions(false);
     navigate(`/salon/${salon.id}`);
-  };
-
-  const handleSearch = () => {
-    navigate('/search');
   };
 
   return (
@@ -123,11 +118,6 @@ const HeroSection = () => {
                   </div>
                 )}
               </div>
-              
-              {/* Search Button */}
-              <Button variant="hero" size="lg" className="sm:px-8" onClick={handleSearch}>
-                Search
-              </Button>
             </div>
           </div>
         </motion.div>
