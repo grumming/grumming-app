@@ -464,14 +464,22 @@ const Auth = () => {
             >
               {/* Login / Sign Up Toggle */}
               <div className="mb-8">
-                <div className="flex p-1 bg-muted rounded-lg mb-4">
+                <div className="flex p-1 bg-muted rounded-lg mb-4 relative">
+                  {/* Animated background indicator */}
+                  <motion.div
+                    className="absolute top-1 bottom-1 rounded-md bg-background shadow-sm"
+                    initial={false}
+                    animate={{
+                      left: isSignUp ? '50%' : '4px',
+                      right: isSignUp ? '4px' : '50%',
+                    }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                  />
                   <button
                     type="button"
                     onClick={() => setIsSignUp(false)}
-                    className={`flex-1 py-2.5 text-sm font-medium rounded-md transition-all ${
-                      !isSignUp
-                        ? 'bg-background text-foreground shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
+                    className={`relative z-10 flex-1 py-2.5 text-sm font-medium rounded-md transition-colors ${
+                      !isSignUp ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
                     Login
@@ -479,20 +487,27 @@ const Auth = () => {
                   <button
                     type="button"
                     onClick={() => setIsSignUp(true)}
-                    className={`flex-1 py-2.5 text-sm font-medium rounded-md transition-all ${
-                      isSignUp
-                        ? 'bg-background text-foreground shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
+                    className={`relative z-10 flex-1 py-2.5 text-sm font-medium rounded-md transition-colors ${
+                      isSignUp ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
                     Sign Up
                   </button>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {isSignUp
-                    ? 'Create a new account to book appointments and earn rewards.'
-                    : 'Welcome back! Enter your phone number to continue.'}
-                </p>
+                <AnimatePresence mode="wait">
+                  <motion.p
+                    key={isSignUp ? 'signup' : 'login'}
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -5 }}
+                    transition={{ duration: 0.2 }}
+                    className="text-sm text-muted-foreground"
+                  >
+                    {isSignUp
+                      ? 'Create a new account to book appointments and earn rewards.'
+                      : 'Welcome back! Enter your phone number to continue.'}
+                  </motion.p>
+                </AnimatePresence>
               </div>
               
               <div className="space-y-6">
