@@ -307,6 +307,20 @@ const HeroSection = ({ onSearchActiveChange }: HeroSectionProps) => {
                         ))}
                       </>
                     )}
+
+                    {/* View All Results Button */}
+                    {searchQuery.trim() && (
+                      <button
+                        onClick={() => {
+                          setShowSuggestions(false);
+                          navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+                        }}
+                        className="w-full px-4 py-3 text-center border-t border-border bg-muted/30 hover:bg-muted transition-colors flex items-center justify-center gap-2 rounded-b-xl"
+                      >
+                        <Search className="w-4 h-4 text-primary" />
+                        <span className="text-sm font-medium text-primary">View all results for "{searchQuery}"</span>
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
