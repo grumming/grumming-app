@@ -122,7 +122,7 @@ const Header = () => {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
-              className="absolute top-full left-0 mt-2 bg-background/95 backdrop-blur-md border border-border/80 rounded-xl shadow-xl z-50 max-h-80 overflow-y-auto min-w-64 w-72"
+              className="absolute top-full left-0 mt-2 bg-background border border-border rounded-xl shadow-2xl z-[100] max-h-80 overflow-y-auto min-w-64 w-72"
             >
               <div className="p-2">
                 {showPopular ? (
