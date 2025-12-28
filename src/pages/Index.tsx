@@ -15,9 +15,9 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <WelcomeBanner />
       <main className="pt-16 pb-24">
         <HeroSection onSearchActiveChange={setIsSearchActive} />
+        <WelcomeBanner />
         <AnimatePresence>
           {!isSearchActive && (
             <motion.div
