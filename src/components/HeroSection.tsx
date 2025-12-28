@@ -34,12 +34,18 @@ declare global {
   }
 }
 
+const VOICE_LANGUAGES = [
+  { code: 'en-IN', label: 'EN', name: 'English' },
+  { code: 'hi-IN', label: 'हि', name: 'Hindi' },
+];
+
 const HeroSection = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [showSalonSuggestions, setShowSalonSuggestions] = useState(false);
   const [salonSuggestions, setSalonSuggestions] = useState<SalonBasic[]>([]);
   const [isListening, setIsListening] = useState(false);
+  const [voiceLang, setVoiceLang] = useState('en-IN');
   const searchInputRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const { recentSearches, addRecentSearch, clearRecentSearches } = useRecentSearches();
@@ -51,7 +57,7 @@ const HeroSection = () => {
       recognitionRef.current = new SpeechRecognitionConstructor();
       recognitionRef.current.continuous = false;
       recognitionRef.current.interimResults = true;
-      recognitionRef.current.lang = 'en-IN';
+      recognitionRef.current.lang = voiceLang;
 
       recognitionRef.current.onresult = (event) => {
         const transcript = Array.from(event.results)
@@ -79,7 +85,7 @@ const HeroSection = () => {
         recognitionRef.current.abort();
       }
     };
-  }, []);
+  }, [voiceLang]);
 
   const toggleVoiceSearch = () => {
     if (!recognitionRef.current) {
@@ -94,8 +100,16 @@ const HeroSection = () => {
       setSearchQuery('');
       recognitionRef.current.start();
       setIsListening(true);
-      toast.info('Listening... Speak now');
+      const langName = VOICE_LANGUAGES.find(l => l.code === voiceLang)?.name || 'English';
+      toast.info(`Listening in ${langName}... Speak now`);
     }
+  };
+
+  const toggleLanguage = () => {
+    const currentIndex = VOICE_LANGUAGES.findIndex(l => l.code === voiceLang);
+    const nextIndex = (currentIndex + 1) % VOICE_LANGUAGES.length;
+    setVoiceLang(VOICE_LANGUAGES[nextIndex].code);
+    toast.success(`Voice language: ${VOICE_LANGUAGES[nextIndex].name}`);
   };
 
   useEffect(() => {
@@ -157,6 +171,13 @@ const HeroSection = () => {
                     placeholder={isListening ? "Listening..." : "Search for salons, services..."}
                     className="bg-transparent outline-none w-full text-foreground placeholder:text-muted-foreground font-body"
                   />
+                  <button
+                    onClick={toggleLanguage}
+                    className="px-2 py-1 rounded-md text-xs font-medium bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                    title={`Voice language: ${VOICE_LANGUAGES.find(l => l.code === voiceLang)?.name}`}
+                  >
+                    {VOICE_LANGUAGES.find(l => l.code === voiceLang)?.label}
+                  </button>
                   <button
                     onClick={toggleVoiceSearch}
                     className={`p-2 rounded-full transition-all duration-200 ${
