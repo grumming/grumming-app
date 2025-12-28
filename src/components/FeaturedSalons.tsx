@@ -5,7 +5,7 @@ import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "@/contexts/LocationContext";
 import { calculateDistance, formatDistance } from "@/lib/distance";
-import { useFavorites } from "@/hooks/useFavorites";
+import { useFavorites } from "@/contexts/FavoritesContext";
 
 export interface Salon {
   id: number;

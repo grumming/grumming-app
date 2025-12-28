@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/hooks/useAuth";
 import { LocationProvider } from "@/contexts/LocationContext";
+import { FavoritesProvider } from "@/contexts/FavoritesContext";
 import { PushNotificationSetup } from "@/components/PushNotificationSetup";
 import { ReferralRewardListener } from "@/components/ReferralRewardListener";
 import Index from "./pages/Index";
@@ -34,36 +35,38 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
         <AuthProvider>
-          <LocationProvider>
-            <TooltipProvider>
-              <PushNotificationSetup />
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
-                <ReferralRewardListener />
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/privacy-security" element={<PrivacySecurity />} />
-                  <Route path="/salon/:id" element={<SalonDetail />} />
-                  <Route path="/booking-confirmation" element={<BookingConfirmation />} />
-                  <Route path="/notification-settings" element={<NotificationSettings />} />
-                  <Route path="/my-bookings" element={<MyBookings />} />
-                  <Route path="/my-vouchers" element={<MyVouchers />} />
-                  <Route path="/saved-addresses" element={<SavedAddresses />} />
-                  <Route path="/search" element={<SearchSalons />} />
-                  <Route path="/referrals" element={<Referrals />} />
-                  <Route path="/wallet" element={<Wallet />} />
-                  <Route path="/favorites" element={<Favorites />} />
-                  <Route path="/admin/promo-codes" element={<AdminPromoCodes />} />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </BrowserRouter>
-            </TooltipProvider>
-          </LocationProvider>
+          <FavoritesProvider>
+            <LocationProvider>
+              <TooltipProvider>
+                <PushNotificationSetup />
+                <Toaster />
+                <Sonner />
+                <BrowserRouter>
+                  <ReferralRewardListener />
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/auth" element={<Auth />} />
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/privacy-security" element={<PrivacySecurity />} />
+                    <Route path="/salon/:id" element={<SalonDetail />} />
+                    <Route path="/booking-confirmation" element={<BookingConfirmation />} />
+                    <Route path="/notification-settings" element={<NotificationSettings />} />
+                    <Route path="/my-bookings" element={<MyBookings />} />
+                    <Route path="/my-vouchers" element={<MyVouchers />} />
+                    <Route path="/saved-addresses" element={<SavedAddresses />} />
+                    <Route path="/search" element={<SearchSalons />} />
+                    <Route path="/referrals" element={<Referrals />} />
+                    <Route path="/wallet" element={<Wallet />} />
+                    <Route path="/favorites" element={<Favorites />} />
+                    <Route path="/admin/promo-codes" element={<AdminPromoCodes />} />
+                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </BrowserRouter>
+              </TooltipProvider>
+            </LocationProvider>
+          </FavoritesProvider>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

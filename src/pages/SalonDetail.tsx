@@ -23,7 +23,7 @@ import { SalonReviews } from '@/components/SalonReviews';
 import StylistsList from '@/components/StylistsList';
 import { useReferral } from '@/hooks/useReferral';
 import { useWallet } from '@/hooks/useWallet';
-import { useFavorites } from '@/hooks/useFavorites';
+import { useFavorites } from '@/contexts/FavoritesContext';
 
 // Mock salon data - in production this would come from database
 const salonsData: Record<string, any> = {
