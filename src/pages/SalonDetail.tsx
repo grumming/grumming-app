@@ -513,6 +513,7 @@ const SalonDetail = () => {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [isBooking, setIsBooking] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('online');
+  const [selectedSavedPaymentMethod, setSelectedSavedPaymentMethod] = useState<string | null>(null);
   const [applyReward, setApplyReward] = useState(false);
   const [isSplitPayment, setIsSplitPayment] = useState(false);
   const [splitWalletAmount, setSplitWalletAmount] = useState(0);
@@ -1699,6 +1700,8 @@ const SalonDetail = () => {
             onWalletAmountChange={setSplitWalletAmount}
             isSplitPayment={isSplitPayment}
             onSplitToggle={setIsSplitPayment}
+            selectedSavedMethodId={selectedSavedPaymentMethod}
+            onSavedMethodSelect={setSelectedSavedPaymentMethod}
           />
 
           <Button
