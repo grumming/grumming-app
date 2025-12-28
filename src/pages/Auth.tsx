@@ -462,19 +462,36 @@ const Auth = () => {
               exit={{ opacity: 0, x: -20 }}
               className="w-full max-w-md mx-auto"
             >
+              {/* Login / Sign Up Toggle */}
               <div className="mb-8">
-                <h1 className="text-2xl font-bold text-foreground">
-                  {isSignUp ? 'Sign up' : 'Login'}
-                </h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  or{' '}
-                  <button 
+                <div className="flex p-1 bg-muted rounded-lg mb-4">
+                  <button
                     type="button"
-                    onClick={() => setIsSignUp(!isSignUp)}
-                    className="text-primary font-medium underline underline-offset-2 hover:text-primary/80 transition-colors"
+                    onClick={() => setIsSignUp(false)}
+                    className={`flex-1 py-2.5 text-sm font-medium rounded-md transition-all ${
+                      !isSignUp
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
                   >
-                    {isSignUp ? 'login to your account' : 'create an account'}
+                    Login
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsSignUp(true)}
+                    className={`flex-1 py-2.5 text-sm font-medium rounded-md transition-all ${
+                      isSignUp
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Sign Up
+                  </button>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {isSignUp
+                    ? 'Create a new account to book appointments and earn rewards.'
+                    : 'Welcome back! Enter your phone number to continue.'}
                 </p>
               </div>
               
