@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Phone, ArrowLeft, Loader2, Gift, ChevronDown } from 'lucide-react';
+import { Phone, ArrowLeft, Loader2, Gift, ChevronDown, ClipboardPaste } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -381,16 +381,45 @@ const Auth = () => {
                         className="overflow-hidden"
                       >
                         <div className="pt-2 space-y-2">
-                          <Input
-                            id="referral"
-                            type="text"
-                            placeholder="Enter referral code"
-                            value={referralCode}
-                            onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                            className="h-12 uppercase tracking-wider"
-                            maxLength={8}
-                            autoFocus
-                          />
+                          <div className="relative">
+                            <Input
+                              id="referral"
+                              type="text"
+                              placeholder="Enter referral code"
+                              value={referralCode}
+                              onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                              className="h-12 uppercase tracking-wider pr-12"
+                              maxLength={8}
+                              autoFocus
+                            />
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  const text = await navigator.clipboard.readText();
+                                  const cleanCode = text.trim().toUpperCase().slice(0, 8);
+                                  if (cleanCode) {
+                                    setReferralCode(cleanCode);
+                                    triggerHaptic('light');
+                                    toast({
+                                      title: 'Code pasted!',
+                                      description: `Referral code "${cleanCode}" applied.`,
+                                    });
+                                  }
+                                } catch (err) {
+                                  toast({
+                                    title: 'Unable to paste',
+                                    description: 'Please paste manually or allow clipboard access.',
+                                    variant: 'destructive',
+                                  });
+                                }
+                              }}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-primary"
+                              title="Paste from clipboard"
+                            >
+                              <ClipboardPaste className="w-5 h-5" />
+                            </button>
+                          </div>
                           {referralCode && (
                             <motion.p 
                               initial={{ opacity: 0, y: -5 }}
