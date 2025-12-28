@@ -1,12 +1,17 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from 'sonner';
 
+type DetectLocationOptions = {
+  showToast?: boolean;
+  forceFresh?: boolean;
+};
+
 interface LocationContextType {
   selectedCity: string;
   setSelectedCity: (city: string) => void;
   isDetecting: boolean;
   coordinates: { lat: number; lng: number } | null;
-  detectLocation: () => Promise<string | null>;
+  detectLocation: (options?: DetectLocationOptions) => Promise<string | null>;
   hasAutoDetected: boolean;
 }
 
@@ -18,9 +23,11 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
   const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
   const [hasAutoDetected, setHasAutoDetected] = useState(false);
 
-  const detectLocation = async (): Promise<string | null> => {
+  const detectLocation = async (options: DetectLocationOptions = {}): Promise<string | null> => {
+    const { showToast = true, forceFresh = false } = options;
+
     if (!navigator.geolocation) {
-      toast.error("Geolocation is not supported by your browser");
+      if (showToast) toast.error("Geolocation is not supported by your browser");
       return null;
     }
 
@@ -29,7 +36,7 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
     return new Promise<string | null>((resolve) => {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
-          const { latitude, longitude } = position.coords;
+          const { latitude, longitude, accuracy } = position.coords;
           setCoordinates({ lat: latitude, lng: longitude });
 
           try {
@@ -39,28 +46,20 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
             );
             const data = await response.json();
 
-            // Get the most specific neighborhood/area name
-            const neighborhood = data.address?.neighbourhood || data.address?.suburb || "";
-            const cityDistrict = data.address?.city_district || "";
-            const city = data.address?.city || data.address?.town || data.address?.state_district || "";
             const road = data.address?.road || "";
-            
+            const neighborhood = data.address?.neighbourhood || data.address?.suburb || "";
+            const city = data.address?.city || data.address?.town || data.address?.state_district || "";
+            const state = data.address?.state || "";
+
             // Build a precise, user-friendly location string
             let locationName = "";
-            
-            // Prefer neighborhood/area name first
-            if (neighborhood) {
-              locationName = neighborhood;
-              // Add city if different from neighborhood
-              if (city && city !== neighborhood) {
-                locationName = `${neighborhood}, ${city}`;
-              }
-            } else if (cityDistrict) {
-              locationName = city ? `${cityDistrict}, ${city}` : cityDistrict;
-            } else if (road && city) {
-              locationName = `${road}, ${city}`;
+            if (road && neighborhood) {
+              locationName = `${road}, ${neighborhood}`;
+              if (city && city !== neighborhood) locationName = `${locationName}, ${city}`;
+            } else if (neighborhood) {
+              locationName = city && city !== neighborhood ? `${neighborhood}, ${city}` : neighborhood;
             } else if (city) {
-              locationName = city;
+              locationName = state && state !== city ? `${city}, ${state}` : city;
             } else {
               locationName = "Unknown Location";
             }
@@ -68,20 +67,27 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
             setSelectedCity(locationName);
             setIsDetecting(false);
             setHasAutoDetected(true);
-            
-            toast.success(`📍 ${locationName}`);
+
+            if (showToast) {
+              const accuracyLabel = typeof accuracy === 'number' ? ` (±${Math.round(accuracy)}m)` : '';
+              toast.success(`Location detected: ${locationName}${accuracyLabel}`);
+            }
             resolve(locationName);
           } catch {
             // Fallback if geocoding fails
+            const fallbackLocation = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+            setSelectedCity(fallbackLocation);
             setIsDetecting(false);
-            resolve(null);
+            setHasAutoDetected(true);
+
+            if (showToast) toast.success("Location detected");
+            resolve(fallbackLocation);
           }
         },
         (error) => {
           setIsDetecting(false);
-          
-          // Don't show error on auto-detect, only on manual detect
-          if (hasAutoDetected) {
+
+          if (showToast) {
             let errorMessage = "Failed to detect location";
             switch (error.code) {
               case error.PERMISSION_DENIED:
@@ -96,13 +102,13 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
             }
             toast.error(errorMessage);
           }
-          
+
           resolve(null);
         },
         {
-          enableHighAccuracy: true, // More accurate GPS
-          timeout: 10000,
-          maximumAge: 300000, // Cache for 5 minutes
+          enableHighAccuracy: true,
+          timeout: forceFresh ? 20000 : 10000,
+          maximumAge: forceFresh ? 0 : 300000,
         }
       );
     });
@@ -140,8 +146,8 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
-      // Auto-detect location
-      const location = await detectLocation();
+      // Auto-detect location (silent)
+      const location = await detectLocation({ showToast: false });
       
       if (location) {
         // Cache the location
