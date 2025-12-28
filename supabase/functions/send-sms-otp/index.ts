@@ -131,12 +131,13 @@ serve(async (req) => {
     if (isSignUp && existingUser) {
       console.log(`User already exists for phone ${phone}, blocking signup OTP`);
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
+          success: false,
           error: 'Account already exists',
           code: 'ACCOUNT_EXISTS',
-          message: 'This mobile number is already registered. Please login instead.'
+          message: 'This mobile number is already registered. Please login instead.',
         }),
-        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -144,12 +145,13 @@ serve(async (req) => {
     if (!isSignUp && !existingUser) {
       console.log(`No account found for phone ${phone}, blocking login OTP`);
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
+          success: false,
           error: 'No account found',
           code: 'NO_ACCOUNT',
-          message: 'This mobile number is not registered. Please sign up first.'
+          message: 'This mobile number is not registered. Please sign up first.',
         }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
