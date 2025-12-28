@@ -41,8 +41,9 @@ export function useUpiPayment(): UseUpiPaymentReturn {
       pn: details.merchantName,
       am: details.amount.toString(),
       cu: 'INR',
-      tn: details.transactionNote,
+      tn: `${details.transactionNote} booking_id:${details.orderId}`,
       tr: details.orderId,
+      mc: '5611', // Merchant category code for salons/beauty parlors
     });
 
     return `${app.scheme}?${params.toString()}`;
