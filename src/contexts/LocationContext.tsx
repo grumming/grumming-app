@@ -39,27 +39,30 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
             );
             const data = await response.json();
 
-            // Priority order for getting the most accurate locality name
-            const locality =
-              data.address?.suburb ||
-              data.address?.neighbourhood ||
-              data.address?.city ||
-              data.address?.town ||
-              data.address?.village ||
-              data.address?.municipality ||
-              data.address?.state_district ||
-              data.address?.county ||
-              "Unknown Location";
-            
+            // Get the most specific neighborhood/area name
+            const neighborhood = data.address?.neighbourhood || data.address?.suburb || "";
+            const cityDistrict = data.address?.city_district || "";
             const city = data.address?.city || data.address?.town || data.address?.state_district || "";
-            const state = data.address?.state || "";
+            const road = data.address?.road || "";
             
-            // Build a meaningful location string
-            let locationName = locality;
-            if (city && city !== locality) {
-              locationName = `${locality}, ${city}`;
-            } else if (state) {
-              locationName = `${locality}, ${state}`;
+            // Build a precise, user-friendly location string
+            let locationName = "";
+            
+            // Prefer neighborhood/area name first
+            if (neighborhood) {
+              locationName = neighborhood;
+              // Add city if different from neighborhood
+              if (city && city !== neighborhood) {
+                locationName = `${neighborhood}, ${city}`;
+              }
+            } else if (cityDistrict) {
+              locationName = city ? `${cityDistrict}, ${city}` : cityDistrict;
+            } else if (road && city) {
+              locationName = `${road}, ${city}`;
+            } else if (city) {
+              locationName = city;
+            } else {
+              locationName = "Unknown Location";
             }
 
             setSelectedCity(locationName);
