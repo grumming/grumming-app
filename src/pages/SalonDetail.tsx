@@ -803,6 +803,9 @@ const SalonDetail = () => {
           time: selectedTime,
           paymentId: paymentResult.paymentId || '',
           discount: totalDiscount.toString(),
+          ...(appliedPromo && { promoCode: appliedPromo.code, promoDiscount: promoDiscount.toString() }),
+          ...(rewardDiscount > 0 && { rewardDiscount: rewardDiscount.toString() }),
+          ...(walletCreditsDiscount > 0 && { walletDiscount: walletCreditsDiscount.toString() }),
         });
         
         navigate(`/booking-confirmation?${params.toString()}`);
@@ -867,6 +870,9 @@ const SalonDetail = () => {
         date: format(selectedDate, 'yyyy-MM-dd'),
         time: selectedTime,
         discount: totalDiscount.toString(),
+        ...(appliedPromo && { promoCode: appliedPromo.code, promoDiscount: promoDiscount.toString() }),
+        ...(rewardDiscount > 0 && { rewardDiscount: rewardDiscount.toString() }),
+        ...(walletCreditsDiscount > 0 && { walletDiscount: walletCreditsDiscount.toString() }),
       });
       
       navigate(`/booking-confirmation?${params.toString()}`);

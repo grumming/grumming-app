@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   CheckCircle, Calendar, Clock, MapPin, 
-  CalendarPlus, ArrowLeft, Home, Share2, Gift 
+  CalendarPlus, ArrowLeft, Home, Share2, Gift, Tag, Wallet 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -26,6 +26,10 @@ const BookingConfirmation = () => {
     bookingDate: '',
     bookingTime: '',
     discount: 0,
+    promoCode: '',
+    promoDiscount: 0,
+    rewardDiscount: 0,
+    walletDiscount: 0,
   });
 
   useEffect(() => {
@@ -35,6 +39,10 @@ const BookingConfirmation = () => {
     const bookingDate = searchParams.get('date') || '';
     const bookingTime = searchParams.get('time') || '';
     const discount = parseInt(searchParams.get('discount') || '0', 10);
+    const promoCode = searchParams.get('promoCode') || '';
+    const promoDiscount = parseInt(searchParams.get('promoDiscount') || '0', 10);
+    const rewardDiscount = parseInt(searchParams.get('rewardDiscount') || '0', 10);
+    const walletDiscount = parseInt(searchParams.get('walletDiscount') || '0', 10);
 
     setBookingDetails({
       salonName,
@@ -43,10 +51,14 @@ const BookingConfirmation = () => {
       bookingDate,
       bookingTime,
       discount,
+      promoCode,
+      promoDiscount,
+      rewardDiscount,
+      walletDiscount,
     });
   }, [searchParams]);
 
-  const { salonName, serviceName, servicePrice, bookingDate, bookingTime, discount } = bookingDetails;
+  const { salonName, serviceName, servicePrice, bookingDate, bookingTime, discount, promoCode, promoDiscount, rewardDiscount, walletDiscount } = bookingDetails;
   const originalPrice = servicePrice + discount;
 
   // Parse date for display
@@ -259,18 +271,56 @@ END:VCALENDAR`;
                 </div>
               </div>
 
-              {/* Discount Savings */}
+              {/* Discount Savings Breakdown */}
               {discount > 0 && (
-                <div className="flex items-center justify-between p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
-                  <div className="flex items-center gap-2">
-                    <Gift className="w-5 h-5 text-green-600 dark:text-green-400" />
-                    <span className="text-sm font-medium text-green-700 dark:text-green-300">
-                      Referral Reward Applied
-                    </span>
-                  </div>
-                  <span className="font-semibold text-green-600 dark:text-green-400">
-                    -₹{discount}
-                  </span>
+                <div className="space-y-2">
+                  {/* Promo Code Discount */}
+                  {promoCode && promoDiscount > 0 && (
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                      <div className="flex items-center gap-2">
+                        <Tag className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        <div>
+                          <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                            Promo Code Applied
+                          </span>
+                          <p className="text-xs text-blue-600 dark:text-blue-400 font-mono">{promoCode}</p>
+                        </div>
+                      </div>
+                      <span className="font-semibold text-blue-600 dark:text-blue-400">
+                        -₹{promoDiscount}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Referral Reward Discount */}
+                  {rewardDiscount > 0 && (
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                      <div className="flex items-center gap-2">
+                        <Gift className="w-5 h-5 text-green-600 dark:text-green-400" />
+                        <span className="text-sm font-medium text-green-700 dark:text-green-300">
+                          Referral Reward Applied
+                        </span>
+                      </div>
+                      <span className="font-semibold text-green-600 dark:text-green-400">
+                        -₹{rewardDiscount}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Wallet Credits Discount */}
+                  {walletDiscount > 0 && (
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                      <div className="flex items-center gap-2">
+                        <Wallet className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                        <span className="text-sm font-medium text-amber-700 dark:text-amber-300">
+                          Wallet Credits Used
+                        </span>
+                      </div>
+                      <span className="font-semibold text-amber-600 dark:text-amber-400">
+                        -₹{walletDiscount}
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -288,7 +338,7 @@ END:VCALENDAR`;
                 </div>
                 {discount > 0 && (
                   <p className="text-xs text-center text-green-600 dark:text-green-400 font-medium">
-                    🎉 You saved ₹{discount} with your referral reward!
+                    🎉 You saved ₹{discount} on this booking!
                   </p>
                 )}
               </div>
