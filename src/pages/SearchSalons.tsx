@@ -1,8 +1,8 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  ArrowLeft, Search, Star, MapPin, SlidersHorizontal, X, Scissors, Clock, Car 
+  ArrowLeft, Search, Star, MapPin, SlidersHorizontal, X, Scissors, Clock, Car, ChevronDown 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -168,6 +168,8 @@ const SearchSalons = () => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [salonSuggestions, setSalonSuggestions] = useState<SalonBasic[]>([]);
+  const [showRatingOptions, setShowRatingOptions] = useState(false);
+  const [showServicesOptions, setShowServicesOptions] = useState(false);
   const searchInputRef = useRef<HTMLDivElement>(null);
   const { recentSearches, addRecentSearch, clearRecentSearches } = useRecentSearches();
   const { coordinates } = useLocation();
@@ -442,41 +444,94 @@ const SearchSalons = () => {
 
         {/* Quick Filters for Nearby Mode */}
         {isNearbyMode && coordinates && (
-          <div className="px-4 pb-3 space-y-3">
-            {/* Rating Quick Filter */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1">
-              <span className="text-xs text-muted-foreground flex-shrink-0">Rating:</span>
-              {[0, 3.5, 4, 4.5].map((rating) => (
-                <Button
-                  key={rating}
-                  variant={minRating === rating ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setMinRating(rating)}
-                  className="gap-1 flex-shrink-0 h-7 text-xs"
-                >
-                  {rating === 0 ? 'Any' : (
-                    <>
-                      <Star className="w-3 h-3 fill-current" />
-                      {rating}+
-                    </>
-                  )}
-                </Button>
-              ))}
+          <div className="px-4 pb-3 space-y-2">
+            {/* Rating Expandable Filter */}
+            <div className="space-y-2">
+              <button
+                onClick={() => setShowRatingOptions(!showRatingOptions)}
+                className="flex items-center gap-2 text-sm font-medium text-foreground hover:text-primary transition-colors"
+              >
+                <span>Rating:</span>
+                <Badge variant={minRating > 0 ? "default" : "secondary"} className="text-xs">
+                  {minRating === 0 ? 'Any' : `${minRating}+`}
+                </Badge>
+                <ChevronDown className={`w-4 h-4 transition-transform ${showRatingOptions ? 'rotate-180' : ''}`} />
+              </button>
+              <AnimatePresence>
+                {showRatingOptions && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="flex items-center gap-2 flex-wrap pt-1">
+                      {[0, 3.5, 4, 4.5].map((rating) => (
+                        <Button
+                          key={rating}
+                          variant={minRating === rating ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => {
+                            setMinRating(rating);
+                            setShowRatingOptions(false);
+                          }}
+                          className="gap-1 h-7 text-xs"
+                        >
+                          {rating === 0 ? 'Any' : (
+                            <>
+                              <Star className="w-3 h-3 fill-current" />
+                              {rating}+
+                            </>
+                          )}
+                        </Button>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
             
-            {/* Service Type Quick Filter */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1">
-              <span className="text-xs text-muted-foreground flex-shrink-0">Services:</span>
-              {serviceCategories.slice(0, 6).map((category) => (
-                <Badge
-                  key={category}
-                  variant={selectedCategories.includes(category) ? "default" : "outline"}
-                  className="cursor-pointer flex-shrink-0"
-                  onClick={() => toggleCategory(category)}
-                >
-                  {category}
-                </Badge>
-              ))}
+            {/* Services Expandable Filter */}
+            <div className="space-y-2">
+              <button
+                onClick={() => setShowServicesOptions(!showServicesOptions)}
+                className="flex items-center gap-2 text-sm font-medium text-foreground hover:text-primary transition-colors"
+              >
+                <span>Services:</span>
+                {selectedCategories.length > 0 ? (
+                  <Badge variant="default" className="text-xs">
+                    {selectedCategories.length} selected
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="text-xs">All</Badge>
+                )}
+                <ChevronDown className={`w-4 h-4 transition-transform ${showServicesOptions ? 'rotate-180' : ''}`} />
+              </button>
+              <AnimatePresence>
+                {showServicesOptions && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="flex items-center gap-2 flex-wrap pt-1">
+                      {serviceCategories.slice(0, 6).map((category) => (
+                        <Badge
+                          key={category}
+                          variant={selectedCategories.includes(category) ? "default" : "outline"}
+                          className="cursor-pointer"
+                          onClick={() => toggleCategory(category)}
+                        >
+                          {category}
+                        </Badge>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         )}
