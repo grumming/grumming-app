@@ -1,14 +1,14 @@
 import { motion } from "framer-motion";
 import { MapPin, Locate, Loader2, ChevronDown, Search } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import UserMenu from "@/components/UserMenu";
 import NotificationCenter from "@/components/NotificationCenter";
+import SearchModal from "@/components/SearchModal";
 import { useLocation } from "@/contexts/LocationContext";
 import { getGroupedFilteredCities, popularCities, GroupedCitySuggestion } from "@/data/indianCities";
 
 const Header = () => {
-  const navigate = useNavigate();
+  const [showSearchModal, setShowSearchModal] = useState(false);
   const { selectedCity, setSelectedCity, isDetecting, detectLocation } = useLocation();
   const [locationInput, setLocationInput] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -189,7 +189,7 @@ const Header = () => {
         <div className="flex items-center gap-1.5">
           {/* Search Button */}
           <button
-            onClick={() => navigate('/search')}
+            onClick={() => setShowSearchModal(true)}
             className="p-2 rounded-lg hover:bg-muted/70 transition-colors"
             title="Search salons"
           >
@@ -200,6 +200,9 @@ const Header = () => {
           <UserMenu />
         </div>
       </div>
+      
+      {/* Search Modal */}
+      <SearchModal isOpen={showSearchModal} onClose={() => setShowSearchModal(false)} />
     </motion.header>
   );
 };
