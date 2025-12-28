@@ -26,6 +26,7 @@ import Referrals from "./pages/Referrals";
 import AdminPromoCodes from "./pages/AdminPromoCodes";
 import Wallet from "./pages/Wallet";
 import Favorites from "./pages/Favorites";
+import PaymentMethods from "./pages/PaymentMethods";
 import NotFound from "./pages/NotFound";
 
 const App = () => {
@@ -59,6 +60,7 @@ const App = () => {
                     <Route path="/referrals" element={<Referrals />} />
                     <Route path="/wallet" element={<Wallet />} />
                     <Route path="/favorites" element={<Favorites />} />
+                    <Route path="/payment-methods" element={<PaymentMethods />} />
                     <Route path="/admin/promo-codes" element={<AdminPromoCodes />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
