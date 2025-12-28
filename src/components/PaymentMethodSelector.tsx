@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
+import { SavedPaymentMethodPicker } from './SavedPaymentMethodPicker';
+import { UpiAppIcons } from './UpiAppSelector';
 
 export type PaymentMethodType = 'online' | 'upi' | 'salon' | 'split';
 
@@ -18,6 +20,10 @@ interface PaymentMethodSelectorProps {
   onWalletAmountChange: (amount: number) => void;
   isSplitPayment: boolean;
   onSplitToggle: (enabled: boolean) => void;
+  selectedSavedMethodId?: string | null;
+  onSavedMethodSelect?: (methodId: string | null) => void;
+  selectedUpiAppId?: string | null;
+  onUpiAppSelect?: (appId: string | null) => void;
 }
 
 const paymentMethods = [
@@ -60,6 +66,10 @@ export function PaymentMethodSelector({
   onWalletAmountChange,
   isSplitPayment,
   onSplitToggle,
+  selectedSavedMethodId,
+  onSavedMethodSelect,
+  selectedUpiAppId,
+  onUpiAppSelect,
 }: PaymentMethodSelectorProps) {
   const maxWalletUsable = Math.min(walletBalance, totalAmount - 1); // Leave at least ₹1 for other payment
   const remainingAmount = totalAmount - walletAmountToUse;
@@ -134,6 +144,67 @@ export function PaymentMethodSelector({
         })}
       </div>
 
+      {/* Saved Card Selection for Online Payment */}
+      <AnimatePresence>
+        {selectedMethod === 'online' && onSavedMethodSelect && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="pt-2">
+              <p className="text-xs text-muted-foreground mb-2">Select a saved card or use a new one</p>
+              <SavedPaymentMethodPicker
+                paymentType="card"
+                selectedMethodId={selectedSavedMethodId || null}
+                onMethodSelect={onSavedMethodSelect}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Saved UPI Selection */}
+      <AnimatePresence>
+        {selectedMethod === 'upi' && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="pt-2 space-y-4">
+              {/* Saved UPI IDs */}
+              {onSavedMethodSelect && (
+                <div>
+                  <p className="text-xs text-muted-foreground mb-2">Your saved UPI IDs</p>
+                  <SavedPaymentMethodPicker
+                    paymentType="upi"
+                    selectedMethodId={selectedSavedMethodId || null}
+                    onMethodSelect={onSavedMethodSelect}
+                  />
+                </div>
+              )}
+
+              {/* UPI App Selection */}
+              {onUpiAppSelect && (
+                <div className="pt-2 border-t border-border">
+                  <UpiAppIcons
+                    selectedAppId={selectedUpiAppId || null}
+                    onAppSelect={onUpiAppSelect}
+                  />
+                </div>
+              )}
+
+              <p className="text-xs text-muted-foreground text-center">
+                You'll be redirected to your selected UPI app to complete payment
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Split Payment Configuration */}
       <AnimatePresence>
         {selectedMethod === 'split' && walletBalance > 0 && (
@@ -189,24 +260,6 @@ export function PaymentMethodSelector({
                   ₹{walletAmountToUse} will be deducted from wallet now. Pay ₹{remainingAmount} at the salon.
                 </p>
               </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* UPI Apps Info */}
-      <AnimatePresence>
-        {selectedMethod === 'upi' && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="p-3 rounded-lg bg-accent/50 border border-border">
-              <p className="text-xs text-muted-foreground text-center">
-                You'll be redirected to your UPI app to complete the payment
-              </p>
             </div>
           </motion.div>
         )}

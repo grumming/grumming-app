@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, Star, MapPin, Clock, Phone, Heart, Share2, 
@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useRazorpay } from '@/hooks/useRazorpay';
+import { useUpiPayment, getUpiAppName, isMobileDevice } from '@/hooks/useUpiPayment';
 import { supabase } from '@/integrations/supabase/client';
 import { format, addDays, parseISO } from 'date-fns';
 import { SalonReviews } from '@/components/SalonReviews';
@@ -499,12 +500,21 @@ const timeSlots = [
 const SalonDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { user } = useAuth();
   const { initiatePayment, isLoading: isPaymentLoading } = useRazorpay();
+  const { initiateUpiPayment, isProcessing: isUpiProcessing } = useUpiPayment();
   const { userReward } = useReferral();
   const { wallet, useCredits } = useWallet();
   const { isFavorite: checkIsFavorite, toggleFavorite } = useFavorites();
+  
+  // Retry payment mode
+  const isRetryMode = searchParams.get('retry') === 'true';
+  const retryBookingId = searchParams.get('bookingId') || '';
+  const retryService = searchParams.get('service') || '';
+  const retryDate = searchParams.get('date') || '';
+  const retryTime = searchParams.get('time') || '';
   
   const isFavorite = id ? checkIsFavorite(id) : false;
   const [selectedServices, setSelectedServices] = useState<number[]>([]);
@@ -513,6 +523,8 @@ const SalonDetail = () => {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [isBooking, setIsBooking] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('online');
+  const [selectedSavedPaymentMethod, setSelectedSavedPaymentMethod] = useState<string | null>(null);
+  const [selectedUpiApp, setSelectedUpiApp] = useState<string | null>(null);
   const [applyReward, setApplyReward] = useState(false);
   const [isSplitPayment, setIsSplitPayment] = useState(false);
   const [splitWalletAmount, setSplitWalletAmount] = useState(0);
@@ -605,6 +617,38 @@ const SalonDetail = () => {
   }, [user]);
 
   const salon = id ? salonsData[id] : null;
+
+  // Handle retry payment mode - pre-fill booking details
+  useEffect(() => {
+    if (!isRetryMode || !salon) return;
+    
+    // Pre-select service by matching name
+    if (retryService) {
+      const matchingService = salon.services.find((s: any) => s.name === retryService);
+      if (matchingService) {
+        setSelectedServices([matchingService.id]);
+      }
+    }
+    
+    // Pre-select date
+    if (retryDate) {
+      setSelectedDate(new Date(retryDate));
+    }
+    
+    // Pre-select time
+    if (retryTime) {
+      setSelectedTime(retryTime);
+    }
+    
+    // Show booking modal for payment retry
+    if (retryBookingId) {
+      setShowBookingModal(true);
+      toast({
+        title: 'Retry Payment',
+        description: 'Select a different payment method to complete your booking.',
+      });
+    }
+  }, [isRetryMode, retryService, retryDate, retryTime, retryBookingId, salon, toast]);
 
   if (!salon) {
     return (
@@ -822,28 +866,52 @@ const SalonDetail = () => {
     const walletPaymentAmount = paymentMethod === 'split' ? splitWalletAmount : 0;
     const remainingAmount = paymentMethod === 'split' ? totalPrice - splitWalletAmount : totalPrice;
 
-    // Create booking first
+    // Create new booking or update existing one (retry mode)
     const bookingStatus = paymentMethod === 'online' || paymentMethod === 'upi' 
       ? 'pending_payment' 
       : paymentMethod === 'split' 
         ? 'partial_paid' 
         : 'upcoming';
 
-    const { data: bookingData, error: bookingError } = await supabase
-      .from('bookings')
-      .insert({
-        user_id: user.id,
-        salon_name: salon.name,
-        service_name: serviceNames,
-        service_price: totalPrice,
-        booking_date: format(selectedDate, 'yyyy-MM-dd'),
-        booking_time: selectedTime,
-        status: bookingStatus,
-      })
-      .select()
-      .single();
+    let bookingData: { id: string } | null = null;
+    let bookingError: Error | null = null;
 
-    if (bookingError) {
+    if (isRetryMode && retryBookingId) {
+      // Update existing booking for retry
+      const { data, error } = await supabase
+        .from('bookings')
+        .update({
+          service_price: totalPrice,
+          status: bookingStatus,
+        })
+        .eq('id', retryBookingId)
+        .eq('user_id', user.id)
+        .select()
+        .single();
+      
+      bookingData = data;
+      bookingError = error;
+    } else {
+      // Create new booking
+      const { data, error } = await supabase
+        .from('bookings')
+        .insert({
+          user_id: user.id,
+          salon_name: salon.name,
+          service_name: serviceNames,
+          service_price: totalPrice,
+          booking_date: format(selectedDate, 'yyyy-MM-dd'),
+          booking_time: selectedTime,
+          status: bookingStatus,
+        })
+        .select()
+        .single();
+      
+      bookingData = data;
+      bookingError = error;
+    }
+
+    if (bookingError || !bookingData) {
       setIsBooking(false);
       toast({
         title: 'Booking failed',
@@ -863,7 +931,94 @@ const SalonDetail = () => {
       });
     }
 
-    // If online payment (cards, UPI) selected, initiate Razorpay
+    // If UPI payment with selected app, use deep link
+    if (paymentMethod === 'upi' && selectedUpiApp && isMobileDevice()) {
+      const upiResult = await initiateUpiPayment(selectedUpiApp, {
+        amount: totalPrice,
+        merchantVpa: 'merchant@upi', // This should be your actual merchant VPA
+        merchantName: salon.name,
+        transactionNote: `Booking at ${salon.name}`,
+        orderId: bookingData.id,
+      });
+
+      if (upiResult.success) {
+        // Mark reward as used if applied
+        if (applyReward && rewardDiscount > 0) {
+          await markRewardAsUsed();
+        }
+
+        // Deduct wallet credits if applied
+        if (applyWalletCredits && walletCreditsDiscount > 0) {
+          await useCredits({
+            amount: walletCreditsDiscount,
+            category: 'booking_discount',
+            description: `Used for booking at ${salon.name}`,
+            referenceId: bookingData.id,
+          });
+        }
+
+        // Record promo code usage
+        if (appliedPromo && user) {
+          await supabase.from('promo_code_usage').insert({
+            promo_code_id: appliedPromo.id,
+            user_id: user.id,
+            booking_id: bookingData.id,
+          });
+        }
+
+        // Mark voucher as used
+        if (appliedVoucher && user) {
+          await supabase
+            .from('user_vouchers')
+            .update({ 
+              is_used: true, 
+              used_at: new Date().toISOString(),
+              booking_id: bookingData.id 
+            })
+            .eq('id', appliedVoucher.id);
+        }
+
+        setShowBookingModal(false);
+        setSelectedServices([]);
+        setApplyReward(false);
+        setApplyWalletCredits(false);
+        setAppliedPromo(null);
+        setAppliedVoucher(null);
+        setIsSplitPayment(false);
+        setSplitWalletAmount(0);
+        setSelectedUpiApp(null);
+        
+        // Note: In production, you'd verify payment via webhook before confirming
+        toast({
+          title: `Opening ${getUpiAppName(selectedUpiApp)}`,
+          description: 'Complete payment in the app. Your booking will be confirmed after payment.',
+        });
+
+        const params = new URLSearchParams({
+          salon: salon.name,
+          service: serviceNames,
+          price: totalPrice.toString(),
+          date: format(selectedDate, 'yyyy-MM-dd'),
+          time: selectedTime,
+          paymentMethod: 'upi',
+          upiApp: selectedUpiApp,
+          discount: totalDiscount.toString(),
+          pending: 'true', // Mark as pending UPI verification
+          bookingId: bookingData.id, // Include booking ID for status verification
+          ...(appliedPromo && { promoCode: appliedPromo.code, promoDiscount: promoDiscount.toString() }),
+          ...(appliedVoucher && { voucherCode: appliedVoucher.code, voucherDiscount: voucherDiscount.toString() }),
+          ...(rewardDiscount > 0 && { rewardDiscount: rewardDiscount.toString() }),
+          ...(walletCreditsDiscount > 0 && { walletDiscount: walletCreditsDiscount.toString() }),
+        });
+        
+        navigate(`/booking-confirmation?${params.toString()}`);
+      }
+      
+      setIsBooking(false);
+      return;
+    }
+
+    // If online payment (cards, UPI without app selection) selected, initiate Razorpay
     if (paymentMethod === 'online' || paymentMethod === 'upi') {
       const paymentResult = await initiatePayment({
         amount: totalPrice,
@@ -1699,21 +1854,27 @@ const SalonDetail = () => {
             onWalletAmountChange={setSplitWalletAmount}
             isSplitPayment={isSplitPayment}
             onSplitToggle={setIsSplitPayment}
+            selectedSavedMethodId={selectedSavedPaymentMethod}
+            onSavedMethodSelect={setSelectedSavedPaymentMethod}
+            selectedUpiAppId={selectedUpiApp}
+            onUpiAppSelect={setSelectedUpiApp}
           />
 
           <Button
             className="w-full mt-4"
             size="lg"
             onClick={handleBooking}
-            disabled={!selectedDate || !selectedTime || isBooking || isPaymentLoading}
+            disabled={!selectedDate || !selectedTime || isBooking || isPaymentLoading || isUpiProcessing}
           >
-            {isBooking || isPaymentLoading 
+            {isBooking || isPaymentLoading || isUpiProcessing
               ? 'Processing...' 
-              : paymentMethod === 'online' || paymentMethod === 'upi'
-                ? `Pay ₹${totalPrice}` 
-                : paymentMethod === 'split'
-                  ? `Pay ₹${splitWalletAmount} + ₹${totalPrice - splitWalletAmount}`
-                  : `Confirm Booking - ₹${totalPrice}`
+              : paymentMethod === 'upi' && selectedUpiApp
+                ? `Pay ₹${totalPrice} with ${getUpiAppName(selectedUpiApp)}`
+                : paymentMethod === 'online' || paymentMethod === 'upi'
+                  ? `Pay ₹${totalPrice}` 
+                  : paymentMethod === 'split'
+                    ? `Pay ₹${splitWalletAmount} + ₹${totalPrice - splitWalletAmount}`
+                    : `Confirm Booking - ₹${totalPrice}`
             }
           </Button>
         </DialogContent>
