@@ -440,6 +440,47 @@ const SearchSalons = () => {
           </Sheet>
         </div>
 
+        {/* Quick Filters for Nearby Mode */}
+        {isNearbyMode && coordinates && (
+          <div className="px-4 pb-3 space-y-3">
+            {/* Rating Quick Filter */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1">
+              <span className="text-xs text-muted-foreground flex-shrink-0">Rating:</span>
+              {[0, 3.5, 4, 4.5].map((rating) => (
+                <Button
+                  key={rating}
+                  variant={minRating === rating ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setMinRating(rating)}
+                  className="gap-1 flex-shrink-0 h-7 text-xs"
+                >
+                  {rating === 0 ? 'Any' : (
+                    <>
+                      <Star className="w-3 h-3 fill-current" />
+                      {rating}+
+                    </>
+                  )}
+                </Button>
+              ))}
+            </div>
+            
+            {/* Service Type Quick Filter */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1">
+              <span className="text-xs text-muted-foreground flex-shrink-0">Services:</span>
+              {serviceCategories.slice(0, 6).map((category) => (
+                <Badge
+                  key={category}
+                  variant={selectedCategories.includes(category) ? "default" : "outline"}
+                  className="cursor-pointer flex-shrink-0"
+                  onClick={() => toggleCategory(category)}
+                >
+                  {category}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Active Filters */}
         {activeFiltersCount > 0 && (
           <div className="px-4 pb-3 flex flex-wrap gap-2">
