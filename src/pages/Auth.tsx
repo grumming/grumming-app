@@ -385,15 +385,26 @@ const Auth = () => {
               <div className="space-y-6">
                 <div className="space-y-4">
                   {/* Individual OTP digit boxes */}
-                  <div className="flex justify-center gap-2 sm:gap-3">
+                  <div className="flex justify-center gap-3 sm:gap-4">
                     {otpDigits.map((digit, index) => (
                       <motion.div
                         key={index}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 }}
+                        initial={{ opacity: 0, y: 20, scale: 0.8 }}
+                        animate={{ 
+                          opacity: 1, 
+                          y: 0, 
+                          scale: 1,
+                        }}
+                        transition={{ 
+                          delay: index * 0.08,
+                          type: "spring",
+                          stiffness: 300,
+                          damping: 20
+                        }}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
                       >
-                        <input
+                        <motion.input
                           ref={(el) => (otpInputRefs.current[index] = el)}
                           type="text"
                           inputMode="numeric"
@@ -401,6 +412,17 @@ const Auth = () => {
                           value={digit}
                           autoFocus={index === 0}
                           disabled={isLoading}
+                          animate={
+                            otpComplete 
+                              ? { 
+                                  scale: [1, 1.1, 1],
+                                  borderColor: "rgb(34 197 94)"
+                                }
+                              : digit 
+                                ? { scale: [0.9, 1.05, 1] }
+                                : {}
+                          }
+                          transition={{ duration: 0.2 }}
                           onChange={(e) => {
                             const value = e.target.value.replace(/\D/g, '');
                             if (value.length <= 1) {
@@ -453,13 +475,14 @@ const Auth = () => {
                             }
                           }}
                           className={`
-                            w-11 h-14 sm:w-12 sm:h-16 text-center text-xl sm:text-2xl font-bold 
-                            border-2 rounded-xl transition-all duration-200
-                            bg-background text-foreground
-                            ${digit ? 'border-primary' : 'border-input'}
-                            ${otpComplete ? 'border-green-500 bg-green-50 dark:bg-green-900/20' : ''}
-                            focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none
-                            disabled:opacity-50
+                            w-12 h-14 sm:w-14 sm:h-16 text-center text-2xl sm:text-3xl font-bold 
+                            border-2 rounded-2xl transition-all duration-300 ease-out
+                            bg-background/80 backdrop-blur-sm text-foreground
+                            shadow-sm hover:shadow-md
+                            ${digit ? 'border-primary bg-primary/5 shadow-primary/20' : 'border-input hover:border-primary/50'}
+                            ${otpComplete ? 'border-green-500 bg-green-500/10 shadow-green-500/30 shadow-lg' : ''}
+                            focus:border-primary focus:ring-4 focus:ring-primary/20 focus:outline-none focus:shadow-lg focus:shadow-primary/20
+                            disabled:opacity-50 disabled:cursor-not-allowed
                           `}
                         />
                       </motion.div>
