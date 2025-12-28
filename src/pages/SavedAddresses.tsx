@@ -46,6 +46,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import BottomNav from "@/components/BottomNav";
+import AddressMapPicker from "@/components/AddressMapPicker";
 
 interface Address {
   id: string;
@@ -268,6 +269,52 @@ const SavedAddresses = () => {
         maximumAge: 0,
       }
     );
+  };
+
+  const handleMapLocationChange = async (lat: number, lng: number) => {
+    setForm((prev) => ({
+      ...prev,
+      latitude: lat,
+      longitude: lng,
+    }));
+
+    // Reverse geocode the new position
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`,
+        {
+          headers: {
+            'Accept-Language': 'en',
+          },
+        }
+      );
+
+      if (!response.ok) return;
+
+      const data = await response.json();
+      const address: NominatimAddress = data.address || {};
+
+      const houseNumber = address.house_number || "";
+      const road = address.road || "";
+      const neighbourhood = address.neighbourhood || address.suburb || "";
+      const city = address.city || address.town || address.village || "";
+      const state = address.state || "";
+      const pincode = address.postcode || "";
+
+      const addressLine1Parts = [houseNumber, road].filter(Boolean);
+      const addressLine1 = addressLine1Parts.join(" ") || neighbourhood;
+
+      setForm((prev) => ({
+        ...prev,
+        address_line1: addressLine1 || prev.address_line1,
+        address_line2: neighbourhood && addressLine1 !== neighbourhood ? neighbourhood : prev.address_line2,
+        city: city || prev.city,
+        state: state || prev.state,
+        pincode: pincode.replace(/\s/g, "").slice(0, 6) || prev.pincode,
+      }));
+    } catch (error) {
+      console.error("Reverse geocoding error:", error);
+    }
   };
 
   const handleSave = async () => {
@@ -541,6 +588,19 @@ const SavedAddresses = () => {
                 )}
               </Button>
             )}
+
+            {/* Map Preview */}
+            <div className="space-y-2">
+              <Label>Location on Map</Label>
+              <AddressMapPicker
+                latitude={form.latitude || null}
+                longitude={form.longitude || null}
+                onLocationChange={handleMapLocationChange}
+              />
+              <p className="text-xs text-muted-foreground">
+                Drag the pin or tap the map to adjust location
+              </p>
+            </div>
 
             {/* Address Line 1 */}
             <div className="space-y-2">
