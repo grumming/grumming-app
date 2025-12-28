@@ -83,10 +83,8 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden">
-      
+    <section className="relative py-8 flex items-center justify-center overflow-hidden">
       <div className="relative z-10 container mx-auto px-4 text-center">
-        
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
