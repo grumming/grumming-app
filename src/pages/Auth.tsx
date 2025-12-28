@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Phone, ArrowLeft, Loader2, Gift, ChevronDown, ClipboardPaste, User, Mail } from 'lucide-react';
+import { Phone, ArrowLeft, Loader2, Gift, ChevronDown, ClipboardPaste, User, Mail, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -45,6 +45,8 @@ const Auth = () => {
   const [showReferralInput, setShowReferralInput] = useState(!!referralCodeFromUrl);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showExistingAccountModal, setShowExistingAccountModal] = useState(false);
+  const [pendingRedirectUrl, setPendingRedirectUrl] = useState<string | null>(null);
   
   // Form fields
   const [phone, setPhone] = useState('');
@@ -238,19 +240,11 @@ const Auth = () => {
         }
         setStep('profile');
       } else {
-        // Existing user - redirect immediately
-        toast({
-          title: 'Welcome Back!',
-          description: 'Logging you in...',
-        });
-        
-        // Redirect to the magic link URL to establish session
+        // Existing user - show dialog before redirecting
         if (data.verificationUrl) {
-          window.location.href = data.verificationUrl;
-        } else {
-          // Fallback: navigate to home and let auth state update
-          navigate('/');
+          setPendingRedirectUrl(data.verificationUrl);
         }
+        setShowExistingAccountModal(true);
       }
     } catch (error: any) {
       triggerHaptic('error');
@@ -976,6 +970,53 @@ const Auth = () => {
           <div className="pt-4 border-t">
             <Button onClick={() => setShowPrivacyModal(false)} className="w-full">
               I Understand
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Existing Account Modal */}
+      <Dialog open={showExistingAccountModal} onOpenChange={setShowExistingAccountModal}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader className="text-center">
+            <motion.div 
+              className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 200 }}
+            >
+              <Smartphone className="w-8 h-8 text-primary" />
+            </motion.div>
+            <DialogTitle className="text-xl">Account Already Exists</DialogTitle>
+            <DialogDescription className="text-center pt-2">
+              This mobile number is already registered with us. We'll log you into your existing account.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="pt-4 space-y-3">
+            <Button 
+              onClick={() => {
+                setShowExistingAccountModal(false);
+                if (pendingRedirectUrl) {
+                  window.location.href = pendingRedirectUrl;
+                } else {
+                  navigate('/');
+                }
+              }} 
+              className="w-full h-12"
+            >
+              Continue to Login
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => {
+                setShowExistingAccountModal(false);
+                setStep('phone');
+                setPhone('');
+                setOtpDigits(['', '', '', '', '', '']);
+              }} 
+              className="w-full"
+            >
+              Use Different Number
             </Button>
           </div>
         </DialogContent>
