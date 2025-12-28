@@ -161,22 +161,49 @@ const Auth = () => {
 
       // Handle non-2xx responses (e.g. 409 ACCOUNT_EXISTS, 404 NO_ACCOUNT)
       if (error) {
+        console.log('OTP send error:', error);
+        
+        // Try multiple ways to extract the error code
+        let errorCode: string | null = null;
+        
+        // Method 1: Check if error message contains the JSON
         try {
-          const res = (error as any)?.context?.response;
-          const bodyText = res ? await res.clone().text() : '';
-          const bodyJson = bodyText ? JSON.parse(bodyText) : null;
-
-          if (mode && bodyJson?.code === 'ACCOUNT_EXISTS') {
-            setShowExistingAccountModal(true);
-            return;
+          if (typeof (error as any).message === 'string' && (error as any).message.includes('{')) {
+            const jsonMatch = (error as any).message.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              const parsed = JSON.parse(jsonMatch[0]);
+              errorCode = parsed?.code;
+            }
           }
+        } catch { /* ignore */ }
+        
+        // Method 2: Try to get from context.response
+        if (!errorCode) {
+          try {
+            const res = (error as any)?.context?.response;
+            if (res) {
+              const bodyText = await res.clone().text();
+              const bodyJson = bodyText ? JSON.parse(bodyText) : null;
+              errorCode = bodyJson?.code;
+            }
+          } catch { /* ignore */ }
+        }
+        
+        // Method 3: Check if error itself has a code property
+        if (!errorCode) {
+          errorCode = (error as any)?.code;
+        }
+        
+        console.log('Extracted error code:', errorCode);
 
-          if (!mode && bodyJson?.code === 'NO_ACCOUNT') {
-            setShowNoAccountModal(true);
-            return;
-          }
-        } catch {
-          // ignore parse failures
+        if (mode && errorCode === 'ACCOUNT_EXISTS') {
+          setShowExistingAccountModal(true);
+          return;
+        }
+
+        if (!mode && errorCode === 'NO_ACCOUNT') {
+          setShowNoAccountModal(true);
+          return;
         }
 
         toast({
