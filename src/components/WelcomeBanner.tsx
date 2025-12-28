@@ -38,10 +38,10 @@ const WelcomeBanner = () => {
           transition={{ duration: 0.4, ease: "easeOut" }}
           className="fixed top-20 left-4 right-4 z-50 md:left-1/2 md:-translate-x-1/2 md:max-w-lg"
         >
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary via-primary/90 to-primary/80 p-4 shadow-2xl">
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 p-4 shadow-2xl">
             {/* Decorative elements */}
-            <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-white/10 blur-xl" />
-            <div className="absolute -left-4 -bottom-4 h-20 w-20 rounded-full bg-white/10 blur-xl" />
+            <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-white/20 blur-xl" />
+            <div className="absolute -left-4 -bottom-4 h-20 w-20 rounded-full bg-yellow-300/20 blur-xl" />
             
             {/* Sparkle animations */}
             <motion.div
