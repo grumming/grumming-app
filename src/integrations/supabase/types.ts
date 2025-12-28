@@ -421,6 +421,71 @@ export type Database = {
         }
         Relationships: []
       }
+      user_vouchers: {
+        Row: {
+          booking_id: string | null
+          code: string
+          created_at: string
+          description: string | null
+          discount_type: string
+          discount_value: number
+          id: string
+          is_used: boolean | null
+          max_discount: number | null
+          min_order_value: number | null
+          source: string | null
+          title: string
+          used_at: string | null
+          user_id: string
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          booking_id?: string | null
+          code: string
+          created_at?: string
+          description?: string | null
+          discount_type?: string
+          discount_value: number
+          id?: string
+          is_used?: boolean | null
+          max_discount?: number | null
+          min_order_value?: number | null
+          source?: string | null
+          title: string
+          used_at?: string | null
+          user_id: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          booking_id?: string | null
+          code?: string
+          created_at?: string
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          id?: string
+          is_used?: boolean | null
+          max_discount?: number | null
+          min_order_value?: number | null
+          source?: string | null
+          title?: string
+          used_at?: string | null
+          user_id?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_vouchers_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wallet_transactions: {
         Row: {
           amount: number
