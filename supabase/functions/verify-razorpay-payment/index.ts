@@ -61,6 +61,13 @@ serve(async (req) => {
       const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+      // Fetch booking to get amount
+      const { data: booking } = await supabase
+        .from('bookings')
+        .select('service_price')
+        .eq('id', booking_id)
+        .single();
+
       const { error: updateError } = await supabase
         .from('bookings')
         .update({ 
@@ -73,6 +80,28 @@ serve(async (req) => {
         console.error('Failed to update booking:', updateError);
       } else {
         console.log('Booking status updated to confirmed');
+        
+        // Send payment receipt email
+        try {
+          const receiptResponse = await fetch(`${supabaseUrl}/functions/v1/send-payment-receipt`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseServiceKey}`,
+            },
+            body: JSON.stringify({
+              booking_id,
+              payment_id: razorpay_payment_id,
+              amount: booking?.service_price || 0,
+            }),
+          });
+          
+          const receiptResult = await receiptResponse.json();
+          console.log('Payment receipt email result:', receiptResult);
+        } catch (emailError) {
+          console.error('Failed to send payment receipt email:', emailError);
+          // Don't fail the payment verification if email fails
+        }
       }
     }
 
