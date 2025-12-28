@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useEffect } from "react";
+import { useEffect, useCallback, useRef } from "react";
 
 export interface Notification {
   id: string;
@@ -14,9 +14,79 @@ export interface Notification {
   created_at: string;
 }
 
+// Play notification sound using Web Audio API
+const playNotificationSound = () => {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+    oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.3);
+  } catch (error) {
+    console.log('Could not play notification sound:', error);
+  }
+};
+
+// Show browser notification
+const showBrowserNotification = (title: string, message: string) => {
+  if (!('Notification' in window)) return;
+  
+  if (Notification.permission === 'granted') {
+    new Notification(title, {
+      body: message,
+      icon: '/favicon.ico',
+      badge: '/favicon.ico',
+    });
+  }
+};
+
+// Request notification permission
+export const requestNotificationPermission = async (): Promise<boolean> => {
+  if (!('Notification' in window)) return false;
+  
+  if (Notification.permission === 'granted') return true;
+  if (Notification.permission === 'denied') return false;
+  
+  const permission = await Notification.requestPermission();
+  return permission === 'granted';
+};
+
 export const useNotifications = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const hasRequestedPermission = useRef(false);
+
+  // Request permission on mount
+  useEffect(() => {
+    if (user && !hasRequestedPermission.current) {
+      hasRequestedPermission.current = true;
+      requestNotificationPermission();
+    }
+  }, [user]);
+
+  // Handle new notification
+  const handleNewNotification = useCallback((payload: any) => {
+    const notification = payload.new as Notification;
+    
+    // Play sound
+    playNotificationSound();
+    
+    // Show browser notification
+    showBrowserNotification(notification.title, notification.message);
+    
+    // Invalidate queries to refresh the list
+    queryClient.invalidateQueries({ queryKey: ["notifications", user?.id] });
+  }, [queryClient, user?.id]);
 
   // Subscribe to realtime notifications
   useEffect(() => {
@@ -32,9 +102,7 @@ export const useNotifications = () => {
           table: 'notifications',
           filter: `user_id=eq.${user.id}`,
         },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["notifications", user.id] });
-        }
+        handleNewNotification
       )
       .on(
         'postgres_changes',
@@ -65,7 +133,7 @@ export const useNotifications = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, queryClient]);
+  }, [user, queryClient, handleNewNotification]);
 
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ["notifications", user?.id],
