@@ -2,23 +2,11 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
-  ArrowLeft, Shield, Trash2, Download, FileText, Lock, 
-  ChevronRight, AlertTriangle, Eye, UserX, Loader2
+  ArrowLeft, Shield, Download, FileText, Lock, 
+  ChevronRight, Eye, Loader2
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,9 +15,8 @@ import BottomNav from '@/components/BottomNav';
 const PrivacySecurity = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   
-  const [isDeleting, setIsDeleting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [loginAlerts, setLoginAlerts] = useState(true);
@@ -81,46 +68,6 @@ const PrivacySecurity = () => {
       });
     } finally {
       setIsExporting(false);
-    }
-  };
-
-  const handleDeleteAccount = async () => {
-    if (!user) return;
-    
-    setIsDeleting(true);
-    
-    try {
-      // Delete user data from tables (in order of dependencies)
-      await supabase.from('notifications').delete().eq('user_id', user.id);
-      await supabase.from('wallet_transactions').delete().eq('user_id', user.id);
-      await supabase.from('wallets').delete().eq('user_id', user.id);
-      await supabase.from('bookings').delete().eq('user_id', user.id);
-      await supabase.from('user_addresses').delete().eq('user_id', user.id);
-      await supabase.from('favorite_salons').delete().eq('user_id', user.id);
-      await supabase.from('reviews').delete().eq('user_id', user.id);
-      await supabase.from('referrals').delete().eq('referrer_id', user.id);
-      await supabase.from('referrals').delete().eq('referee_id', user.id);
-      await supabase.from('referral_codes').delete().eq('user_id', user.id);
-      await supabase.from('profiles').delete().eq('user_id', user.id);
-
-      // Sign out the user
-      await signOut();
-      
-      toast({
-        title: 'Account deleted',
-        description: 'Your account and all associated data have been deleted.',
-      });
-      
-      navigate('/');
-    } catch (error) {
-      console.error('Error deleting account:', error);
-      toast({
-        title: 'Deletion failed',
-        description: 'Failed to delete your account. Please contact support.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsDeleting(false);
     }
   };
 
@@ -323,69 +270,6 @@ const PrivacySecurity = () => {
             </div>
             <ChevronRight className="w-4 h-4 text-muted-foreground" />
           </button>
-        </div>
-      </motion.div>
-
-      {/* Danger Zone */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="px-4 pb-4"
-      >
-        <h2 className="text-sm font-semibold text-destructive mb-3 px-1">DANGER ZONE</h2>
-        <div className="bg-card rounded-xl border border-destructive/30 overflow-hidden">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <button
-                className="w-full flex items-center gap-4 p-4 hover:bg-destructive/5 transition-colors"
-              >
-                <div className="w-9 h-9 rounded-full bg-destructive/10 flex items-center justify-center">
-                  <UserX className="w-4.5 h-4.5 text-destructive" />
-                </div>
-                <div className="flex-1 text-left">
-                  <span className="text-sm font-medium text-destructive">Delete Account</span>
-                  <p className="text-xs text-muted-foreground mt-0.5">Permanently delete your account and all data</p>
-                </div>
-                <Trash2 className="w-4 h-4 text-destructive" />
-              </button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle className="flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5 text-destructive" />
-                  Delete Account
-                </AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete your account and remove all your data from our servers, including:
-                  <ul className="list-disc list-inside mt-2 space-y-1">
-                    <li>Your profile information</li>
-                    <li>All bookings and history</li>
-                    <li>Wallet balance and transactions</li>
-                    <li>Saved addresses and preferences</li>
-                    <li>Reviews and referrals</li>
-                  </ul>
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleDeleteAccount}
-                  disabled={isDeleting}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  {isDeleting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Deleting...
-                    </>
-                  ) : (
-                    'Delete Account'
-                  )}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
         </div>
       </motion.div>
 
