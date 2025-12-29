@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { 
   ArrowLeft, Search, Star, MapPin, SlidersHorizontal, X, Scissors, Clock, Car, ChevronDown, ArrowUpDown 
 } from 'lucide-react';
+import BackToTop from '@/components/BackToTop';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -704,6 +705,7 @@ const SearchSalons = () => {
           </div>
         )}
       </div>
+      <BackToTop />
     </div>
   );
 };

@@ -6,6 +6,7 @@ import {
   ChevronRight, Calendar, Check, User, MessageSquare, CreditCard, Gift, X,
   Tag, Loader2, Wallet, Ticket, Navigation, Car
 } from 'lucide-react';
+import BackToTop from '@/components/BackToTop';
 import { useLocation } from '@/contexts/LocationContext';
 import { calculateDistance, formatDistance, estimateTravelTime } from '@/lib/distance';
 import { PaymentMethodSelector, PaymentMethodType } from '@/components/PaymentMethodSelector';
@@ -1916,6 +1917,7 @@ const SalonDetail = () => {
           </Button>
         </DialogContent>
       </Dialog>
+      <BackToTop />
     </div>
   );
 };
