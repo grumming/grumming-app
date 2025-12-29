@@ -117,18 +117,18 @@ async function sendSMSViaTwilio(phone: string, otp: string): Promise<boolean> {
 
 // Send SMS with fallback providers
 async function sendSMS(phone: string, otp: string): Promise<{ sent: boolean; provider: string }> {
-  // Try Fast2SMS first (primary for Indian numbers)
-  console.log('Attempting to send SMS via Fast2SMS...');
-  const fast2smsResult = await sendSMSViaFast2SMS(phone, otp);
-  if (fast2smsResult) {
-    return { sent: true, provider: 'Fast2SMS' };
-  }
-
-  // Fallback to Twilio
-  console.log('Fast2SMS failed, attempting Twilio fallback...');
+  // Try Twilio first (primary provider)
+  console.log('Attempting to send SMS via Twilio...');
   const twilioResult = await sendSMSViaTwilio(phone, otp);
   if (twilioResult) {
     return { sent: true, provider: 'Twilio' };
+  }
+
+  // Fallback to Fast2SMS
+  console.log('Twilio failed, attempting Fast2SMS fallback...');
+  const fast2smsResult = await sendSMSViaFast2SMS(phone, otp);
+  if (fast2smsResult) {
+    return { sent: true, provider: 'Fast2SMS' };
   }
 
   console.error('All SMS providers failed');
