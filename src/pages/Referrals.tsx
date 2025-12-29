@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Copy, Share2, Gift, Users, Check, Sparkles, MessageCircle, Trophy, Crown, Medal, Clock, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Copy, Share2, Gift, Users, Check, Sparkles, MessageCircle, Trophy, Crown, Medal, Clock, CheckCircle2, Info } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -289,7 +289,8 @@ const Referrals = () => {
                 {[
                   { step: 1, title: 'Share your code', desc: 'Send your unique code to friends' },
                   { step: 2, title: 'Friend signs up', desc: 'They register using your referral code' },
-                  { step: 3, title: 'Both get rewarded!', desc: 'You both receive ₹100 off your next booking' },
+                  { step: 3, title: 'Friend books & completes', desc: 'They complete their first booking' },
+                  { step: 4, title: 'Both get rewarded!', desc: 'You both receive ₹100 in your wallet' },
                 ].map((item, i) => (
                   <div key={i} className="flex items-start gap-4">
                     <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold shrink-0">
@@ -301,6 +302,14 @@ const Referrals = () => {
                     </div>
                   </div>
                 ))}
+              </div>
+              
+              {/* Info banner */}
+              <div className="mt-5 p-3 rounded-lg bg-primary/5 border border-primary/20 flex items-start gap-3">
+                <Info className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-medium text-foreground">Note:</span> Rewards are credited to both wallets only after your friend completes their first booking.
+                </p>
               </div>
             </CardContent>
           </Card>
