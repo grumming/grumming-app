@@ -16,6 +16,8 @@ const Header = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [groupedSuggestions, setGroupedSuggestions] = useState<GroupedCitySuggestion[]>([]);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isHidden, setIsHidden] = useState(false);
+  const lastScrollY = useRef(0);
   const locationInputRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -41,7 +43,18 @@ const Header = () => {
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
+      const currentScrollY = window.scrollY;
+      
+      setIsScrolled(currentScrollY > 10);
+      
+      // Hide header when scrolling down, show when scrolling up
+      if (currentScrollY > lastScrollY.current && currentScrollY > 60) {
+        setIsHidden(true);
+      } else {
+        setIsHidden(false);
+      }
+      
+      lastScrollY.current = currentScrollY;
     };
     
     window.addEventListener("scroll", handleScroll, { passive: true });
@@ -83,11 +96,13 @@ const Header = () => {
   return (
     <motion.header
       initial={{ opacity: 0, y: -50 }}
-      animate={{ opacity: 1, y: 0 }}
+      animate={{ 
+        opacity: 1, 
+        y: isHidden ? -100 : 0 
+      }}
       transition={{ 
-        duration: 0.6, 
-        ease: [0.22, 1, 0.36, 1],
-        delay: 0.1
+        duration: 0.3, 
+        ease: [0.22, 1, 0.36, 1]
       }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled 
