@@ -145,7 +145,18 @@ const NotificationCenter = () => {
           {unreadCount > 0 && (
             <motion.span
               initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
+              animate={{ 
+                scale: 1,
+                boxShadow: [
+                  "0 0 0 0 hsl(var(--primary) / 0.7)",
+                  "0 0 0 8px hsl(var(--primary) / 0)",
+                  "0 0 0 0 hsl(var(--primary) / 0)"
+                ]
+              }}
+              transition={{
+                scale: { duration: 0.2 },
+                boxShadow: { duration: 1.5, repeat: Infinity, repeatDelay: 0.5 }
+              }}
               className="absolute -right-0.5 -top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground"
             >
               {unreadCount > 9 ? "9+" : unreadCount}
