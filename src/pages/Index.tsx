@@ -12,15 +12,15 @@ const Index = () => {
   usePendingProfile();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header />
-      <main className="pt-16 pb-24">
+      <main className="pt-16 pb-24 flex-1">
         <WelcomeBanner />
         <FirstBookingBanner />
         <CashbackBanner />
         <FeaturedSalons />
-        <Footer />
       </main>
+      <Footer />
       <BottomNav />
     </div>
   );
