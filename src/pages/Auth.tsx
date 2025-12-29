@@ -232,11 +232,65 @@ const Auth = () => {
     if (!validateField('phone', phone)) return;
 
     const formattedPhone = `+91${phone}`;
+    const isDev = import.meta.env.DEV;
 
     setIsLoading(true);
 
     try {
-      // Send OTP via SMS
+      // In dev mode, skip OTP entirely and directly verify
+      if (isDev) {
+        toast({
+          title: 'Dev Mode',
+          description: 'Skipping OTP - auto-verifying...',
+        });
+        
+        // Call verify with dev bypass
+        const { data, error } = await supabase.functions.invoke('verify-sms-otp', {
+          body: { 
+            phone: formattedPhone, 
+            otp: '000000',
+            devBypass: true,
+          },
+        });
+
+        if (error) {
+          throw new Error(error.message || 'Failed to verify');
+        }
+
+        if (!data?.success) {
+          throw new Error(data?.error || 'Verification failed');
+        }
+
+        triggerHaptic('success');
+        
+        if (data.isNewUser) {
+          confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#7c3aed', '#a78bfa', '#c4b5fd', '#22c55e', '#4ade80']
+          });
+          
+          toast({
+            title: 'Account Created!',
+            description: 'Please complete your profile.',
+          });
+          
+          if (data.verificationUrl) {
+            setPendingVerificationUrl(data.verificationUrl);
+          }
+          setStep('profile');
+        } else {
+          if (data.verificationUrl) {
+            window.location.href = data.verificationUrl;
+            return;
+          }
+          navigate('/');
+        }
+        return;
+      }
+
+      // Production mode: Send OTP via SMS
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-sms-otp`,
         {
@@ -298,15 +352,6 @@ const Auth = () => {
       // Start SMS auto-read listener on Android
       if (isAndroid) {
         startSmsListener();
-      }
-
-      // In dev mode, show the OTP in toast if returned
-      if (data.debug_otp) {
-        console.log('Debug OTP:', data.debug_otp);
-        toast({
-          title: 'Dev Mode',
-          description: `OTP: ${data.debug_otp}`,
-        });
       }
     } catch (err: any) {
       toast({
