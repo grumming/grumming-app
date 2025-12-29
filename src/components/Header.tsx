@@ -7,6 +7,7 @@ import SearchModal from "@/components/SearchModal";
 import { useLocation } from "@/contexts/LocationContext";
 import { getGroupedFilteredCities, popularCities, GroupedCitySuggestion } from "@/data/indianCities";
 import { useRecentCities } from "@/hooks/useRecentCities";
+import logo from "@/assets/logo.png";
 
 const Header = () => {
   const [showSearchModal, setShowSearchModal] = useState(false);
@@ -111,6 +112,9 @@ const Header = () => {
       }`}
     >
       <div className="container mx-auto px-4 h-14 flex items-center gap-3">
+        {/* Logo */}
+        <img src={logo} alt="Grumming" className="w-8 h-8 rounded-lg flex-shrink-0" />
+        
         {/* Location Selector */}
         <div ref={locationInputRef} className="relative">
           <div 
