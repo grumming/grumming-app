@@ -41,6 +41,9 @@ export const useReferral = () => {
       return data || [];
     },
     enabled: !!user?.id,
+    // Simple “near real-time” refresh so referrers see pending/completed changes without manual reload
+    refetchInterval: user?.id ? 4000 : false,
+    refetchIntervalInBackground: true,
   });
 
   // Fetch top referrers leaderboard
@@ -128,6 +131,8 @@ export const useReferral = () => {
       return { available, total };
     },
     enabled: !!user?.id,
+    refetchInterval: user?.id ? 4000 : false,
+    refetchIntervalInBackground: true,
   });
 
   // Validate and apply referral code
