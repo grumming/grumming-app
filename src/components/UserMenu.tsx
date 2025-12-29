@@ -75,8 +75,8 @@ const UserMenu = () => {
         <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0 transition-all duration-200 hover:scale-110 active:scale-95">
           <Avatar className="h-9 w-9 border-2 border-primary/30 shadow-sm">
             <AvatarImage src={avatarUrl || undefined} alt={displayName || 'User'} />
-            <AvatarFallback className="bg-primary text-primary-foreground text-sm font-semibold">
-              {initials}
+            <AvatarFallback className="bg-primary text-primary-foreground">
+              <User className="h-5 w-5" />
             </AvatarFallback>
           </Avatar>
         </Button>
@@ -85,8 +85,8 @@ const UserMenu = () => {
         <div className="flex items-center justify-start gap-2 p-2">
           <Avatar className="h-10 w-10">
             <AvatarImage src={avatarUrl || undefined} alt={displayName || 'User'} />
-            <AvatarFallback className="bg-gradient-primary text-primary-foreground font-medium">
-              {initials}
+            <AvatarFallback className="bg-primary text-primary-foreground">
+              <User className="h-5 w-5" />
             </AvatarFallback>
           </Avatar>
           <div className="flex flex-col space-y-1 leading-none">
