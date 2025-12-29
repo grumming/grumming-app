@@ -300,14 +300,6 @@ const Auth = () => {
         startSmsListener();
       }
 
-      // In dev mode, show the OTP in toast if returned
-      if (data.debug_otp) {
-        console.log('Debug OTP:', data.debug_otp);
-        toast({
-          title: 'Dev Mode',
-          description: `OTP: ${data.debug_otp}`,
-        });
-      }
     } catch (err: any) {
       toast({
         title: 'Error',
