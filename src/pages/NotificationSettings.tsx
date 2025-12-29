@@ -92,15 +92,15 @@ const NotificationSettings = () => {
   return (
     <div className="min-h-screen bg-gradient-subtle pb-24">
       {/* Header */}
-      <header className="bg-gradient-primary p-4 sticky top-0 z-40">
+      <header className="bg-background/80 backdrop-blur-md p-4 sticky top-0 z-40 border-b border-border/50">
         <div className="flex items-center gap-3">
           <button 
             onClick={() => navigate(-1)} 
-            className="p-2.5 rounded-full bg-background shadow-md hover:bg-background/90 transition-colors"
+            className="p-2.5 rounded-full bg-muted hover:bg-muted/80 transition-colors"
           >
             <ArrowLeft className="w-5 h-5 text-primary" />
           </button>
-          <h1 className="font-display text-xl font-bold text-primary-foreground">Notification Settings</h1>
+          <h1 className="font-display text-xl font-bold text-foreground">Notification Settings</h1>
         </div>
       </header>
 
