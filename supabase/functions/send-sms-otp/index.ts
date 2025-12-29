@@ -228,11 +228,6 @@ serve(async (req) => {
       console.log('Fast2SMS API key not configured');
     }
 
-    // If SMS failed, log the OTP for testing purposes
-    if (!smsSent) {
-      console.log(`[DEV MODE] OTP for ${phone}: ${otp}`);
-    }
-
     // Cleanup old rate limit records (older than 1 hour)
     const cleanupCutoff = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     await supabase
@@ -240,12 +235,22 @@ serve(async (req) => {
       .delete()
       .lt('attempted_at', cleanupCutoff);
 
+    // If SMS failed, return error - don't expose OTP
+    if (!smsSent) {
+      console.error(`SMS sending failed for ${phone}`);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Failed to send SMS. Please try again later.',
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: smsSent ? 'OTP sent successfully' : 'OTP generated (check logs in dev mode)',
-        // Only include debug_otp in dev mode when SMS fails
-        ...(smsSent ? {} : { debug_otp: otp })
+        message: 'OTP sent successfully',
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
