@@ -28,6 +28,8 @@ import StylistsList from '@/components/StylistsList';
 import { useReferral } from '@/hooks/useReferral';
 import { useWallet } from '@/hooks/useWallet';
 import { useFavorites } from '@/contexts/FavoritesContext';
+import { useRecentSearches } from '@/hooks/useRecentSearches';
+import { allSalonsList } from '@/data/salonsData';
 
 // Mock salon data - in production this would come from database
 const salonsData: Record<string, any> = {
@@ -512,6 +514,7 @@ const SalonDetail = () => {
   const { userReward } = useReferral();
   const { wallet, useCredits } = useWallet();
   const { isFavorite: checkIsFavorite, toggleFavorite } = useFavorites();
+  const { addRecentSearch } = useRecentSearches();
   
   // Retry payment mode
   const isRetryMode = searchParams.get('retry') === 'true';
@@ -631,6 +634,16 @@ const SalonDetail = () => {
         salon.coordinates.lng
       )
     : null;
+
+  // Track salon view in recent searches
+  useEffect(() => {
+    if (id && salon) {
+      const salonBasic = allSalonsList.find(s => s.id === parseInt(id));
+      if (salonBasic) {
+        addRecentSearch(salonBasic);
+      }
+    }
+  }, [id, salon, addRecentSearch]);
 
   // Handle retry payment mode - pre-fill booking details
   useEffect(() => {
