@@ -10,6 +10,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -145,6 +146,7 @@ For support: support@grumming.com
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md mx-auto p-0 overflow-hidden">
+        <DialogDescription className="sr-only">Payment receipt details</DialogDescription>
         <div ref={receiptRef} className="bg-background">
           {/* Success Header */}
           <div className="bg-gradient-to-br from-green-500 to-emerald-600 p-6 text-white text-center">
