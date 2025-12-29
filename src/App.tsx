@@ -39,7 +39,9 @@ const App = () => {
   const [queryClient] = useState(() => new QueryClient());
 
   useEffect(() => {
-    const shouldSuppressWalletExtensionError = (opts: {
+    const isDev = import.meta.env.DEV;
+
+    const shouldSuppressExtensionNoise = (opts: {
       message?: string;
       stack?: string;
       filename?: string;
@@ -52,14 +54,16 @@ const App = () => {
         filename.includes("chrome-extension://") ||
         filename.includes("moz-extension://") ||
         stack.includes("chrome-extension://") ||
-        stack.includes("moz-extension://") ||
-        stack.includes("nkbihfbeogaeaoehlefnkodbefgpgknn") || // MetaMask extension ID
-        stack.includes("inpage.js") ||
-        stack.includes("contentscript");
+        stack.includes("moz-extension://");
 
-      // Always suppress the specific MetaMask noise we see during development
+      // Always suppress the common MetaMask noise we see during development.
       if (message.includes("Failed to connect to MetaMask")) return true;
 
+      // Dev-only: suppress ANY browser-extension sourced errors so they don't
+      // trigger Vite/React overlays or blank-screen crashes.
+      if (isDev && isExtensionSource) return true;
+
+      // Production: only suppress wallet-related extension noise.
       const isWalletRelated = /metamask|phantom|wallet|ethereum/i.test(message);
       return isExtensionSource && isWalletRelated;
     };
@@ -71,7 +75,7 @@ const App = () => {
       const stack =
         typeof reason === "object" && reason ? (reason?.stack as string | undefined) : undefined;
 
-      if (shouldSuppressWalletExtensionError({ message, stack })) {
+      if (shouldSuppressExtensionNoise({ message, stack })) {
         event.preventDefault();
       }
     };
@@ -81,7 +85,7 @@ const App = () => {
       const stack = (event.error as any)?.stack as string | undefined;
       const filename = event.filename;
 
-      if (shouldSuppressWalletExtensionError({ message, stack, filename })) {
+      if (shouldSuppressExtensionNoise({ message, stack, filename })) {
         event.preventDefault();
       }
     };
