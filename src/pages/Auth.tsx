@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Phone, ArrowLeft, Loader2, Gift, ChevronDown, ClipboardPaste, User, Mail, Smartphone } from 'lucide-react';
+import { Phone, ArrowLeft, Loader2, Gift, ChevronDown, ClipboardPaste, User, Mail, Smartphone, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -54,6 +54,7 @@ const Auth = () => {
   const [phone, setPhone] = useState('');
   const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [referralCode, setReferralCode] = useState(referralCodeFromUrl || '');
+  const [referralValidation, setReferralValidation] = useState<'idle' | 'checking' | 'valid' | 'invalid'>('idle');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [pendingVerificationUrl, setPendingVerificationUrl] = useState<string | null>(null);
@@ -120,6 +121,36 @@ const Auth = () => {
   useEffect(() => {
     setAccountExistsInline(false);
   }, [isSignUp, phone]);
+
+  // Validate referral code in real-time
+  useEffect(() => {
+    if (!referralCode || referralCode.length < 4) {
+      setReferralValidation('idle');
+      return;
+    }
+
+    const validateReferralCode = async () => {
+      setReferralValidation('checking');
+      try {
+        const { data, error } = await supabase
+          .from('referral_codes')
+          .select('user_id')
+          .eq('code', referralCode.toUpperCase())
+          .maybeSingle();
+
+        if (error || !data) {
+          setReferralValidation('invalid');
+        } else {
+          setReferralValidation('valid');
+        }
+      } catch {
+        setReferralValidation('invalid');
+      }
+    };
+
+    const debounceTimer = setTimeout(validateReferralCode, 500);
+    return () => clearTimeout(debounceTimer);
+  }, [referralCode]);
 
   const handleReferralAnimationComplete = () => {
     setShowReferralSuccess(false);
@@ -575,17 +606,34 @@ const Auth = () => {
                   <button
                     type="button"
                     onClick={() => setShowReferralInput(!showReferralInput)}
-                    className="w-full flex items-center justify-between p-3 rounded-lg border border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors"
+                    className={`w-full flex items-center justify-between p-3 rounded-lg border border-dashed transition-colors ${
+                      referralValidation === 'valid' 
+                        ? 'border-green-500/50 bg-green-500/10 hover:bg-green-500/15' 
+                        : referralValidation === 'invalid'
+                        ? 'border-destructive/50 bg-destructive/10 hover:bg-destructive/15'
+                        : 'border-primary/30 bg-primary/5 hover:bg-primary/10'
+                    }`}
                   >
                     <div className="flex items-center gap-2">
-                      <Gift className="w-4 h-4 text-primary" />
-                      <span className="text-sm font-medium text-foreground">
+                      <Gift className={`w-4 h-4 ${
+                        referralValidation === 'valid' ? 'text-green-500' : 
+                        referralValidation === 'invalid' ? 'text-destructive' : 'text-primary'
+                      }`} />
+                      <span className={`text-sm font-medium ${
+                        referralValidation === 'valid' ? 'text-green-600 dark:text-green-400' : 
+                        referralValidation === 'invalid' ? 'text-destructive' : 'text-foreground'
+                      }`}>
                         {referralCode ? `Referral: ${referralCode}` : 'Have a referral code?'}
                       </span>
+                      {referralValidation === 'valid' && <Check className="w-4 h-4 text-green-500" />}
+                      {referralValidation === 'invalid' && <X className="w-4 h-4 text-destructive" />}
                     </div>
                     <ChevronDown 
-                      className={`w-4 h-4 text-primary transition-transform duration-200 ${
+                      className={`w-4 h-4 transition-transform duration-200 ${
                         showReferralInput ? 'rotate-180' : ''
+                      } ${
+                        referralValidation === 'valid' ? 'text-green-500' : 
+                        referralValidation === 'invalid' ? 'text-destructive' : 'text-primary'
                       }`} 
                     />
                   </button>
@@ -607,47 +655,79 @@ const Auth = () => {
                               placeholder="Enter referral code"
                               value={referralCode}
                               onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                              className="h-12 uppercase tracking-wider pr-12"
+                              className={`h-12 uppercase tracking-wider pr-20 transition-colors ${
+                                referralValidation === 'valid' 
+                                  ? 'border-green-500 focus-visible:ring-green-500/30' 
+                                  : referralValidation === 'invalid'
+                                  ? 'border-destructive focus-visible:ring-destructive/30'
+                                  : ''
+                              }`}
                               maxLength={8}
                               autoFocus
                             />
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                try {
-                                  const text = await navigator.clipboard.readText();
-                                  const cleanCode = text.trim().toUpperCase().slice(0, 8);
-                                  if (cleanCode) {
-                                    setReferralCode(cleanCode);
-                                    triggerHaptic('light');
+                            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                              {referralValidation === 'checking' && (
+                                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                              )}
+                              {referralValidation === 'valid' && (
+                                <Check className="w-5 h-5 text-green-500" />
+                              )}
+                              {referralValidation === 'invalid' && (
+                                <X className="w-5 h-5 text-destructive" />
+                              )}
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  try {
+                                    const text = await navigator.clipboard.readText();
+                                    const cleanCode = text.trim().toUpperCase().slice(0, 8);
+                                    if (cleanCode) {
+                                      setReferralCode(cleanCode);
+                                      triggerHaptic('light');
+                                      toast({
+                                        title: 'Code pasted!',
+                                        description: `Referral code "${cleanCode}" applied.`,
+                                      });
+                                    }
+                                  } catch (err) {
                                     toast({
-                                      title: 'Code pasted!',
-                                      description: `Referral code "${cleanCode}" applied.`,
+                                      title: 'Unable to paste',
+                                      description: 'Please paste manually or allow clipboard access.',
+                                      variant: 'destructive',
                                     });
                                   }
-                                } catch (err) {
-                                  toast({
-                                    title: 'Unable to paste',
-                                    description: 'Please paste manually or allow clipboard access.',
-                                    variant: 'destructive',
-                                  });
-                                }
-                              }}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-primary"
-                              title="Paste from clipboard"
-                            >
-                              <ClipboardPaste className="w-5 h-5" />
-                            </button>
+                                }}
+                                className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-primary"
+                                title="Paste from clipboard"
+                              >
+                                <ClipboardPaste className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
-                          {referralCode && (
-                            <motion.p 
-                              initial={{ opacity: 0, y: -5 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              className="text-xs text-primary flex items-center gap-1"
-                            >
-                              🎁 You'll get ₹100 off your first booking!
-                            </motion.p>
-                          )}
+                          <AnimatePresence mode="wait">
+                            {referralValidation === 'valid' && (
+                              <motion.p 
+                                key="valid"
+                                initial={{ opacity: 0, y: -5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -5 }}
+                                className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1"
+                              >
+                                🎁 You'll get ₹100 off your first booking!
+                              </motion.p>
+                            )}
+                            {referralValidation === 'invalid' && (
+                              <motion.p 
+                                key="invalid"
+                                initial={{ opacity: 0, y: -5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -5 }}
+                                className="text-xs text-destructive flex items-center gap-1"
+                              >
+                                ❌ Invalid referral code. Please check and try again.
+                              </motion.p>
+                            )}
+                          </AnimatePresence>
                         </div>
                       </motion.div>
                     )}
