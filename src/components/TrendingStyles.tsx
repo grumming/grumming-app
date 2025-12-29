@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
-import { TrendingUp, ChevronLeft, ChevronRight } from "lucide-react";
+import { TrendingUp } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Carousel,
@@ -55,6 +56,12 @@ const trendingStyles = [
 ];
 
 const TrendingStyles = () => {
+  const navigate = useNavigate();
+
+  const handleBookStyle = (styleName: string) => {
+    navigate(`/search?q=${encodeURIComponent(styleName)}`);
+  };
+
   return (
     <section className="py-12 px-4 bg-gradient-to-b from-background to-secondary/20">
       <div className="max-w-7xl mx-auto">
@@ -117,6 +124,7 @@ const TrendingStyles = () => {
                       size="sm"
                       variant="secondary"
                       className="w-full bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white border-0"
+                      onClick={() => handleBookStyle(style.name)}
                     >
                       Book This Style
                     </Button>
