@@ -699,16 +699,42 @@ const Auth = () => {
                                 </div>
                               )}
                               {referralValidation === 'valid' && (
-                                <div className="flex items-center gap-1 px-2 py-1 bg-green-100 dark:bg-green-900/30 rounded-full">
-                                  <Check className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
-                                  <span className="text-xs font-medium text-green-600 dark:text-green-400">Valid</span>
-                                </div>
+                                <>
+                                  <div className="flex items-center gap-1 px-2 py-1 bg-green-100 dark:bg-green-900/30 rounded-full">
+                                    <Check className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
+                                    <span className="text-xs font-medium text-green-600 dark:text-green-400">Valid</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setReferralCode('');
+                                      triggerHaptic('light');
+                                    }}
+                                    className="p-1 rounded-full hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                                    title="Clear code"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                </>
                               )}
                               {referralValidation === 'invalid' && (
-                                <div className="flex items-center gap-1 px-2 py-1 bg-destructive/10 rounded-full">
-                                  <X className="w-3.5 h-3.5 text-destructive" />
-                                  <span className="text-xs font-medium text-destructive">Invalid</span>
-                                </div>
+                                <>
+                                  <div className="flex items-center gap-1 px-2 py-1 bg-destructive/10 rounded-full">
+                                    <X className="w-3.5 h-3.5 text-destructive" />
+                                    <span className="text-xs font-medium text-destructive">Invalid</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setReferralCode('');
+                                      triggerHaptic('light');
+                                    }}
+                                    className="p-1 rounded-full hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                                    title="Clear code"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                </>
                               )}
                               {referralValidation === 'idle' && (
                                 <button
