@@ -399,8 +399,8 @@ const Auth = () => {
         email: email.trim() || null,
       }));
       
-      // Store referral code for after redirect
-      if (referralCode && referralValidation === 'valid') {
+      // Store referral code for after redirect (so referrer stats update even after page reload)
+      if (referralCode) {
         localStorage.setItem('pendingReferralCode', referralCode.toUpperCase());
       }
       
