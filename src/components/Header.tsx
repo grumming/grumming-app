@@ -176,7 +176,12 @@ const Header = () => {
               <div className="p-2">
                 {/* Recent Cities */}
                 {recentCities.length > 0 && showPopular && (
-                  <div className="mb-3">
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.2 }}
+                    className="mb-3"
+                  >
                     <div className="px-3 py-1.5 flex items-center justify-between">
                       <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                         <Clock className="w-3 h-3" />
@@ -197,9 +202,9 @@ const Header = () => {
                       {recentCities.slice(0, 3).map((city, index) => (
                         <motion.button
                           key={city}
-                          initial={{ opacity: 0, x: -5 }}
+                          initial={{ opacity: 0, x: -8 }}
                           animate={{ opacity: 1, x: 0 }}
-                          transition={{ duration: 0.15, delay: index * 0.03 }}
+                          transition={{ duration: 0.2, delay: 0.05 + index * 0.05 }}
                           onClick={() => handleSelectRecentCity(city)}
                           className="w-full px-3 py-2 text-left hover:bg-primary/10 rounded-lg transition-all duration-200 flex items-center gap-2 text-xs group"
                         >
@@ -211,21 +216,26 @@ const Header = () => {
                       ))}
                     </div>
                     <div className="border-b border-border my-2" />
-                  </div>
+                  </motion.div>
                 )}
 
                 {showPopular ? (
                   <>
-                    <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <motion.div 
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2, delay: 0.1 }}
+                      className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider"
+                    >
                       Popular Cities
-                    </div>
+                    </motion.div>
                     <div className="grid grid-cols-2 gap-1">
                       {popularCities.map((city, index) => (
                         <motion.button
                           key={city}
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ duration: 0.15, delay: index * 0.02 }}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.2, delay: 0.15 + index * 0.04 }}
                           onClick={() => handleSelectPopularCity(city)}
                           className="px-3 py-2 text-left hover:bg-primary/10 rounded-lg transition-all duration-200 flex items-center gap-2 text-xs group"
                         >
@@ -239,16 +249,27 @@ const Header = () => {
                   </>
                 ) : groupedSuggestions.length > 0 ? (
                   groupedSuggestions.map((group, groupIndex) => (
-                    <div key={group.state} className="mb-2 last:mb-0">
-                      <div className="px-3 py-1.5 text-xs font-semibold text-primary/80 uppercase tracking-wider bg-primary/5 rounded-md mb-1">
+                    <motion.div 
+                      key={group.state} 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.2, delay: groupIndex * 0.08 }}
+                      className="mb-2 last:mb-0"
+                    >
+                      <motion.div 
+                        initial={{ opacity: 0, x: -5 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.2, delay: 0.05 + groupIndex * 0.08 }}
+                        className="px-3 py-1.5 text-xs font-semibold text-primary/80 uppercase tracking-wider bg-primary/5 rounded-md mb-1"
+                      >
                         {group.state}
-                      </div>
+                      </motion.div>
                       {group.cities.map((city, cityIndex) => (
                         <motion.button
                           key={`${group.state}-${city}`}
-                          initial={{ opacity: 0, x: -10 }}
+                          initial={{ opacity: 0, x: -8 }}
                           animate={{ opacity: 1, x: 0 }}
-                          transition={{ duration: 0.15, delay: (groupIndex * 0.05) + (cityIndex * 0.02) }}
+                          transition={{ duration: 0.2, delay: 0.1 + (groupIndex * 0.08) + (cityIndex * 0.04) }}
                           onClick={() => handleSelectCity(city, group.state)}
                           className="w-full px-3 py-2 text-left hover:bg-primary/10 rounded-lg transition-all duration-200 flex items-center gap-2.5 text-sm group"
                         >
@@ -260,12 +281,17 @@ const Header = () => {
                           </span>
                         </motion.button>
                       ))}
-                    </div>
+                    </motion.div>
                   ))
                 ) : (
-                  <div className="px-3 py-4 text-sm text-muted-foreground text-center">
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.2, delay: 0.1 }}
+                    className="px-3 py-4 text-sm text-muted-foreground text-center"
+                  >
                     No cities found
-                  </div>
+                  </motion.div>
                 )}
               </div>
             </motion.div>
