@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Copy, Share2, Gift, Users, Check, Sparkles, MessageCircle, Trophy, Crown, Medal } from 'lucide-react';
+import { ArrowLeft, Copy, Share2, Gift, Users, Check, Sparkles, MessageCircle, Trophy, Crown, Medal, Clock, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -71,6 +71,7 @@ const Referrals = () => {
   };
 
   const successfulReferrals = referrals?.filter(r => r.status === 'completed').length || 0;
+  const pendingReferrals = referrals?.filter(r => r.status === 'pending').length || 0;
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -141,7 +142,7 @@ const Referrals = () => {
         </motion.div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-3">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -149,9 +150,23 @@ const Referrals = () => {
           >
             <Card>
               <CardContent className="p-4 text-center">
-                <Users className="w-8 h-8 mx-auto text-primary mb-2" />
+                <CheckCircle2 className="w-7 h-7 mx-auto text-green-500 mb-2" />
                 <p className="text-2xl font-bold">{successfulReferrals}</p>
-                <p className="text-sm text-muted-foreground">Friends Invited</p>
+                <p className="text-xs text-muted-foreground">Completed</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.12 }}
+          >
+            <Card>
+              <CardContent className="p-4 text-center">
+                <Clock className="w-7 h-7 mx-auto text-amber-500 mb-2" />
+                <p className="text-2xl font-bold">{pendingReferrals}</p>
+                <p className="text-xs text-muted-foreground">Pending</p>
               </CardContent>
             </Card>
           </motion.div>
@@ -163,9 +178,9 @@ const Referrals = () => {
           >
             <Card>
               <CardContent className="p-4 text-center">
-                <Sparkles className="w-8 h-8 mx-auto text-primary mb-2" />
+                <Sparkles className="w-7 h-7 mx-auto text-primary mb-2" />
                 <p className="text-2xl font-bold">₹{userReward?.available || 0}</p>
-                <p className="text-sm text-muted-foreground">Rewards Available</p>
+                <p className="text-xs text-muted-foreground">Earned</p>
               </CardContent>
             </Card>
           </motion.div>
@@ -304,22 +319,38 @@ const Referrals = () => {
                   {referrals.map((referral) => (
                     <div
                       key={referral.id}
-                      className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg"
+                      className={`flex items-center justify-between p-3 rounded-lg border transition-all ${
+                        referral.status === 'completed' 
+                          ? 'bg-green-500/5 border-green-500/20' 
+                          : 'bg-amber-500/5 border-amber-500/20'
+                      }`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                          <Users className="w-5 h-5 text-primary" />
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                          referral.status === 'completed' 
+                            ? 'bg-green-500/10' 
+                            : 'bg-amber-500/10'
+                        }`}>
+                          {referral.status === 'completed' ? (
+                            <CheckCircle2 className="w-5 h-5 text-green-500" />
+                          ) : (
+                            <Clock className="w-5 h-5 text-amber-500" />
+                          )}
                         </div>
                         <div>
-                          <p className="font-medium">Friend Joined</p>
+                          <p className="font-medium">
+                            {referral.status === 'completed' ? 'Booking Completed' : 'Awaiting First Booking'}
+                          </p>
                           <p className="text-xs text-muted-foreground">
-                            {new Date(referral.created_at).toLocaleDateString()}
+                            Joined {new Date(referral.created_at).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
                       <Badge
                         variant={referral.status === 'completed' ? 'default' : 'secondary'}
-                        className={referral.status === 'completed' ? 'bg-green-500' : ''}
+                        className={referral.status === 'completed' 
+                          ? 'bg-green-500 hover:bg-green-500/90' 
+                          : 'bg-amber-500/20 text-amber-600 hover:bg-amber-500/30'}
                       >
                         {referral.status === 'completed' ? '+₹100' : 'Pending'}
                       </Badge>
