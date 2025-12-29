@@ -140,11 +140,21 @@ const Auth = () => {
 
         if (error || !data) {
           setReferralValidation('invalid');
+          triggerHaptic('error');
         } else {
           setReferralValidation('valid');
+          triggerHaptic('success');
+          // Fire confetti for valid referral code
+          confetti({
+            particleCount: 80,
+            spread: 60,
+            origin: { y: 0.7 },
+            colors: ['#22c55e', '#4ade80', '#86efac', '#7c3aed', '#a78bfa']
+          });
         }
       } catch {
         setReferralValidation('invalid');
+        triggerHaptic('error');
       }
     };
 
