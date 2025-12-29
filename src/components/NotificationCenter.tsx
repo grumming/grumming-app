@@ -140,18 +140,18 @@ const NotificationCenter = () => {
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
+        <button className="relative flex h-10 w-10 items-center justify-center rounded-full bg-muted/60 ring-1 ring-border/50 hover:bg-muted transition-colors">
+          <Bell className="h-[18px] w-[18px] text-foreground" strokeWidth={1.75} />
           {unreadCount > 0 && (
             <motion.span
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="absolute -right-0.5 -top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground"
+              className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground shadow-sm ring-2 ring-background"
             >
               {unreadCount > 9 ? "9+" : unreadCount}
             </motion.span>
           )}
-        </Button>
+        </button>
       </SheetTrigger>
 
       <SheetContent className="flex w-full flex-col p-0 sm:max-w-md">
