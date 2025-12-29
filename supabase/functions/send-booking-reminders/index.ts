@@ -6,10 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const TWILIO_ACCOUNT_SID = Deno.env.get('TWILIO_ACCOUNT_SID');
-const TWILIO_AUTH_TOKEN = Deno.env.get('TWILIO_AUTH_TOKEN');
-const TWILIO_PHONE_NUMBER = Deno.env.get('TWILIO_PHONE_NUMBER');
-
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -17,30 +13,26 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Starting booking reminder check...');
-
-    // Check Twilio credentials
-    if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
-      console.error('Missing Twilio credentials');
-      return new Response(
-        JSON.stringify({ error: 'SMS service not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    console.log('Starting 1-hour booking reminder check...');
 
     // Initialize Supabase client with service role for admin access
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get tomorrow's date
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    // Get current time and time 1 hour from now
+    const now = new Date();
+    const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+    const twoHoursFromNow = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+    
+    const todayStr = now.toISOString().split('T')[0];
+    const currentTime = now.toTimeString().slice(0, 5); // HH:MM format
+    const oneHourTime = oneHourFromNow.toTimeString().slice(0, 5);
+    const twoHourTime = twoHoursFromNow.toTimeString().slice(0, 5);
 
-    console.log(`Checking for bookings on: ${tomorrowStr}`);
+    console.log(`Current time: ${currentTime}, Looking for bookings between ${oneHourTime} and ${twoHourTime} on ${todayStr}`);
 
-    // Fetch upcoming bookings for tomorrow that haven't had reminders sent
+    // Fetch upcoming bookings for today that are 1 hour away and haven't had reminders sent
     const { data: bookings, error: bookingsError } = await supabase
       .from('bookings')
       .select(`
@@ -52,16 +44,18 @@ serve(async (req) => {
         user_id,
         reminder_sent
       `)
-      .eq('booking_date', tomorrowStr)
+      .eq('booking_date', todayStr)
       .eq('status', 'upcoming')
-      .eq('reminder_sent', false);
+      .eq('reminder_sent', false)
+      .gte('booking_time', oneHourTime)
+      .lte('booking_time', twoHourTime);
 
     if (bookingsError) {
       console.error('Error fetching bookings:', bookingsError);
       throw bookingsError;
     }
 
-    console.log(`Found ${bookings?.length || 0} bookings needing reminders`);
+    console.log(`Found ${bookings?.length || 0} bookings needing 1-hour reminders`);
 
     if (!bookings || bookings.length === 0) {
       return new Response(
@@ -75,10 +69,10 @@ serve(async (req) => {
 
     for (const booking of bookings) {
       try {
-        // Get user's phone from profile
+        // Get user's profile
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('phone, full_name')
+          .select('full_name')
           .eq('user_id', booking.user_id)
           .maybeSingle();
 
@@ -88,44 +82,85 @@ serve(async (req) => {
           continue;
         }
 
-        if (!profile?.phone) {
-          console.log(`No phone number for user ${booking.user_id}, skipping`);
+        const userName = profile?.full_name || 'there';
+        
+        // Check user's notification preferences
+        const { data: prefs } = await supabase
+          .from('notification_preferences')
+          .select('booking_reminders')
+          .eq('user_id', booking.user_id)
+          .maybeSingle();
+
+        if (prefs && prefs.booking_reminders === false) {
+          console.log(`User ${booking.user_id} has disabled booking reminders, skipping`);
           continue;
         }
 
-        // Format the message
-        const userName = profile.full_name || 'Customer';
-        const message = `Hi ${userName}! Reminder: Your appointment at ${booking.salon_name} for ${booking.service_name} is scheduled for tomorrow at ${booking.booking_time}. See you then!`;
+        // Send push notification
+        const title = '⏰ Appointment in 1 Hour!';
+        const body = `Hi ${userName}! Your ${booking.service_name} at ${booking.salon_name} is in 1 hour at ${booking.booking_time}. Get ready!`;
 
-        console.log(`Sending reminder to ${profile.phone} for booking ${booking.id}`);
+        console.log(`Sending push notification to user ${booking.user_id} for booking ${booking.id}`);
 
-        // Send SMS via Twilio
-        const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`;
-        const twilioAuth = btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`);
+        // Get user's FCM tokens
+        const { data: fcmTokens, error: fcmError } = await supabase
+          .from('fcm_tokens')
+          .select('token')
+          .eq('user_id', booking.user_id);
 
-        const formData = new URLSearchParams();
-        formData.append('To', profile.phone);
-        formData.append('From', TWILIO_PHONE_NUMBER);
-        formData.append('Body', message);
-
-        const twilioResponse = await fetch(twilioUrl, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Basic ${twilioAuth}`,
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: formData.toString(),
-        });
-
-        const twilioResult = await twilioResponse.json();
-
-        if (!twilioResponse.ok) {
-          console.error(`Twilio error for booking ${booking.id}:`, twilioResult);
-          errors.push(`Twilio error for booking ${booking.id}: ${twilioResult.message}`);
+        if (fcmError) {
+          console.error(`Error fetching FCM tokens for user ${booking.user_id}:`, fcmError);
+          errors.push(`FCM token error for booking ${booking.id}`);
           continue;
         }
 
-        console.log(`SMS sent successfully, SID: ${twilioResult.sid}`);
+        if (!fcmTokens || fcmTokens.length === 0) {
+          console.log(`No FCM tokens for user ${booking.user_id}, skipping push notification`);
+          // Still create in-app notification
+        } else {
+          // Send push notification via send-push-notification function
+          const pushResponse = await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseServiceKey}`,
+            },
+            body: JSON.stringify({
+              user_id: booking.user_id,
+              title,
+              body,
+              notification_type: 'booking_reminders',
+              data: {
+                type: 'booking_reminder',
+                booking_id: booking.id,
+                link: '/my-bookings'
+              }
+            }),
+          });
+
+          if (!pushResponse.ok) {
+            const pushError = await pushResponse.text();
+            console.error(`Push notification error for booking ${booking.id}:`, pushError);
+          } else {
+            console.log(`Push notification sent for booking ${booking.id}`);
+          }
+        }
+
+        // Create in-app notification
+        const { error: notifError } = await supabase
+          .from('notifications')
+          .insert({
+            user_id: booking.user_id,
+            title,
+            message: body,
+            type: 'reminder',
+            link: '/my-bookings'
+          });
+
+        if (notifError) {
+          console.error(`Error creating notification for booking ${booking.id}:`, notifError);
+          errors.push(`Notification error for booking ${booking.id}`);
+        }
 
         // Mark reminder as sent
         const { error: updateError } = await supabase
@@ -149,7 +184,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        message: `Sent ${sentCount} reminders`,
+        message: `Sent ${sentCount} push notification reminders`,
         count: sentCount,
         errors: errors.length > 0 ? errors : undefined
       }),
