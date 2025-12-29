@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Smartphone, Star, Download } from "lucide-react";
+import { Smartphone, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const AppPromo = () => {
@@ -39,7 +39,6 @@ const AppPromo = () => {
                   size="lg"
                   className="bg-white text-primary hover:bg-white/90 border-0"
                 >
-                  <Download className="w-5 h-5 mr-2" />
                   Download App
                 </Button>
               </div>
