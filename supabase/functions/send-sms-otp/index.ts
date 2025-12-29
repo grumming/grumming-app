@@ -19,6 +19,14 @@ const TWILIO_PHONE_NUMBER = Deno.env.get('TWILIO_PHONE_NUMBER');
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
 const MAX_SEND_ATTEMPTS = 3;
 
+// Whitelisted test phone numbers (always receive OTP)
+const TEST_PHONE_NUMBERS = [
+  '+919262582899',
+  '+917004414512',
+  '+919534310739',
+  '+919135812785',
+];
+
 // Generate a 6-digit OTP
 function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -219,28 +227,46 @@ serve(async (req) => {
       );
     }
 
-    // Check rate limit
-    const rateLimitCutoff = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString();
-    const { data: recentAttempts, error: rateLimitError } = await supabase
-      .from('otp_rate_limits')
-      .select('*')
-      .eq('phone', phone)
-      .eq('attempt_type', 'send')
-      .gte('attempted_at', rateLimitCutoff);
+    // Check if this is a whitelisted test number (skip rate limiting)
+    const isWhitelisted = TEST_PHONE_NUMBERS.includes(phone);
+    
+    if (!isWhitelisted) {
+      // Check rate limit only for non-whitelisted numbers
+      const rateLimitCutoff = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString();
+      const { data: recentAttempts, error: rateLimitError } = await supabase
+        .from('otp_rate_limits')
+        .select('*')
+        .eq('phone', phone)
+        .eq('attempt_type', 'send')
+        .gte('attempted_at', rateLimitCutoff);
 
-    if (rateLimitError) {
-      console.error('Rate limit check error:', rateLimitError);
+      if (rateLimitError) {
+        console.error('Rate limit check error:', rateLimitError);
+      }
+
+      if (recentAttempts && recentAttempts.length >= MAX_SEND_ATTEMPTS) {
+        console.log(`Rate limit exceeded for ${phone}: ${recentAttempts.length} attempts in last minute`);
+        return new Response(
+          JSON.stringify({ error: 'Too many OTP requests. Please wait 1 minute before trying again.' }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Record this attempt
+      const { error: recordError } = await supabase
+        .from('otp_rate_limits')
+        .insert({
+          phone,
+          attempt_type: 'send',
+          ip_address: req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown',
+        });
+
+      if (recordError) {
+        console.error('Failed to record rate limit attempt:', recordError);
+      }
+    } else {
+      console.log(`Whitelisted test number detected: ${phone}, skipping rate limit`);
     }
-
-    if (recentAttempts && recentAttempts.length >= MAX_SEND_ATTEMPTS) {
-      console.log(`Rate limit exceeded for ${phone}: ${recentAttempts.length} attempts in last minute`);
-      return new Response(
-        JSON.stringify({ error: 'Too many OTP requests. Please wait 1 minute before trying again.' }),
-        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Record this attempt
     const { error: recordError } = await supabase
       .from('otp_rate_limits')
       .insert({
