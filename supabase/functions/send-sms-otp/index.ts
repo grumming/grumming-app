@@ -19,13 +19,16 @@ const TWILIO_PHONE_NUMBER = Deno.env.get('TWILIO_PHONE_NUMBER');
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
 const MAX_SEND_ATTEMPTS = 3;
 
-// Whitelisted test phone numbers (always receive OTP)
+// Whitelisted test phone numbers (use fixed test OTP, skip SMS)
 const TEST_PHONE_NUMBERS = [
   '+919262582899',
   '+917004414512',
   '+919534310739',
   '+919135812785',
 ];
+
+// Fixed test OTP for whitelisted numbers
+const TEST_OTP = '123456';
 
 // Generate a 6-digit OTP
 function generateOTP(): string {
@@ -267,19 +270,45 @@ serve(async (req) => {
     } else {
       console.log(`Whitelisted test number detected: ${phone}, skipping rate limit`);
     }
-    const { error: recordError } = await supabase
-      .from('otp_rate_limits')
-      .insert({
-        phone,
-        attempt_type: 'send',
-        ip_address: req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown',
-      });
 
-    if (recordError) {
-      console.error('Failed to record rate limit attempt:', recordError);
+    // For whitelisted test numbers, use fixed OTP and skip SMS
+    if (isWhitelisted) {
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiry
+      console.log(`Using test OTP for whitelisted number: ${phone}`);
+
+      // Delete any existing OTP for this phone first
+      await supabase.from('phone_otps').delete().eq('phone', phone);
+
+      // Store test OTP in database
+      const { error: dbError } = await supabase
+        .from('phone_otps')
+        .insert({
+          phone,
+          otp_code: TEST_OTP,
+          expires_at: expiresAt.toISOString(),
+          verified: false,
+        });
+
+      if (dbError) {
+        console.error('Database error:', dbError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to generate OTP' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log(`Test OTP stored for ${phone}, OTP: ${TEST_OTP}`);
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: 'OTP sent successfully',
+          isTestNumber: true, // For debugging
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // Generate OTP
+    // Generate OTP for regular numbers
     const otp = generateOTP();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiry
     console.log(`Generated OTP for phone: ${phone}, expires at: ${expiresAt.toISOString()}`);
