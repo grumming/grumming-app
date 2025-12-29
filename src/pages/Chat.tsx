@@ -1,0 +1,266 @@
+import { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, Send, MessageCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useChat } from '@/hooks/useChat';
+import { useAuth } from '@/hooks/useAuth';
+import { format } from 'date-fns';
+
+const Chat = () => {
+  const { conversationId } = useParams();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
+  const [message, setMessage] = useState('');
+  const scrollRef = useRef<HTMLDivElement>(null);
+  
+  const {
+    conversations,
+    conversationsLoading,
+    messages,
+    messagesLoading,
+    getOrCreateConversation,
+    sendMessage,
+    markAsRead,
+  } = useChat(conversationId);
+
+  const [activeConversation, setActiveConversation] = useState<string | undefined>(conversationId);
+
+  // Get booking params for creating new conversation
+  const bookingId = searchParams.get('bookingId');
+  const salonId = searchParams.get('salonId');
+  const salonName = searchParams.get('salonName');
+
+  // Create conversation if coming from booking
+  useEffect(() => {
+    if (bookingId && salonId && salonName && user && !conversationId) {
+      getOrCreateConversation.mutate(
+        { bookingId, salonId, salonName },
+        {
+          onSuccess: (conversation) => {
+            navigate(`/chat/${conversation.id}`, { replace: true });
+            setActiveConversation(conversation.id);
+          },
+        }
+      );
+    }
+  }, [bookingId, salonId, salonName, user, conversationId]);
+
+  // Scroll to bottom on new messages
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
+
+  // Mark messages as read
+  useEffect(() => {
+    if (activeConversation) {
+      markAsRead.mutate(activeConversation);
+    }
+  }, [activeConversation, messages]);
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/auth');
+    }
+  }, [user, authLoading, navigate]);
+
+  const handleSend = () => {
+    if (!message.trim() || !activeConversation) return;
+
+    sendMessage.mutate({
+      conversationId: activeConversation,
+      content: message,
+    });
+    setMessage('');
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const currentConversation = conversations.find((c) => c.id === activeConversation);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Header */}
+      <header className="sticky top-0 z-10 bg-card border-b border-border px-4 py-3">
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate(-1)}
+            className="shrink-0"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          {currentConversation ? (
+            <div className="flex items-center gap-3">
+              <Avatar className="h-10 w-10">
+                <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                  {currentConversation.salon_name.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <h1 className="font-semibold text-foreground">
+                  {currentConversation.salon_name}
+                </h1>
+                <p className="text-xs text-muted-foreground">
+                  Typically replies within a few hours
+                </p>
+              </div>
+            </div>
+          ) : (
+            <h1 className="font-semibold text-foreground">Messages</h1>
+          )}
+        </div>
+      </header>
+
+      {/* Content */}
+      {!activeConversation ? (
+        // Conversation list
+        <div className="flex-1 overflow-auto">
+          {conversationsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : conversations.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                <MessageCircle className="h-8 w-8 text-primary" />
+              </div>
+              <h2 className="text-lg font-semibold text-foreground mb-2">
+                No messages yet
+              </h2>
+              <p className="text-muted-foreground text-sm max-w-xs">
+                Start a conversation with a salon after making a booking
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-border">
+              {conversations.map((conv) => (
+                <button
+                  key={conv.id}
+                  onClick={() => {
+                    setActiveConversation(conv.id);
+                    navigate(`/chat/${conv.id}`);
+                  }}
+                  className="w-full px-4 py-4 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left"
+                >
+                  <Avatar className="h-12 w-12 shrink-0">
+                    <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                      {conv.salon_name.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="font-medium text-foreground truncate">
+                        {conv.salon_name}
+                      </h3>
+                      <span className="text-xs text-muted-foreground shrink-0">
+                        {format(new Date(conv.last_message_at), 'MMM d')}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground truncate">
+                      Tap to view conversation
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        // Chat view
+        <>
+          <ScrollArea className="flex-1 px-4 py-4">
+            {messagesLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : messages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <p className="text-muted-foreground text-sm">
+                  Send a message to start the conversation
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {messages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={`flex ${
+                      msg.sender_type === 'user' ? 'justify-end' : 'justify-start'
+                    }`}
+                  >
+                    <div
+                      className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
+                        msg.sender_type === 'user'
+                          ? 'bg-primary text-primary-foreground rounded-br-md'
+                          : 'bg-muted text-foreground rounded-bl-md'
+                      }`}
+                    >
+                      <p className="text-sm whitespace-pre-wrap break-words">
+                        {msg.content}
+                      </p>
+                      <p
+                        className={`text-xs mt-1 ${
+                          msg.sender_type === 'user'
+                            ? 'text-primary-foreground/70'
+                            : 'text-muted-foreground'
+                        }`}
+                      >
+                        {format(new Date(msg.created_at), 'h:mm a')}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                <div ref={scrollRef} />
+              </div>
+            )}
+          </ScrollArea>
+
+          {/* Message input */}
+          <div className="sticky bottom-0 bg-card border-t border-border p-4">
+            <div className="flex items-center gap-2">
+              <Input
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Type a message..."
+                className="flex-1"
+                disabled={sendMessage.isPending}
+              />
+              <Button
+                onClick={handleSend}
+                disabled={!message.trim() || sendMessage.isPending}
+                size="icon"
+                className="shrink-0"
+              >
+                <Send className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+export default Chat;

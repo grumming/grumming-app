@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, Calendar, Clock, MapPin, 
-  Loader2, AlertCircle, CheckCircle2, XCircle, Star, CreditCard 
+  Loader2, AlertCircle, CheckCircle2, XCircle, Star, CreditCard, MessageCircle 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -249,6 +249,18 @@ const MyBookings = () => {
                             </span>
                             <div className="flex gap-2">
                               <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const salonId = booking.salon_name.toLowerCase().replace(/\s+/g, '-');
+                                  navigate(`/chat?bookingId=${booking.id}&salonId=${salonId}&salonName=${encodeURIComponent(booking.salon_name)}`);
+                                }}
+                                className="gap-1"
+                              >
+                                <MessageCircle className="w-4 h-4" />
+                                Chat
+                              </Button>
+                              <Button
                                 variant="default"
                                 size="sm"
                                 onClick={() => {
@@ -258,7 +270,7 @@ const MyBookings = () => {
                                 className="gap-1"
                               >
                                 <CreditCard className="w-4 h-4" />
-                                Pay Now
+                                Pay
                               </Button>
                               <Button
                                 variant="destructive"

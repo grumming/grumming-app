@@ -30,6 +30,7 @@ import PaymentMethods from "./pages/PaymentMethods";
 import PaymentHistory from "./pages/PaymentHistory";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
+import Chat from "./pages/Chat";
 import NotFound from "./pages/NotFound";
 
 const App = () => {
@@ -68,6 +69,8 @@ const App = () => {
                   <Route path="/admin/promo-codes" element={<AdminPromoCodes />} />
                   <Route path="/terms" element={<Terms />} />
                   <Route path="/privacy" element={<Privacy />} />
+                  <Route path="/chat" element={<Chat />} />
+                  <Route path="/chat/:conversationId" element={<Chat />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
