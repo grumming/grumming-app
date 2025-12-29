@@ -15,7 +15,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import BottomNav from '@/components/BottomNav';
-
+import ImageCropDialog from '@/components/ImageCropDialog';
 interface Profile {
   id: string;
   user_id: string;
@@ -38,6 +38,8 @@ const Profile = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [cropDialogOpen, setCropDialogOpen] = useState(false);
+  const [selectedImageSrc, setSelectedImageSrc] = useState<string | null>(null);
   
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -113,7 +115,7 @@ const Profile = () => {
     });
   };
 
-  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !user) return;
 
@@ -126,23 +128,37 @@ const Profile = () => {
       return;
     }
 
-    if (file.size > 2 * 1024 * 1024) {
+    if (file.size > 5 * 1024 * 1024) {
       toast({
         title: 'File too large',
-        description: 'Please upload an image smaller than 2MB.',
+        description: 'Please upload an image smaller than 5MB.',
         variant: 'destructive',
       });
       return;
     }
 
+    // Create a URL for the selected image and open crop dialog
+    const imageUrl = URL.createObjectURL(file);
+    setSelectedImageSrc(imageUrl);
+    setCropDialogOpen(true);
+    
+    // Reset file input
+    event.target.value = '';
+  };
+
+  const handleCroppedImage = async (croppedBlob: Blob) => {
+    if (!user) return;
+
     setIsUploadingAvatar(true);
 
-    const fileExt = file.name.split('.').pop();
-    const filePath = `${user.id}/avatar.${fileExt}`;
+    const filePath = `${user.id}/avatar.jpg`;
 
     const { error: uploadError } = await supabase.storage
       .from('avatars')
-      .upload(filePath, file, { upsert: true });
+      .upload(filePath, croppedBlob, { 
+        upsert: true,
+        contentType: 'image/jpeg'
+      });
 
     if (uploadError) {
       console.error('Upload error:', uploadError);
@@ -172,6 +188,12 @@ const Profile = () => {
       title: 'Avatar updated',
       description: 'Your profile picture has been updated.',
     });
+
+    // Clean up the object URL
+    if (selectedImageSrc) {
+      URL.revokeObjectURL(selectedImageSrc);
+      setSelectedImageSrc(null);
+    }
   };
 
   const handleSignOut = async () => {
@@ -254,9 +276,17 @@ const Profile = () => {
                 >
                   {isUploadingAvatar ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
                 </button>
-                <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
+                <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
               </div>
             </div>
+
+            <ImageCropDialog
+              open={cropDialogOpen}
+              onOpenChange={setCropDialogOpen}
+              imageSrc={selectedImageSrc || ''}
+              onCropComplete={handleCroppedImage}
+              aspectRatio={1}
+            />
 
             <div className="space-y-3">
               <div className="space-y-1.5">
