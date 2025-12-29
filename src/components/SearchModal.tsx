@@ -28,8 +28,10 @@ const SearchModal = ({ isOpen, onClose, onOpenLocationPicker }: SearchModalProps
   // Get nearby/popular salons based on selected city - ONLY show city salons
   const nearbySalons = useMemo(() => {
     if (!selectedCity) return [];
+    // Extract just the city name (before comma) for matching
+    const cityName = selectedCity.split(',')[0].trim().toLowerCase();
     const citySalons = allSalonsList.filter(
-      (salon) => salon.city.toLowerCase() === selectedCity.toLowerCase()
+      (salon) => salon.city.toLowerCase() === cityName
     );
     return citySalons.slice(0, 5);
   }, [selectedCity]);
