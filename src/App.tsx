@@ -38,45 +38,43 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <AuthProvider>
-          <FavoritesProvider>
-            <LocationProvider>
-              <TooltipProvider>
-                <PushNotificationSetup />
-                <Toaster />
-                <Sonner />
-                <BrowserRouter>
-                  <ReferralRewardListener />
-                  
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/auth" element={<Auth />} />
-                    <Route path="/profile" element={<Profile />} />
-                    <Route path="/settings" element={<Settings />} />
-                    <Route path="/privacy-security" element={<PrivacySecurity />} />
-                    <Route path="/salon/:id" element={<SalonDetail />} />
-                    <Route path="/booking-confirmation" element={<BookingConfirmation />} />
-                    <Route path="/notification-settings" element={<NotificationSettings />} />
-                    <Route path="/my-bookings" element={<MyBookings />} />
-                    <Route path="/my-vouchers" element={<MyVouchers />} />
-                    <Route path="/saved-addresses" element={<SavedAddresses />} />
-                    <Route path="/search" element={<SearchSalons />} />
-                    <Route path="/referrals" element={<Referrals />} />
-                    <Route path="/wallet" element={<Wallet />} />
-                    <Route path="/favorites" element={<Favorites />} />
-                    <Route path="/payment-methods" element={<PaymentMethods />} />
-                    <Route path="/payment-history" element={<PaymentHistory />} />
-                    <Route path="/admin/promo-codes" element={<AdminPromoCodes />} />
-                    <Route path="/terms" element={<Terms />} />
-                    <Route path="/privacy" element={<Privacy />} />
-                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </BrowserRouter>
-              </TooltipProvider>
-            </LocationProvider>
-          </FavoritesProvider>
-        </AuthProvider>
+        <FavoritesProvider>
+          <LocationProvider>
+            <TooltipProvider>
+              <PushNotificationSetup />
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <ReferralRewardListener />
+                
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/privacy-security" element={<PrivacySecurity />} />
+                  <Route path="/salon/:id" element={<SalonDetail />} />
+                  <Route path="/booking-confirmation" element={<BookingConfirmation />} />
+                  <Route path="/notification-settings" element={<NotificationSettings />} />
+                  <Route path="/my-bookings" element={<MyBookings />} />
+                  <Route path="/my-vouchers" element={<MyVouchers />} />
+                  <Route path="/saved-addresses" element={<SavedAddresses />} />
+                  <Route path="/search" element={<SearchSalons />} />
+                  <Route path="/referrals" element={<Referrals />} />
+                  <Route path="/wallet" element={<Wallet />} />
+                  <Route path="/favorites" element={<Favorites />} />
+                  <Route path="/payment-methods" element={<PaymentMethods />} />
+                  <Route path="/payment-history" element={<PaymentHistory />} />
+                  <Route path="/admin/promo-codes" element={<AdminPromoCodes />} />
+                  <Route path="/terms" element={<Terms />} />
+                  <Route path="/privacy" element={<Privacy />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </TooltipProvider>
+          </LocationProvider>
+        </FavoritesProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
