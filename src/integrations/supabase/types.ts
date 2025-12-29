@@ -97,6 +97,36 @@ export type Database = {
           },
         ]
       }
+      email_otps: {
+        Row: {
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          otp_code: string
+          user_id: string
+          verified: boolean
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          otp_code: string
+          user_id: string
+          verified?: boolean
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          otp_code?: string
+          user_id?: string
+          verified?: boolean
+        }
+        Relationships: []
+      }
       favorite_salons: {
         Row: {
           created_at: string
@@ -388,6 +418,7 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           email: string | null
+          email_verified: boolean | null
           full_name: string | null
           id: string
           phone: string | null
@@ -398,6 +429,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           email?: string | null
+          email_verified?: boolean | null
           full_name?: string | null
           id?: string
           phone?: string | null
@@ -408,6 +440,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           email?: string | null
+          email_verified?: boolean | null
           full_name?: string | null
           id?: string
           phone?: string | null
