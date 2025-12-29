@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Gift, Sparkles } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const WELCOME_BANNER_KEY = "glamour_welcome_banner_shown";
 
@@ -88,8 +90,27 @@ const WelcomeBanner = () => {
   const { user } = useAuth();
   const [isVisible, setIsVisible] = useState(false);
 
+  // Check if user has any bookings
+  const { data: hasBookings, isLoading } = useQuery({
+    queryKey: ['user-has-bookings-welcome', user?.id],
+    queryFn: async () => {
+      if (!user) return false;
+      
+      const { count, error } = await supabase
+        .from('bookings')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+      
+      if (error) return false;
+      return (count || 0) > 0;
+    },
+    enabled: !!user,
+    staleTime: 60000,
+  });
+
   useEffect(() => {
-    if (user) {
+    // Only show if: user exists, not loading, has no bookings, and hasn't seen banner
+    if (user && !isLoading && !hasBookings) {
       const hasSeenBanner = localStorage.getItem(WELCOME_BANNER_KEY);
       if (!hasSeenBanner) {
         // Small delay to let the page load first
@@ -97,14 +118,15 @@ const WelcomeBanner = () => {
         return () => clearTimeout(timer);
       }
     }
-  }, [user]);
+  }, [user, isLoading, hasBookings]);
 
   const handleDismiss = () => {
     setIsVisible(false);
     localStorage.setItem(WELCOME_BANNER_KEY, "true");
   };
 
-  if (!user) return null;
+  // Don't show if not logged in, loading, or user has bookings
+  if (!user || isLoading || hasBookings) return null;
 
   return (
     <AnimatePresence>
