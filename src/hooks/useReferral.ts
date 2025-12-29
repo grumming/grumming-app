@@ -1,11 +1,44 @@
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
 export const useReferral = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+
+  // Set up realtime subscription for referrals
+  useEffect(() => {
+    if (!user?.id) return;
+
+    console.log('Setting up realtime subscription for referrals');
+    
+    const channel = supabase
+      .channel('referrals-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'referrals',
+        },
+        (payload) => {
+          console.log('Realtime referral update:', payload);
+          // Invalidate queries to refetch data
+          queryClient.invalidateQueries({ queryKey: ['referrals', user.id] });
+          queryClient.invalidateQueries({ queryKey: ['userReward', user.id] });
+          queryClient.invalidateQueries({ queryKey: ['referralLeaderboard'] });
+        }
+      )
+      .subscribe((status) => {
+        console.log('Referrals realtime subscription status:', status);
+      });
+
+    return () => {
+      console.log('Cleaning up referrals realtime subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, queryClient]);
 
   // Fetch user's referral code
   const { data: referralCode, isLoading: isLoadingCode } = useQuery({
@@ -25,7 +58,7 @@ export const useReferral = () => {
     enabled: !!user?.id,
   });
 
-  // Fetch referrals made by user
+  // Fetch referrals made by user (as referrer)
   const { data: referrals, isLoading: isLoadingReferrals } = useQuery({
     queryKey: ['referrals', user?.id],
     queryFn: async () => {
@@ -41,9 +74,6 @@ export const useReferral = () => {
       return data || [];
     },
     enabled: !!user?.id,
-    // Simple “near real-time” refresh so referrers see pending/completed changes without manual reload
-    refetchInterval: user?.id ? 4000 : false,
-    refetchIntervalInBackground: true,
   });
 
   // Fetch top referrers leaderboard
@@ -131,8 +161,6 @@ export const useReferral = () => {
       return { available, total };
     },
     enabled: !!user?.id,
-    refetchInterval: user?.id ? 4000 : false,
-    refetchIntervalInBackground: true,
   });
 
   // Validate and apply referral code
@@ -176,9 +204,7 @@ export const useReferral = () => {
     
     if (insertError) throw insertError;
     
-    queryClient.invalidateQueries({ queryKey: ['referrals'] });
-    queryClient.invalidateQueries({ queryKey: ['userReward'] });
-    
+    // Queries will auto-update via realtime subscription
     return true;
   };
 
