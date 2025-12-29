@@ -657,61 +657,89 @@ const Auth = () => {
                         transition={{ duration: 0.2 }}
                         className="overflow-hidden"
                       >
-                        <div className="pt-2 space-y-2">
-                          <div className="relative">
+                        <div className="pt-2 space-y-3">
+                          <div className="relative group">
                             <Input
                               id="referral"
                               type="text"
-                              placeholder="Enter referral code"
                               value={referralCode}
                               onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                              className={`h-12 uppercase tracking-wider pr-20 transition-colors ${
+                              className={`h-14 uppercase tracking-widest text-base font-medium pr-24 pl-4 pt-5 pb-2 transition-all duration-200 bg-muted/30 peer placeholder-transparent ${
                                 referralValidation === 'valid' 
-                                  ? 'border-green-500 focus-visible:ring-green-500/30' 
+                                  ? 'border-green-500 bg-green-50/50 dark:bg-green-950/20 focus-visible:ring-green-500/30' 
                                   : referralValidation === 'invalid'
-                                  ? 'border-destructive focus-visible:ring-destructive/30'
-                                  : ''
+                                  ? 'border-destructive bg-destructive/5 focus-visible:ring-destructive/30'
+                                  : 'focus:bg-background'
                               }`}
                               maxLength={8}
                               autoFocus
+                              placeholder="CODE"
                             />
-                            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                            <label 
+                              htmlFor="referral"
+                              className={`absolute left-4 transition-all duration-200 pointer-events-none ${
+                                referralCode 
+                                  ? 'top-2 text-[10px] font-semibold uppercase tracking-wider' 
+                                  : 'top-1/2 -translate-y-1/2 text-sm'
+                              } ${
+                                referralValidation === 'valid' 
+                                  ? 'text-green-600 dark:text-green-400' 
+                                  : referralValidation === 'invalid'
+                                  ? 'text-destructive'
+                                  : 'text-muted-foreground peer-focus:text-primary'
+                              }`}
+                            >
+                              Referral Code
+                            </label>
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
                               {referralValidation === 'checking' && (
-                                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                                <div className="flex items-center gap-1.5 text-muted-foreground">
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                  <span className="text-xs">Checking...</span>
+                                </div>
                               )}
                               {referralValidation === 'valid' && (
-                                <Check className="w-5 h-5 text-green-500" />
+                                <div className="flex items-center gap-1 px-2 py-1 bg-green-100 dark:bg-green-900/30 rounded-full">
+                                  <Check className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
+                                  <span className="text-xs font-medium text-green-600 dark:text-green-400">Valid</span>
+                                </div>
                               )}
                               {referralValidation === 'invalid' && (
-                                <X className="w-5 h-5 text-destructive" />
+                                <div className="flex items-center gap-1 px-2 py-1 bg-destructive/10 rounded-full">
+                                  <X className="w-3.5 h-3.5 text-destructive" />
+                                  <span className="text-xs font-medium text-destructive">Invalid</span>
+                                </div>
                               )}
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  try {
-                                    const text = await navigator.clipboard.readText();
-                                    const cleanCode = text.trim().toUpperCase().slice(0, 8);
-                                    if (cleanCode) {
-                                      setReferralCode(cleanCode);
-                                      triggerHaptic('light');
+                              {referralValidation === 'idle' && (
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    try {
+                                      const text = await navigator.clipboard.readText();
+                                      const cleanCode = text.trim().toUpperCase().slice(0, 8);
+                                      if (cleanCode) {
+                                        setReferralCode(cleanCode);
+                                        triggerHaptic('light');
+                                        toast({
+                                          title: 'Code pasted!',
+                                          description: `Referral code "${cleanCode}" applied.`,
+                                        });
+                                      }
+                                    } catch (err) {
                                       toast({
-                                        title: 'Code pasted!',
-                                        description: `Referral code "${cleanCode}" applied.`,
+                                        title: 'Unable to paste',
+                                        description: 'Please paste manually or allow clipboard access.',
+                                        variant: 'destructive',
                                       });
                                     }
-                                  } catch (err) {
-                                    toast({
-                                      title: 'Unable to paste',
-                                      description: 'Please paste manually or allow clipboard access.',
-                                      variant: 'destructive',
-                                    });
-                                  }
-                                }}
-                                className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-primary"
-                                title="Paste from clipboard"
-                              >
-                                <ClipboardPaste className="w-4 h-4" />
-                              </button>
+                                  }}
+                                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-primary/10 hover:bg-primary/20 transition-colors text-primary text-xs font-medium"
+                                  title="Paste from clipboard"
+                                >
+                                  <ClipboardPaste className="w-3.5 h-3.5" />
+                                  Paste
+                                </button>
+                              )}
                             </div>
                           </div>
                           <AnimatePresence mode="wait">
