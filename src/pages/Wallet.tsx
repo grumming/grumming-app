@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import BottomNav from '@/components/BottomNav';
 
@@ -386,6 +386,7 @@ const Wallet = () => {
               <CreditCard className="w-5 h-5 text-primary" />
               Add Money to Wallet
             </DialogTitle>
+            <DialogDescription>Select or enter an amount to add to your wallet</DialogDescription>
           </DialogHeader>
           
           <div className="space-y-6 pt-4">

@@ -17,6 +17,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import {
   DropdownMenu,
@@ -395,6 +396,9 @@ const SavedAddresses = () => {
             <DialogTitle>
               {editingAddress ? 'Edit Address' : 'Add New Address'}
             </DialogTitle>
+            <DialogDescription>
+              {editingAddress ? 'Update your address details' : 'Enter your new address details'}
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 pt-2">
