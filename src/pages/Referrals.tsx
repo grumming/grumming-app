@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useReferral } from '@/hooks/useReferral';
@@ -346,14 +347,30 @@ const Referrals = () => {
                           </p>
                         </div>
                       </div>
-                      <Badge
-                        variant={referral.status === 'completed' ? 'default' : 'secondary'}
-                        className={referral.status === 'completed' 
-                          ? 'bg-green-500 hover:bg-green-500/90' 
-                          : 'bg-amber-500/20 text-amber-600 hover:bg-amber-500/30'}
-                      >
-                        {referral.status === 'completed' ? '+₹100' : 'Pending'}
-                      </Badge>
+                      {referral.status === 'pending' ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge
+                                variant="secondary"
+                                className="bg-amber-500/20 text-amber-600 hover:bg-amber-500/30 cursor-help"
+                              >
+                                Pending
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent side="left" className="max-w-[200px] text-center">
+                              <p>Reward unlocks when your friend completes their first booking</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ) : (
+                        <Badge
+                          variant="default"
+                          className="bg-green-500 hover:bg-green-500/90"
+                        >
+                          +₹100
+                        </Badge>
+                      )}
                     </div>
                   ))}
                 </div>
