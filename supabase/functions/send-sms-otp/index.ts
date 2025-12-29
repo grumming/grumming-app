@@ -9,8 +9,11 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-// Fast2SMS API key
+// SMS Provider credentials
 const FAST2SMS_API_KEY = Deno.env.get('FAST2SMS_API_KEY');
+const TWILIO_ACCOUNT_SID = Deno.env.get('TWILIO_ACCOUNT_SID');
+const TWILIO_AUTH_TOKEN = Deno.env.get('TWILIO_AUTH_TOKEN');
+const TWILIO_PHONE_NUMBER = Deno.env.get('TWILIO_PHONE_NUMBER');
 
 // Rate limit: max 3 OTP sends per phone per minute
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
@@ -24,7 +27,7 @@ function generateOTP(): string {
 // Send SMS via Fast2SMS (for Indian numbers)
 async function sendSMSViaFast2SMS(phone: string, otp: string): Promise<boolean> {
   if (!FAST2SMS_API_KEY) {
-    console.error('FAST2SMS_API_KEY not configured');
+    console.log('FAST2SMS_API_KEY not configured, skipping Fast2SMS');
     return false;
   }
 
@@ -32,7 +35,7 @@ async function sendSMSViaFast2SMS(phone: string, otp: string): Promise<boolean> 
   const phoneNumber = phone.replace('+91', '').replace(/\D/g, '');
   
   if (phoneNumber.length !== 10) {
-    console.error('Invalid phone number length:', phoneNumber.length);
+    console.error('Invalid phone number length for Fast2SMS:', phoneNumber.length);
     return false;
   }
 
@@ -69,6 +72,67 @@ async function sendSMSViaFast2SMS(phone: string, otp: string): Promise<boolean> 
     console.error('Error sending SMS via Fast2SMS:', error);
     return false;
   }
+}
+
+// Send SMS via Twilio (fallback provider)
+async function sendSMSViaTwilio(phone: string, otp: string): Promise<boolean> {
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
+    console.log('Twilio credentials not configured, skipping Twilio');
+    return false;
+  }
+
+  const message = `Your Grumming verification code is: ${otp}. Valid for 5 minutes. Do not share this code.`;
+
+  try {
+    const url = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`;
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Basic ' + btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`),
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        To: phone,
+        From: TWILIO_PHONE_NUMBER,
+        Body: message,
+      }),
+    });
+
+    const result = await response.json();
+    console.log('Twilio response status:', response.status);
+
+    if (response.ok && result.sid) {
+      console.log('SMS sent successfully via Twilio, SID:', result.sid);
+      return true;
+    } else {
+      console.error('Twilio error:', result.message || result.code || result);
+      return false;
+    }
+  } catch (error) {
+    console.error('Error sending SMS via Twilio:', error);
+    return false;
+  }
+}
+
+// Send SMS with fallback providers
+async function sendSMS(phone: string, otp: string): Promise<{ sent: boolean; provider: string }> {
+  // Try Fast2SMS first (primary for Indian numbers)
+  console.log('Attempting to send SMS via Fast2SMS...');
+  const fast2smsResult = await sendSMSViaFast2SMS(phone, otp);
+  if (fast2smsResult) {
+    return { sent: true, provider: 'Fast2SMS' };
+  }
+
+  // Fallback to Twilio
+  console.log('Fast2SMS failed, attempting Twilio fallback...');
+  const twilioResult = await sendSMSViaTwilio(phone, otp);
+  if (twilioResult) {
+    return { sent: true, provider: 'Twilio' };
+  }
+
+  console.error('All SMS providers failed');
+  return { sent: false, provider: 'none' };
 }
 
 serve(async (req) => {
@@ -215,18 +279,9 @@ serve(async (req) => {
       );
     }
 
-    // Send SMS via Fast2SMS
-    let smsSent = false;
-    if (FAST2SMS_API_KEY) {
-      try {
-        smsSent = await sendSMSViaFast2SMS(phone, otp);
-        console.log(`SMS send result via Fast2SMS: ${smsSent}`);
-      } catch (smsError) {
-        console.error('Fast2SMS error:', smsError);
-      }
-    } else {
-      console.log('Fast2SMS API key not configured');
-    }
+    // Send SMS with fallback providers
+    const { sent: smsSent, provider } = await sendSMS(phone, otp);
+    console.log(`SMS send result: ${smsSent} via ${provider}`);
 
     // Cleanup old rate limit records (older than 1 hour)
     const cleanupCutoff = new Date(Date.now() - 60 * 60 * 1000).toISOString();
@@ -235,9 +290,9 @@ serve(async (req) => {
       .delete()
       .lt('attempted_at', cleanupCutoff);
 
-    // If SMS failed, return error - don't expose OTP
+    // If SMS failed, return error
     if (!smsSent) {
-      console.error(`SMS sending failed for ${phone}`);
+      console.error(`All SMS providers failed for ${phone}`);
       return new Response(
         JSON.stringify({ 
           success: false, 
