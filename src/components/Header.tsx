@@ -108,7 +108,7 @@ const Header = () => {
       }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled 
-          ? 'bg-background/90 backdrop-blur-xl border-b border-border/50 shadow-sm' 
+          ? 'bg-gradient-to-r from-background/95 via-background/90 to-background/95 backdrop-blur-xl border-b border-border/50 shadow-sm' 
           : 'bg-transparent'
       }`}
     >
