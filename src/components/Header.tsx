@@ -361,7 +361,11 @@ const Header = () => {
       </div>
       
       {/* Search Modal */}
-      <SearchModal isOpen={showSearchModal} onClose={() => setShowSearchModal(false)} />
+      <SearchModal 
+        isOpen={showSearchModal} 
+        onClose={() => setShowSearchModal(false)} 
+        onOpenLocationPicker={() => setShowSuggestions(true)}
+      />
     </motion.header>
   );
 };
