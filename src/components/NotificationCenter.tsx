@@ -140,8 +140,12 @@ const NotificationCenter = () => {
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
-        <button className="relative flex h-10 w-10 items-center justify-center rounded-full bg-muted/60 ring-1 ring-border/50 hover:bg-muted transition-colors">
-          <Bell className="h-[18px] w-[18px] text-foreground" strokeWidth={1.75} />
+        <motion.button 
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="relative flex h-10 w-10 items-center justify-center rounded-full bg-muted/60 ring-1 ring-border/50 hover:bg-muted hover:ring-primary/30 transition-all duration-200"
+        >
+          <Bell className="h-[18px] w-[18px] text-foreground transition-colors group-hover:text-primary" strokeWidth={1.75} />
           {unreadCount > 0 && (
             <motion.span
               initial={{ scale: 0 }}
@@ -151,7 +155,7 @@ const NotificationCenter = () => {
               {unreadCount > 9 ? "9+" : unreadCount}
             </motion.span>
           )}
-        </button>
+        </motion.button>
       </SheetTrigger>
 
       <SheetContent className="flex w-full flex-col p-0 sm:max-w-md">
