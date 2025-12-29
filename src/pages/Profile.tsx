@@ -17,6 +17,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import BottomNav from '@/components/BottomNav';
 import ImageCropDialog from '@/components/ImageCropDialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+
 interface Profile {
   id: string;
   user_id: string;
@@ -24,6 +33,7 @@ interface Profile {
   phone: string | null;
   email: string | null;
   avatar_url: string | null;
+  email_verified: boolean | null;
 }
 
 const Profile = () => {
@@ -46,6 +56,14 @@ const Profile = () => {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [emailVerified, setEmailVerified] = useState(false);
+  
+  // Email verification states
+  const [showEmailVerifyDialog, setShowEmailVerifyDialog] = useState(false);
+  const [emailOtp, setEmailOtp] = useState('');
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -71,11 +89,12 @@ const Profile = () => {
     if (error) {
       console.error('Error fetching profile:', error);
     } else if (data) {
-      setProfile(data);
+      setProfile(data as Profile);
       setFullName(data.full_name || '');
       setPhone(data.phone || '');
       setEmail(data.email || user.email || '');
       setAvatarUrl(data.avatar_url);
+      setEmailVerified((data as Profile).email_verified || false);
     } else {
       setEmail(user.email || '');
     }
@@ -202,6 +221,88 @@ const Profile = () => {
     navigate('/');
   };
 
+  const handleSendEmailOtp = async () => {
+    if (!user || !email) return;
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast({
+        title: 'Invalid email',
+        description: 'Please enter a valid email address.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    setIsSendingOtp(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('send-email-otp', {
+        body: { user_id: user.id, email }
+      });
+      
+      if (error) throw error;
+      
+      setOtpSent(true);
+      toast({
+        title: 'OTP Sent',
+        description: `Verification code sent to ${email}`,
+      });
+    } catch (error: any) {
+      console.error('Failed to send OTP:', error);
+      toast({
+        title: 'Failed to send OTP',
+        description: error.message || 'Please try again later.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const handleVerifyEmailOtp = async () => {
+    if (!user || !email || emailOtp.length !== 6) return;
+    
+    setIsVerifyingOtp(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('verify-email-otp', {
+        body: { user_id: user.id, email, otp: emailOtp }
+      });
+      
+      if (error) throw error;
+      
+      setEmailVerified(true);
+      setShowEmailVerifyDialog(false);
+      setEmailOtp('');
+      setOtpSent(false);
+      
+      toast({
+        title: 'Email Verified',
+        description: 'Your email has been verified successfully!',
+      });
+      
+      // Refresh profile
+      fetchProfile();
+    } catch (error: any) {
+      console.error('Failed to verify OTP:', error);
+      toast({
+        title: 'Verification Failed',
+        description: error.message || 'Invalid or expired OTP.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
+
+  const openEmailVerifyDialog = () => {
+    setEmailOtp('');
+    setOtpSent(false);
+    setShowEmailVerifyDialog(true);
+  };
+
   const initials = fullName
     ? fullName.split(' ').map(n => n[0]).join('').toUpperCase()
     : user?.email?.charAt(0).toUpperCase() || 'U';
@@ -324,15 +425,40 @@ const Profile = () => {
                 <Label htmlFor="email" className="text-sm font-medium text-foreground flex items-center gap-2">
                   <Mail className="w-4 h-4 text-primary" />
                   Email Address
+                  {emailVerified && (
+                    <span className="ml-auto flex items-center gap-1 text-xs text-green-600 font-normal">
+                      <CheckCircle2 className="w-3 h-3" />
+                      Verified
+                    </span>
+                  )}
                 </Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  value={email} 
-                  onChange={(e) => setEmail(e.target.value)} 
-                  placeholder="your@email.com"
-                  className="h-12 text-base bg-muted/30 border-border/50 focus:border-primary focus:ring-primary/20"
-                />
+                <div className="flex gap-2">
+                  <Input 
+                    id="email" 
+                    type="email" 
+                    value={email} 
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      // Reset verification status if email changes
+                      if (e.target.value !== profile?.email) {
+                        setEmailVerified(false);
+                      }
+                    }} 
+                    placeholder="your@email.com"
+                    className="h-12 text-base bg-muted/30 border-border/50 focus:border-primary focus:ring-primary/20 flex-1"
+                  />
+                  {email && !emailVerified && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={openEmailVerifyDialog}
+                      className="h-12 px-4 text-primary border-primary/30 hover:bg-primary/5"
+                    >
+                      Verify
+                    </Button>
+                  )}
+                </div>
                 <p className="text-xs text-muted-foreground pl-1">Used for booking confirmations & receipts</p>
               </div>
               
@@ -387,23 +513,34 @@ const Profile = () => {
             </div>
 
             {/* Verification Badges */}
-            <div className="flex items-center justify-center gap-2 mb-4">
+            <div className="flex items-center justify-center gap-2 mb-4 flex-wrap">
               {phone ? (
                 <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-green-500/10 text-green-600 text-xs font-medium">
                   <CheckCircle2 className="w-3 h-3" />
                   Phone Verified
                 </div>
               ) : (
-                <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-muted-foreground text-xs font-medium">
+                <button 
+                  onClick={() => setIsEditing(true)}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-muted-foreground text-xs font-medium hover:bg-muted/80 transition-colors cursor-pointer"
+                >
                   <AlertCircle className="w-3 h-3" />
                   Phone Not Added
-                </div>
+                </button>
               )}
-              {email ? (
+              {email && emailVerified ? (
                 <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-green-500/10 text-green-600 text-xs font-medium">
                   <CheckCircle2 className="w-3 h-3" />
-                  Email Added
+                  Email Verified
                 </div>
+              ) : email ? (
+                <button 
+                  onClick={openEmailVerifyDialog}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 text-xs font-medium hover:bg-amber-500/20 transition-colors cursor-pointer"
+                >
+                  <AlertCircle className="w-3 h-3" />
+                  Verify Email
+                </button>
               ) : (
                 <button 
                   onClick={() => setIsEditing(true)}
@@ -507,6 +644,98 @@ const Profile = () => {
       </div>
 
       <BottomNav />
+
+      {/* Email Verification Dialog */}
+      <Dialog open={showEmailVerifyDialog} onOpenChange={setShowEmailVerifyDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center font-display text-xl">Verify Email</DialogTitle>
+            <DialogDescription className="text-center">
+              {otpSent 
+                ? `Enter the 6-digit code sent to ${email}`
+                : `We'll send a verification code to ${email}`
+              }
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6 py-4">
+            {!otpSent ? (
+              <div className="text-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Mail className="w-8 h-8 text-primary" />
+                </div>
+                <p className="text-sm text-muted-foreground mb-6">
+                  Click the button below to receive a verification code at your email address.
+                </p>
+                <Button 
+                  onClick={handleSendEmailOtp} 
+                  disabled={isSendingOtp}
+                  className="w-full gap-2"
+                >
+                  {isSendingOtp ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="w-4 h-4" />
+                      Send Verification Code
+                    </>
+                  )}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="flex justify-center">
+                  <InputOTP
+                    maxLength={6}
+                    value={emailOtp}
+                    onChange={(value) => setEmailOtp(value)}
+                  >
+                    <InputOTPGroup>
+                      <InputOTPSlot index={0} />
+                      <InputOTPSlot index={1} />
+                      <InputOTPSlot index={2} />
+                      <InputOTPSlot index={3} />
+                      <InputOTPSlot index={4} />
+                      <InputOTPSlot index={5} />
+                    </InputOTPGroup>
+                  </InputOTP>
+                </div>
+                
+                <Button 
+                  onClick={handleVerifyEmailOtp} 
+                  disabled={isVerifyingOtp || emailOtp.length !== 6}
+                  className="w-full gap-2"
+                >
+                  {isVerifyingOtp ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Verifying...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      Verify Email
+                    </>
+                  )}
+                </Button>
+                
+                <div className="text-center">
+                  <button
+                    onClick={handleSendEmailOtp}
+                    disabled={isSendingOtp}
+                    className="text-sm text-primary hover:underline disabled:opacity-50"
+                  >
+                    {isSendingOtp ? 'Sending...' : 'Resend Code'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
