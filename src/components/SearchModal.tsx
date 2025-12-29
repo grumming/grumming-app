@@ -10,9 +10,10 @@ import { useLocation } from "@/contexts/LocationContext";
 interface SearchModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenLocationPicker?: () => void;
 }
 
-const SearchModal = ({ isOpen, onClose }: SearchModalProps) => {
+const SearchModal = ({ isOpen, onClose, onOpenLocationPicker }: SearchModalProps) => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [salonResults, setSalonResults] = useState<SalonBasic[]>([]);
@@ -319,11 +320,23 @@ const SearchModal = ({ isOpen, onClose }: SearchModalProps) => {
               {showNoNearbySalons && (
                 <div className="px-4 py-8 text-center">
                   <MapPin className="w-10 h-10 text-muted-foreground/50 mx-auto mb-3" />
-                  <p className="text-foreground font-medium mb-1">No salons in {selectedCity} yet</p>
+                  <p className="text-foreground font-medium mb-1">No salons in {selectedCity?.split(',')[0]} yet</p>
                   <p className="text-muted-foreground text-sm mb-4">
                     We're expanding! Try changing your location or browse all salons.
                   </p>
                   <div className="flex flex-col gap-2">
+                    {onOpenLocationPicker && (
+                      <button
+                        onClick={() => {
+                          onClose();
+                          onOpenLocationPicker();
+                        }}
+                        className="px-4 py-2 bg-muted text-foreground rounded-lg text-sm font-medium hover:bg-muted/80 transition-colors flex items-center justify-center gap-2"
+                      >
+                        <MapPin className="w-4 h-4" />
+                        Change Location
+                      </button>
+                    )}
                     <button
                       onClick={() => {
                         onClose();
