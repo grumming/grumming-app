@@ -1,15 +1,17 @@
 import { motion } from "framer-motion";
-import { MapPin, Locate, Loader2, ChevronDown, Search } from "lucide-react";
+import { MapPin, Locate, Loader2, ChevronDown, Search, Clock } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import UserMenu from "@/components/UserMenu";
 import NotificationCenter from "@/components/NotificationCenter";
 import SearchModal from "@/components/SearchModal";
 import { useLocation } from "@/contexts/LocationContext";
 import { getGroupedFilteredCities, popularCities, GroupedCitySuggestion } from "@/data/indianCities";
+import { useRecentCities } from "@/hooks/useRecentCities";
 
 const Header = () => {
   const [showSearchModal, setShowSearchModal] = useState(false);
   const { selectedCity, setSelectedCity, isDetecting, detectLocation } = useLocation();
+  const { recentCities, addRecentCity } = useRecentCities();
   const [locationInput, setLocationInput] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [groupedSuggestions, setGroupedSuggestions] = useState<GroupedCitySuggestion[]>([]);
@@ -59,10 +61,18 @@ const Header = () => {
     const fullCity = `${city}, ${state}`;
     setLocationInput(fullCity);
     setSelectedCity(fullCity);
+    addRecentCity(fullCity);
     setShowSuggestions(false);
   };
 
   const handleSelectPopularCity = (city: string) => {
+    setLocationInput(city);
+    setSelectedCity(city);
+    addRecentCity(city);
+    setShowSuggestions(false);
+  };
+
+  const handleSelectRecentCity = (city: string) => {
     setLocationInput(city);
     setSelectedCity(city);
     setShowSuggestions(false);
@@ -124,9 +134,37 @@ const Header = () => {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
-              className="fixed left-4 top-[4.5rem] bg-background border border-border rounded-xl shadow-2xl z-[200] max-h-80 overflow-y-auto min-w-64 w-72"
+              className="fixed left-4 top-[4.5rem] bg-card border border-border rounded-xl shadow-2xl z-[200] max-h-80 overflow-y-auto min-w-64 w-72"
             >
               <div className="p-2">
+                {/* Recent Cities */}
+                {recentCities.length > 0 && showPopular && (
+                  <div className="mb-3">
+                    <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                      <Clock className="w-3 h-3" />
+                      Recent
+                    </div>
+                    <div className="space-y-0.5">
+                      {recentCities.slice(0, 3).map((city, index) => (
+                        <motion.button
+                          key={city}
+                          initial={{ opacity: 0, x: -5 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.15, delay: index * 0.03 }}
+                          onClick={() => handleSelectRecentCity(city)}
+                          className="w-full px-3 py-2 text-left hover:bg-primary/10 rounded-lg transition-all duration-200 flex items-center gap-2 text-xs group"
+                        >
+                          <Clock className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                          <span className="text-foreground font-medium group-hover:text-primary transition-colors truncate">
+                            {city.split(',')[0]}
+                          </span>
+                        </motion.button>
+                      ))}
+                    </div>
+                    <div className="border-b border-border my-2" />
+                  </div>
+                )}
+
                 {showPopular ? (
                   <>
                     <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
