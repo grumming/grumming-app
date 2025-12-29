@@ -352,22 +352,28 @@ const Profile = () => {
         {isEditing ? (
           <div className="p-5 space-y-5">
             {/* Header */}
-            <div className="flex items-center justify-between">
-              <h2 className="font-display text-lg font-semibold text-foreground">Edit Profile</h2>
-              <div className="flex gap-2">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+            <div className="flex items-center justify-between pb-2 border-b border-border/50">
+              <div className="flex items-center gap-3">
+                <button 
                   onClick={() => setIsEditing(false)}
-                  className="text-muted-foreground hover:text-foreground"
+                  className="p-2 -ml-2 rounded-full hover:bg-muted/80 transition-colors"
+                >
+                  <ArrowLeft className="w-5 h-5 text-foreground" />
+                </button>
+                <h2 className="font-display text-xl font-bold text-foreground">Edit Profile</h2>
+              </div>
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => setIsEditing(false)}
+                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5"
                 >
                   Cancel
-                </Button>
+                </button>
                 <Button 
                   size="sm" 
                   onClick={handleSaveProfile} 
                   disabled={isSaving}
-                  className="gap-2"
+                  className="gap-2 rounded-full px-5 shadow-md"
                 >
                   {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   Save
