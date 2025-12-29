@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   ArrowLeft, User, Mail, Phone, Calendar, Edit2, Save, X, Loader2, Camera, 
-  Bell, ChevronRight, Gift, Settings, LogOut, CreditCard, HelpCircle, Shield, Star, Wallet, Ticket, MapPin, Heart
+  Bell, ChevronRight, Gift, Settings, LogOut, CreditCard, HelpCircle, Shield, Star, Wallet, Ticket, MapPin, Heart,
+  CheckCircle2, AlertCircle
 } from 'lucide-react';
 import { useWallet } from '@/hooks/useWallet';
 import { Button } from '@/components/ui/button';
@@ -321,7 +322,7 @@ const Profile = () => {
               {fullName || 'Guest User'}
             </h2>
             
-            <div className="flex flex-col gap-1 text-sm text-muted-foreground mb-4">
+            <div className="flex flex-col gap-1 text-sm text-muted-foreground mb-3">
               {email && (
                 <span className="flex items-center justify-center gap-1.5">
                   <Mail className="w-3.5 h-3.5" />
@@ -333,6 +334,32 @@ const Profile = () => {
                   <Phone className="w-3.5 h-3.5" />
                   {phone}
                 </span>
+              )}
+            </div>
+
+            {/* Verification Badges */}
+            <div className="flex items-center justify-center gap-2 mb-4">
+              {phone ? (
+                <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-green-500/10 text-green-600 text-xs font-medium">
+                  <CheckCircle2 className="w-3 h-3" />
+                  Phone Verified
+                </div>
+              ) : (
+                <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-muted-foreground text-xs font-medium">
+                  <AlertCircle className="w-3 h-3" />
+                  Phone Not Added
+                </div>
+              )}
+              {email ? (
+                <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-green-500/10 text-green-600 text-xs font-medium">
+                  <CheckCircle2 className="w-3 h-3" />
+                  Email Added
+                </div>
+              ) : (
+                <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 text-xs font-medium">
+                  <AlertCircle className="w-3 h-3" />
+                  Add Email
+                </div>
               )}
             </div>
             
