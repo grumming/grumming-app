@@ -120,38 +120,30 @@ const Header = () => {
         
         {/* Location Selector */}
         <div ref={locationInputRef} className="relative">
-          <div 
-            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-muted/50 rounded-full border border-border/50 cursor-pointer hover:bg-muted/70 transition-colors"
+          <button 
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-muted/40 rounded-full border border-border/40 cursor-pointer hover:bg-muted/60 transition-colors"
             onClick={() => setShowSuggestions(true)}
           >
             <MapPin className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-            <input
-              type="text"
-              value={locationInput.split(',')[0]}
-              onChange={handleLocationChange}
-              onFocus={() => setShowSuggestions(true)}
-              placeholder="City"
-              className="bg-transparent outline-none w-20 sm:w-24 text-xs text-foreground placeholder:text-muted-foreground font-medium"
-            />
+            <span className="text-xs text-foreground font-medium max-w-20 truncate">
+              {locationInput.split(',')[0] || 'Location'}
+            </span>
             <ChevronDown 
               className={`w-3 h-3 text-muted-foreground transition-transform duration-200 ${showSuggestions ? 'rotate-180' : ''}`} 
             />
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDetectLocation();
-              }}
-              disabled={isDetecting}
-              className="p-0.5 rounded-full hover:bg-muted transition-colors disabled:opacity-50 flex-shrink-0"
-              title="Detect my location"
-            >
-              {isDetecting ? (
-                <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />
-              ) : (
-                <Locate className="w-3.5 h-3.5 text-primary" />
-              )}
-            </button>
-          </div>
+          </button>
+          
+          {/* Hidden input for search within dropdown */}
+          {showSuggestions && (
+            <input
+              type="text"
+              value={locationInput}
+              onChange={handleLocationChange}
+              autoFocus
+              placeholder="Search city..."
+              className="absolute top-12 left-0 w-64 px-3 py-2 bg-card border border-border rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary/20 z-[201]"
+            />
+          )}
           
           {/* City Suggestions Dropdown */}
           {showSuggestions && (
@@ -160,8 +152,24 @@ const Header = () => {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
-              className="fixed left-4 top-[4.5rem] bg-card border border-border rounded-xl shadow-2xl z-[200] max-h-80 overflow-y-auto min-w-64 w-72"
+              className="fixed left-4 top-[6.5rem] bg-card border border-border rounded-xl shadow-2xl z-[200] max-h-64 overflow-y-auto min-w-64 w-72"
             >
+              {/* Detect Location Button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDetectLocation();
+                }}
+                disabled={isDetecting}
+                className="w-full px-3 py-2.5 flex items-center gap-2 text-sm text-primary hover:bg-primary/10 transition-colors border-b border-border"
+              >
+                {isDetecting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Locate className="w-4 h-4" />
+                )}
+                <span className="font-medium">Detect my location</span>
+              </button>
               <div className="p-2">
                 {/* Recent Cities */}
                 {recentCities.length > 0 && showPopular && (
