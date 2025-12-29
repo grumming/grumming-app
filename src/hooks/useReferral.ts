@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -6,6 +6,12 @@ import { useAuth } from './useAuth';
 export const useReferral = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const userIdRef = useRef(user?.id);
+
+  // Keep ref in sync
+  useEffect(() => {
+    userIdRef.current = user?.id;
+  }, [user?.id]);
 
   // Set up realtime subscription for referrals
   useEffect(() => {
@@ -24,10 +30,14 @@ export const useReferral = () => {
         },
         (payload) => {
           console.log('Realtime referral update:', payload);
-          // Invalidate queries to refetch data
-          queryClient.invalidateQueries({ queryKey: ['referrals', user.id] });
-          queryClient.invalidateQueries({ queryKey: ['userReward', user.id] });
-          queryClient.invalidateQueries({ queryKey: ['referralLeaderboard'] });
+          const userId = userIdRef.current;
+          if (!userId) return;
+          // Use setTimeout to defer invalidation outside React's render phase
+          setTimeout(() => {
+            queryClient.invalidateQueries({ queryKey: ['referrals', userId] });
+            queryClient.invalidateQueries({ queryKey: ['userReward', userId] });
+            queryClient.invalidateQueries({ queryKey: ['referralLeaderboard'] });
+          }, 0);
         }
       )
       .subscribe((status) => {
