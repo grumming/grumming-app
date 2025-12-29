@@ -54,13 +54,12 @@ const UserMenu = () => {
   if (!user) {
     return (
       <Button
-        variant="outline"
+        variant="ghost"
         size="sm"
         onClick={() => navigate('/auth')}
-        className="gap-2"
+        className="h-8 px-3 text-xs font-medium"
       >
-        <User className="w-4 h-4" />
-        <span className="hidden sm:inline">Sign In</span>
+        Sign In
       </Button>
     );
   }
@@ -73,10 +72,10 @@ const UserMenu = () => {
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-          <Avatar className="h-9 w-9">
+        <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0">
+          <Avatar className="h-8 w-8 border border-border/50">
             <AvatarImage src={avatarUrl || undefined} alt={displayName || 'User'} />
-            <AvatarFallback className="bg-gradient-primary text-primary-foreground font-medium">
+            <AvatarFallback className="bg-gradient-primary text-primary-foreground text-xs font-medium">
               {initials}
             </AvatarFallback>
           </Avatar>
