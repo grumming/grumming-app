@@ -9,6 +9,7 @@ import { LocationProvider } from "@/contexts/LocationContext";
 import { FavoritesProvider } from "@/contexts/FavoritesContext";
 import { PushNotificationSetup } from "@/components/PushNotificationSetup";
 import { ReferralRewardListener } from "@/components/ReferralRewardListener";
+import { DeepLinkHandler } from "@/components/DeepLinkHandler";
 
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -69,6 +70,7 @@ const App = () => {
               <Sonner />
               <BrowserRouter>
                 <ReferralRewardListener />
+                <DeepLinkHandler />
                 
                 <Routes>
                   <Route path="/" element={<Index />} />
