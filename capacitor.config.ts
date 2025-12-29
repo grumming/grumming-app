@@ -22,13 +22,18 @@ const config: CapacitorConfig = {
       launchShowDuration: 2000,
       launchAutoHide: true,
       launchFadeOutDuration: 500,
-      backgroundColor: '#1a1a2e',
+      backgroundColor: '#FFF8F5',
       androidSplashResourceName: 'splash',
       androidScaleType: 'CENTER_CROP',
+      iosSpinnerStyle: 'small',
       showSpinner: false,
       splashFullScreen: true,
       splashImmersive: true
     }
+  },
+  ios: {
+    contentInset: 'automatic',
+    preferredContentMode: 'mobile'
   }
 };
 
