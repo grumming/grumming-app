@@ -21,13 +21,13 @@ const SearchModal = ({ isOpen, onClose }: SearchModalProps) => {
   const { recentSearches, addRecentSearch, clearRecentSearches, searchHistory, addSearchQuery, clearSearchHistory } = useRecentSearches();
   const { selectedCity } = useLocation();
 
-  // Get nearby/popular salons based on selected city
+  // Get nearby/popular salons based on selected city - ONLY show city salons
   const nearbySalons = useMemo(() => {
-    if (!selectedCity) return allSalonsList.slice(0, 5);
+    if (!selectedCity) return [];
     const citySalons = allSalonsList.filter(
       (salon) => salon.city.toLowerCase() === selectedCity.toLowerCase()
     );
-    return citySalons.length > 0 ? citySalons.slice(0, 5) : allSalonsList.slice(0, 5);
+    return citySalons.slice(0, 5);
   }, [selectedCity]);
 
   useEffect(() => {
