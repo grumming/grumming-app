@@ -96,9 +96,9 @@ const NotificationSettings = () => {
         <div className="flex items-center gap-3">
           <button 
             onClick={() => navigate(-1)} 
-            className="p-2 rounded-full bg-background/20 backdrop-blur-sm hover:bg-background/30 transition-colors"
+            className="p-2.5 rounded-full bg-background shadow-md hover:bg-background/90 transition-colors"
           >
-            <ArrowLeft className="w-5 h-5 text-primary-foreground" />
+            <ArrowLeft className="w-5 h-5 text-primary" />
           </button>
           <h1 className="font-display text-xl font-bold text-primary-foreground">Notification Settings</h1>
         </div>
