@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -35,6 +35,27 @@ import NotFound from "./pages/NotFound";
 
 const App = () => {
   const [queryClient] = useState(() => new QueryClient());
+
+  useEffect(() => {
+    const handler = (event: PromiseRejectionEvent) => {
+      const reason: any = event.reason;
+      const message =
+        typeof reason === "string" ? reason : (reason?.message as string | undefined);
+      const stack =
+        typeof reason === "object" && reason ? (reason?.stack as string | undefined) : undefined;
+
+      const isMetaMask =
+        (message && message.includes("Failed to connect to MetaMask")) ||
+        (stack && stack.includes("nkbihfbeogaeaoehlefnkodbefgpgknn"));
+
+      if (isMetaMask) {
+        event.preventDefault();
+      }
+    };
+
+    window.addEventListener("unhandledrejection", handler);
+    return () => window.removeEventListener("unhandledrejection", handler);
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
