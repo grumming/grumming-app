@@ -12,6 +12,7 @@ import { motion } from 'framer-motion';
 import EmojiPicker from '@/components/chat/EmojiPicker';
 import MessageReactions from '@/components/chat/MessageReactions';
 import ChatImageUpload from '@/components/chat/ChatImageUpload';
+import ReadReceipt from '@/components/chat/ReadReceipt';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 
 // Typing indicator component
@@ -294,15 +295,25 @@ const Chat = () => {
                               {msg.content}
                             </p>
                           )}
-                          <p
-                            className={`text-xs mt-1 ${
-                              msg.sender_type === 'user'
-                                ? 'text-primary-foreground/70'
-                                : 'text-muted-foreground'
-                            }`}
-                          >
-                            {format(new Date(msg.created_at), 'h:mm a')}
-                          </p>
+                          <div className="flex items-center justify-between gap-2 mt-1">
+                            <p
+                              className={`text-xs ${
+                                msg.sender_type === 'user'
+                                  ? 'text-primary-foreground/70'
+                                  : 'text-muted-foreground'
+                              }`}
+                            >
+                              {format(new Date(msg.created_at), 'h:mm a')}
+                            </p>
+                          </div>
+                          {/* Read receipt for user messages */}
+                          {msg.sender_type === 'user' && (
+                            <ReadReceipt
+                              senderType={msg.sender_type}
+                              readAt={msg.read_at}
+                              createdAt={msg.created_at}
+                            />
+                          )}
                         </div>
                         
                         {/* Emoji reaction button */}

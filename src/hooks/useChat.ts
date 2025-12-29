@@ -24,6 +24,7 @@ interface Message {
   is_read: boolean;
   created_at: string;
   image_url?: string | null;
+  read_at?: string | null;
 }
 
 interface MessageReaction {
@@ -62,13 +63,13 @@ export const useChat = (conversationId?: string) => {
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'messages',
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
-          console.log('New message received:', payload);
+          console.log('Message update received:', payload);
           queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
           queryClient.invalidateQueries({ queryKey: ['unread-count'] });
         }
@@ -227,12 +228,26 @@ export const useChat = (conversationId?: string) => {
     },
   });
 
-  // Simulate salon auto-reply
-  const simulateSalonReply = async (convId: string) => {
+  // Simulate salon reading messages and auto-reply
+  const simulateSalonReadAndReply = async (convId: string, messageId: string) => {
+    // Simulate salon reading the message after 0.5-1 second
+    const readDelay = 500 + Math.random() * 500;
+    await new Promise(resolve => setTimeout(resolve, readDelay));
+    
+    // Mark the user's message as read by salon
+    await supabase
+      .from('messages')
+      .update({ read_at: new Date().toISOString() })
+      .eq('id', messageId);
+    
+    queryClient.invalidateQueries({ queryKey: ['messages', convId] });
+    
+    // Show typing indicator
     setIsTyping(true);
     
-    const delay = 1000 + Math.random() * 2000;
-    await new Promise(resolve => setTimeout(resolve, delay));
+    // Wait 1-2 more seconds before replying
+    const replyDelay = 1000 + Math.random() * 1000;
+    await new Promise(resolve => setTimeout(resolve, replyDelay));
     
     setIsTyping(false);
     
@@ -268,13 +283,13 @@ export const useChat = (conversationId?: string) => {
       if (error) throw error;
       return data as Message;
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       
-      // Only trigger auto-reply for text messages (not image-only)
+      // Trigger salon read receipt and auto-reply (demo feature)
       if (variables.content.trim()) {
-        simulateSalonReply(variables.conversationId);
+        simulateSalonReadAndReply(variables.conversationId, data.id);
       }
     },
     onError: (error) => {

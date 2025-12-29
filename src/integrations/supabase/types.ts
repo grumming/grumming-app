@@ -185,6 +185,7 @@ export type Database = {
           id: string
           image_url: string | null
           is_read: boolean
+          read_at: string | null
           sender_type: string
         }
         Insert: {
@@ -194,6 +195,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_read?: boolean
+          read_at?: string | null
           sender_type: string
         }
         Update: {
@@ -203,6 +205,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_read?: boolean
+          read_at?: string | null
           sender_type?: string
         }
         Relationships: [
