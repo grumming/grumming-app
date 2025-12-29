@@ -186,14 +186,14 @@ const Header = () => {
         </div>
         
         {/* Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {/* Search Button */}
           <button
             onClick={() => setShowSearchModal(true)}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-muted/60 ring-1 ring-border/50 hover:bg-muted transition-colors"
+            className="p-2 rounded-lg hover:bg-muted/70 transition-colors"
             title="Search salons"
           >
-            <Search className="h-[18px] w-[18px] text-foreground" strokeWidth={1.75} />
+            <Search className="w-5 h-5 text-foreground" />
           </button>
           
           <NotificationCenter />
