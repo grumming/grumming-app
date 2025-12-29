@@ -218,6 +218,39 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          app_updates: boolean
+          booking_confirmations: boolean
+          booking_reminders: boolean
+          created_at: string
+          id: string
+          promotions: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          app_updates?: boolean
+          booking_confirmations?: boolean
+          booking_reminders?: boolean
+          created_at?: string
+          id?: string
+          promotions?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          app_updates?: boolean
+          booking_confirmations?: boolean
+          booking_reminders?: boolean
+          created_at?: string
+          id?: string
+          promotions?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
