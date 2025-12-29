@@ -229,11 +229,11 @@ const Profile = () => {
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
-      <header className="bg-card border-b border-border px-4 py-3 sticky top-0 z-10">
+      <header className="bg-card/80 backdrop-blur-md border-b border-border px-4 py-3 sticky top-0 z-10">
         <div className="flex items-center gap-4">
           <button 
             onClick={() => navigate('/')} 
-            className="p-2 -ml-2 rounded-full hover:bg-muted transition-colors"
+            className="p-2 -ml-2 rounded-full bg-muted hover:bg-muted/80 transition-colors"
           >
             <ArrowLeft className="w-5 h-5 text-foreground" />
           </button>
@@ -245,10 +245,10 @@ const Profile = () => {
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-card border-b border-border p-4"
+        className="bg-gradient-to-b from-primary/5 to-transparent"
       >
         {isEditing ? (
-          <div className="space-y-4">
+          <div className="p-4 space-y-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-foreground">Edit Profile</h2>
               <div className="flex gap-2">
@@ -263,18 +263,18 @@ const Profile = () => {
             
             <div className="flex justify-center mb-4">
               <div className="relative">
-                <Avatar className="w-20 h-20">
+                <Avatar className="w-24 h-24 ring-4 ring-primary/20 ring-offset-2 ring-offset-background">
                   <AvatarImage src={avatarUrl || undefined} alt={fullName} />
-                  <AvatarFallback className="bg-gradient-primary text-primary-foreground text-xl font-bold">
+                  <AvatarFallback className="bg-gradient-primary text-primary-foreground text-2xl font-bold">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isUploadingAvatar}
-                  className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md"
+                  className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg border-2 border-background"
                 >
-                  {isUploadingAvatar ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
+                  {isUploadingAvatar ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
                 </button>
                 <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
               </div>
@@ -304,34 +304,47 @@ const Profile = () => {
             </div>
           </div>
         ) : (
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <Avatar className="w-16 h-16">
-                <AvatarImage src={avatarUrl || undefined} alt={fullName} />
-                <AvatarFallback className="bg-gradient-primary text-primary-foreground text-lg font-bold">
+          <div className="p-6 flex flex-col items-center text-center">
+            <div className="relative mb-4">
+              <Avatar className="w-24 h-24 ring-4 ring-primary/20 ring-offset-2 ring-offset-background shadow-xl">
+                <AvatarImage src={avatarUrl || undefined} alt={fullName} className="object-cover" />
+                <AvatarFallback className="bg-gradient-primary text-primary-foreground text-2xl font-bold">
                   {initials}
                 </AvatarFallback>
               </Avatar>
+              <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-green-500 border-2 border-background flex items-center justify-center">
+                <div className="w-2.5 h-2.5 rounded-full bg-white" />
+              </div>
             </div>
             
-            <div className="flex-1 min-w-0">
-              <h2 className="font-display text-lg font-semibold text-foreground truncate">
-                {fullName || 'Guest User'}
-              </h2>
-              <div className="flex flex-col gap-0.5 text-sm text-muted-foreground mt-0.5">
-                {email && <span className="truncate flex items-center gap-1"><Mail className="w-3 h-3" />{email}</span>}
-                {phone && <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{phone}</span>}
-              </div>
-              <button 
-                onClick={() => setIsEditing(true)}
-                className="text-primary text-sm font-medium mt-1 flex items-center gap-1"
-              >
-                <Edit2 className="w-3.5 h-3.5" />
-                Edit Profile
-              </button>
+            <h2 className="font-display text-xl font-bold text-foreground mb-1">
+              {fullName || 'Guest User'}
+            </h2>
+            
+            <div className="flex flex-col gap-1 text-sm text-muted-foreground mb-4">
+              {email && (
+                <span className="flex items-center justify-center gap-1.5">
+                  <Mail className="w-3.5 h-3.5" />
+                  {email}
+                </span>
+              )}
+              {phone && (
+                <span className="flex items-center justify-center gap-1.5">
+                  <Phone className="w-3.5 h-3.5" />
+                  {phone}
+                </span>
+              )}
             </div>
-
-            <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+            
+            <Button 
+              variant="outline"
+              size="sm"
+              onClick={() => setIsEditing(true)}
+              className="rounded-full px-5 gap-2 border-primary/30 text-primary hover:bg-primary/5"
+            >
+              <Edit2 className="w-3.5 h-3.5" />
+              Edit Profile
+            </Button>
           </div>
         )}
       </motion.div>
