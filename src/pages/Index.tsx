@@ -2,6 +2,7 @@ import Header from "@/components/Header";
 import FirstBookingBanner from "@/components/FirstBookingBanner";
 import CashbackBanner from "@/components/CashbackBanner";
 import FeaturedSalons from "@/components/FeaturedSalons";
+import TrendingStyles from "@/components/TrendingStyles";
 import BottomNav from "@/components/BottomNav";
 import WelcomeBanner from "@/components/WelcomeBanner";
 import Footer from "@/components/Footer";
@@ -18,6 +19,7 @@ const Index = () => {
         <WelcomeBanner />
         <FirstBookingBanner />
         <CashbackBanner />
+        <TrendingStyles />
         <FeaturedSalons />
         <Footer />
       </main>
