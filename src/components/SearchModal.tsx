@@ -116,8 +116,8 @@ const SearchModal = ({ isOpen, onClose, onOpenLocationPicker }: SearchModalProps
   const hasResults = salonResults.length > 0 || serviceResults.length > 0;
   const hasRecentSearches = searchQuery === '' && recentSearches.length > 0;
   const hasSearchHistory = searchQuery === '' && searchHistory.length > 0;
-  const showNearbySuggestions = searchQuery === '' && !hasRecentSearches && !hasSearchHistory && nearbySalons.length > 0;
-  const showNoNearbySalons = searchQuery === '' && !hasRecentSearches && !hasSearchHistory && nearbySalons.length === 0 && selectedCity;
+  const showNearbySuggestions = searchQuery === '' && nearbySalons.length > 0;
+  const showNoNearbySalons = searchQuery === '' && nearbySalons.length === 0 && selectedCity && !hasRecentSearches;
 
   const portalRoot = typeof document !== "undefined" ? document.body : null;
 
@@ -273,13 +273,17 @@ const SearchModal = ({ isOpen, onClose, onOpenLocationPicker }: SearchModalProps
                   </div>
                   {recentSearches.map((salon) => (
                     <button
-                      key={salon.id}
+                      key={`recent-${salon.id}`}
                       onClick={() => handleSelectSalon(salon)}
                       className="w-full px-4 py-3 text-left hover:bg-muted transition-colors flex items-center gap-3"
                     >
-                      <Clock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      <img 
+                        src={salon.image} 
+                        alt={salon.name}
+                        className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+                      />
                       <div>
-                        <p className="text-foreground font-medium">{salon.name}</p>
+                        <p className="text-sm font-semibold text-foreground">{salon.name}</p>
                         <p className="text-xs text-muted-foreground">{salon.location}, {salon.city}</p>
                       </div>
                     </button>
