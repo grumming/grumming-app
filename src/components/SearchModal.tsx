@@ -1,11 +1,12 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, Scissors, Clock, Sparkles, History, MapPin } from "lucide-react";
+import { Search, X, Scissors, Clock, Sparkles, History, MapPin, ChevronDown, Locate, Loader2 } from "lucide-react";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { getSearchResults, SalonBasic, ServiceResult, allSalonsList } from "@/data/salonsData";
 import { useRecentSearches } from "@/hooks/useRecentSearches";
 import { useLocation } from "@/contexts/LocationContext";
+import { popularCities } from "@/data/indianCities";
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -20,7 +21,9 @@ const SearchModal = ({ isOpen, onClose, onOpenLocationPicker }: SearchModalProps
   const [serviceResults, setServiceResults] = useState<ServiceResult[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const { recentSearches, addRecentSearch, clearRecentSearches, searchHistory, addSearchQuery, clearSearchHistory } = useRecentSearches();
-  const { selectedCity } = useLocation();
+  const { selectedCity, setSelectedCity, isDetecting, detectLocation } = useLocation();
+  const [showLocationDropdown, setShowLocationDropdown] = useState(false);
+  const locationDropdownRef = useRef<HTMLDivElement>(null);
 
   // Get nearby/popular salons based on selected city - ONLY show city salons
   const nearbySalons = useMemo(() => {
@@ -53,8 +56,32 @@ const SearchModal = ({ isOpen, onClose, onOpenLocationPicker }: SearchModalProps
       setSearchQuery("");
       setSalonResults([]);
       setServiceResults([]);
+      setShowLocationDropdown(false);
     }
   }, [isOpen]);
+
+  // Close location dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (locationDropdownRef.current && !locationDropdownRef.current.contains(event.target as Node)) {
+        setShowLocationDropdown(false);
+      }
+    };
+    if (showLocationDropdown) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showLocationDropdown]);
+
+  const handleSelectCity = (city: string) => {
+    setSelectedCity(city);
+    setShowLocationDropdown(false);
+  };
+
+  const handleDetectLocation = async () => {
+    await detectLocation({ forceFresh: true });
+    setShowLocationDropdown(false);
+  };
 
   const handleSelectSalon = (salon: SalonBasic) => {
     addRecentSearch(salon);
@@ -134,9 +161,71 @@ const SearchModal = ({ isOpen, onClose, onOpenLocationPicker }: SearchModalProps
                 <X className="w-5 h-5 text-muted-foreground" />
               </button>
             </div>
+
+            {/* Location Toggle */}
+            <div ref={locationDropdownRef} className="relative px-4 py-2 border-b border-border bg-muted/20">
+              <button
+                onClick={() => setShowLocationDropdown(!showLocationDropdown)}
+                className="flex items-center gap-2 text-sm hover:bg-muted px-2 py-1 rounded-lg transition-colors"
+              >
+                <MapPin className="w-3.5 h-3.5 text-primary" />
+                <span className="text-foreground font-medium max-w-40 truncate">
+                  {selectedCity?.split(',')[0] || 'Select location'}
+                </span>
+                <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform ${showLocationDropdown ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Location Dropdown */}
+              <AnimatePresence>
+                {showLocationDropdown && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute left-2 right-2 top-full mt-1 bg-card border border-border rounded-xl shadow-xl z-[310] max-h-64 overflow-y-auto"
+                  >
+                    {/* Detect Location */}
+                    <button
+                      onClick={handleDetectLocation}
+                      disabled={isDetecting}
+                      className="w-full px-3 py-2.5 flex items-center gap-2 text-sm text-primary hover:bg-primary/10 transition-colors border-b border-border"
+                    >
+                      {isDetecting ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Locate className="w-4 h-4" />
+                      )}
+                      <span className="font-medium">Detect my location</span>
+                    </button>
+
+                    {/* Popular Cities */}
+                    <div className="p-2">
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Popular Cities
+                      </div>
+                      <div className="grid grid-cols-2 gap-1">
+                        {popularCities.slice(0, 8).map((city) => (
+                          <button
+                            key={city}
+                            onClick={() => handleSelectCity(city)}
+                            className="px-2 py-1.5 text-left hover:bg-primary/10 rounded-lg transition-colors text-xs group flex items-center gap-1.5"
+                          >
+                            <MapPin className="w-3 h-3 text-primary flex-shrink-0" />
+                            <span className="text-foreground group-hover:text-primary transition-colors truncate">
+                              {city.split(',')[0]}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
             
             {/* Results */}
-            <div className="max-h-[60vh] overflow-y-auto">
+            <div className="max-h-[55vh] overflow-y-auto">
               {/* Search History */}
               {hasSearchHistory && (
                 <>
