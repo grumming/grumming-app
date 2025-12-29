@@ -570,25 +570,34 @@ const Profile = () => {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="p-4"
+        className="px-4 py-2"
       >
-        <div className="grid grid-cols-4 gap-3">
-          {quickActions.map((action) => (
-            <button
+        <div className="grid grid-cols-4 gap-2">
+          {quickActions.map((action, index) => (
+            <motion.button
               key={action.label}
               onClick={action.onClick}
-              className="flex flex-col items-center gap-2 p-3 rounded-xl bg-card border border-border hover:border-primary/30 transition-all active:scale-95 relative"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 + index * 0.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex flex-col items-center gap-2.5 py-4 px-2 rounded-2xl bg-card hover:bg-card/80 transition-all relative group"
             >
               {'badge' in action && action.badge && (
-                <span className="absolute -top-1 -right-1 text-[10px] font-bold bg-green-500 text-white px-1.5 py-0.5 rounded-full">
+                <span className="absolute top-2 right-2 text-[9px] font-bold bg-green-500 text-white px-1.5 py-0.5 rounded-full shadow-sm">
                   {action.badge}
                 </span>
               )}
-              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                <action.icon className={`w-5 h-5 ${action.color}`} />
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-105 ${
+                action.label === 'Wallet' ? 'bg-green-100' :
+                action.label === 'My Vouchers' ? 'bg-purple-100' :
+                action.label === 'My Bookings' ? 'bg-primary/10' :
+                'bg-accent/10'
+              }`}>
+                <action.icon className={`w-6 h-6 ${action.color}`} />
               </div>
               <span className="text-xs font-medium text-foreground text-center leading-tight">{action.label}</span>
-            </button>
+            </motion.button>
           ))}
         </div>
       </motion.div>
