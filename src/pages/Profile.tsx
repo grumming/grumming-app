@@ -356,10 +356,13 @@ const Profile = () => {
                   Email Added
                 </div>
               ) : (
-                <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 text-xs font-medium">
+                <button 
+                  onClick={() => setIsEditing(true)}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 text-xs font-medium hover:bg-amber-500/20 transition-colors cursor-pointer"
+                >
                   <AlertCircle className="w-3 h-3" />
                   Add Email
-                </div>
+                </button>
               )}
             </div>
             
