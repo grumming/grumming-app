@@ -135,23 +135,26 @@ const Header = () => {
           
           {/* Hidden input for search within dropdown */}
           {showSuggestions && (
-            <input
+            <motion.input
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
               type="text"
               value={locationInput}
               onChange={handleLocationChange}
               autoFocus
               placeholder="Search city..."
-              className="absolute top-12 left-0 w-64 px-3 py-2 bg-card border border-border rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary/20 z-[201]"
+              className="absolute top-12 left-0 w-64 px-3 py-2 bg-card border border-border rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary/20 z-[201] shadow-lg"
             />
           )}
           
           {/* City Suggestions Dropdown */}
           {showSuggestions && (
             <motion.div 
-              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+              initial={{ opacity: 0, y: -8, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
+              exit={{ opacity: 0, y: -8, scale: 0.96 }}
+              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
               className="fixed left-4 top-[6.5rem] bg-card border border-border rounded-xl shadow-2xl z-[200] max-h-64 overflow-y-auto min-w-64 w-72"
             >
               {/* Detect Location Button */}
