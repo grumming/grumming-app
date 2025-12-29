@@ -13,6 +13,7 @@ import { ReferralRewardListener } from "@/components/ReferralRewardListener";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
+import EditProfile from "./pages/EditProfile";
 import Settings from "./pages/Settings";
 import PrivacySecurity from "./pages/PrivacySecurity";
 import SalonDetail from "./pages/SalonDetail";
@@ -73,6 +74,7 @@ const App = () => {
                   <Route path="/" element={<Index />} />
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/profile" element={<Profile />} />
+                  <Route path="/edit-profile" element={<EditProfile />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/privacy-security" element={<PrivacySecurity />} />
                   <Route path="/salon/:id" element={<SalonDetail />} />
