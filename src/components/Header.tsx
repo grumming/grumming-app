@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { MapPin, Locate, Loader2, ChevronDown, Search, Clock, X } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
 import UserMenu from "@/components/UserMenu";
 import NotificationCenter from "@/components/NotificationCenter";
 import SearchModal from "@/components/SearchModal";
@@ -113,7 +114,9 @@ const Header = () => {
     >
       <div className="container mx-auto px-4 h-14 flex items-center gap-3">
         {/* Logo */}
-        <img src={logo} alt="Grumming" className="w-8 h-8 rounded-lg flex-shrink-0" />
+        <Link to="/" className="flex-shrink-0">
+          <img src={logo} alt="Grumming" className="w-8 h-8 rounded-lg" />
+        </Link>
         
         {/* Location Selector */}
         <div ref={locationInputRef} className="relative">
