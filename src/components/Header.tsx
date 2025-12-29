@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { MapPin, Locate, Loader2, ChevronDown, Search, Clock } from "lucide-react";
+import { MapPin, Locate, Loader2, ChevronDown, Search, Clock, X } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import UserMenu from "@/components/UserMenu";
 import NotificationCenter from "@/components/NotificationCenter";
@@ -11,7 +11,7 @@ import { useRecentCities } from "@/hooks/useRecentCities";
 const Header = () => {
   const [showSearchModal, setShowSearchModal] = useState(false);
   const { selectedCity, setSelectedCity, isDetecting, detectLocation } = useLocation();
-  const { recentCities, addRecentCity } = useRecentCities();
+  const { recentCities, addRecentCity, clearRecentCities } = useRecentCities();
   const [locationInput, setLocationInput] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [groupedSuggestions, setGroupedSuggestions] = useState<GroupedCitySuggestion[]>([]);
@@ -140,9 +140,21 @@ const Header = () => {
                 {/* Recent Cities */}
                 {recentCities.length > 0 && showPopular && (
                   <div className="mb-3">
-                    <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                      <Clock className="w-3 h-3" />
-                      Recent
+                    <div className="px-3 py-1.5 flex items-center justify-between">
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                        <Clock className="w-3 h-3" />
+                        Recent
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          clearRecentCities();
+                        }}
+                        className="text-xs text-muted-foreground hover:text-destructive transition-colors flex items-center gap-1"
+                      >
+                        <X className="w-3 h-3" />
+                        Clear
+                      </button>
                     </div>
                     <div className="space-y-0.5">
                       {recentCities.slice(0, 3).map((city, index) => (
