@@ -114,7 +114,7 @@ const Header = () => {
     >
       <div className="container mx-auto px-4 h-14 flex items-center gap-3">
         {/* Logo */}
-        <Link to="/" className="flex-shrink-0 hover-scale">
+        <Link to="/" className="flex-shrink-0 transition-all duration-300 hover:scale-105 hover:drop-shadow-[0_0_8px_hsl(var(--primary)/0.6)]">
           <img src={logo} alt="Grumming" className="w-8 h-8 rounded-lg" />
         </Link>
         
