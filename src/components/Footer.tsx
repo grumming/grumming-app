@@ -7,7 +7,7 @@ const Footer = () => {
   return (
     <footer className="bg-muted/30 border-t border-border">
       <div className="container mx-auto px-4 py-10">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Brand */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
@@ -19,33 +19,6 @@ const Footer = () => {
             <p className="text-sm text-muted-foreground">
               Book salon and spa appointments instantly. Discover top-rated beauty services near you.
             </p>
-          </div>
-
-          {/* Quick Links */}
-          <div className="space-y-4">
-            <h3 className="font-semibold text-foreground">Quick Links</h3>
-            <ul className="space-y-2">
-              <li>
-                <Link to="/" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                  Home
-                </Link>
-              </li>
-              <li>
-                <Link to="/search" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                  Find Salons
-                </Link>
-              </li>
-              <li>
-                <Link to="/my-bookings" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                  My Bookings
-                </Link>
-              </li>
-              <li>
-                <Link to="/referrals" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                  Refer & Earn
-                </Link>
-              </li>
-            </ul>
           </div>
 
           {/* Legal */}
