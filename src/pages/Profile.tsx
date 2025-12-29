@@ -583,18 +583,18 @@ const Profile = () => {
               whileTap={{ scale: 0.95 }}
               className="flex flex-col items-center gap-2.5 py-4 px-2 rounded-2xl bg-card hover:bg-card/80 transition-all relative group"
             >
-              {'badge' in action && action.badge && (
-                <span className="absolute top-2 right-2 text-[9px] font-bold bg-green-500 text-white px-1.5 py-0.5 rounded-full shadow-sm">
-                  {action.badge}
-                </span>
-              )}
-              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-105 ${
+              <div className={`relative w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-105 ${
                 action.label === 'Wallet' ? 'bg-green-100' :
                 action.label === 'My Vouchers' ? 'bg-purple-100' :
                 action.label === 'My Bookings' ? 'bg-primary/10' :
                 'bg-accent/10'
               }`}>
                 <action.icon className={`w-6 h-6 ${action.color}`} />
+                {'badge' in action && action.badge && (
+                  <span className="absolute -top-1 -right-1 text-[9px] font-bold bg-green-500 text-white px-1.5 py-0.5 rounded-full shadow-sm">
+                    {action.badge}
+                  </span>
+                )}
               </div>
               <span className="text-xs font-medium text-foreground text-center leading-tight">{action.label}</span>
             </motion.button>
