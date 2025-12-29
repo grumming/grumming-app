@@ -296,7 +296,7 @@ const EditProfile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary/5 via-background to-background">
+    <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-card/80 backdrop-blur-md border-b border-border px-4 py-3 sticky top-0 z-10">
         <div className="flex items-center justify-between">
@@ -320,36 +320,32 @@ const EditProfile = () => {
         </div>
       </header>
 
-      <div className="px-4 py-6 space-y-6">
-        {/* Avatar Section Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="bg-card rounded-2xl border border-border p-6 shadow-sm"
-        >
-          <div className="flex flex-col items-center">
-            <div className="relative mb-4">
-              {/* Decorative ring */}
-              <div className="absolute -inset-2 rounded-full bg-gradient-to-br from-primary/30 via-primary/10 to-accent/20 blur-sm" />
-              <Avatar className="relative w-28 h-28 ring-4 ring-primary/20 ring-offset-4 ring-offset-card shadow-xl">
-                <AvatarImage src={avatarUrl || undefined} alt={fullName} className="object-cover" />
-                <AvatarFallback className="bg-gradient-primary text-primary-foreground text-3xl font-bold">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploadingAvatar}
-                className="absolute bottom-0 right-0 w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg border-3 border-card hover:bg-primary/90 hover:scale-110 transition-all"
-              >
-                {isUploadingAvatar ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
-              </button>
-              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
-            </div>
-            <p className="text-sm text-muted-foreground">Tap the camera icon to change your photo</p>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="p-5 space-y-6"
+      >
+        {/* Avatar Section */}
+        <div className="flex justify-center py-4">
+          <div className="relative">
+            <Avatar className="w-32 h-32 ring-4 ring-primary/20 ring-offset-4 ring-offset-background shadow-xl">
+              <AvatarImage src={avatarUrl || undefined} alt={fullName} className="object-cover" />
+              <AvatarFallback className="bg-gradient-primary text-primary-foreground text-4xl font-bold">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploadingAvatar}
+              className="absolute bottom-1 right-1 w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg border-4 border-background hover:bg-primary/90 transition-colors"
+            >
+              {isUploadingAvatar ? <Loader2 className="w-5 h-5 animate-spin" /> : <Camera className="w-5 h-5" />}
+            </button>
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
           </div>
-        </motion.div>
+        </div>
+
+        <p className="text-center text-sm text-muted-foreground -mt-2">Tap the camera icon to change your photo</p>
 
         <ImageCropDialog
           open={cropDialogOpen}
@@ -359,22 +355,11 @@ const EditProfile = () => {
           aspectRatio={1}
         />
 
-        {/* Personal Information Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-          className="bg-card rounded-2xl border border-border p-5 shadow-sm space-y-5"
-        >
-          <div className="flex items-center gap-2 pb-2 border-b border-border/50">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <User className="w-4 h-4 text-primary" />
-            </div>
-            <h3 className="font-display font-semibold text-foreground">Personal Information</h3>
-          </div>
-          
+        {/* Form Fields */}
+        <div className="space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="fullName" className="text-sm font-medium text-muted-foreground">
+            <Label htmlFor="fullName" className="text-sm font-medium text-foreground flex items-center gap-2">
+              <User className="w-4 h-4 text-primary" />
               Full Name
             </Label>
             <Input 
@@ -382,37 +367,21 @@ const EditProfile = () => {
               value={fullName} 
               onChange={(e) => setFullName(e.target.value)} 
               placeholder="Enter your full name"
-              className="h-12 text-base bg-muted/30 border-border/50 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/10"
+              className="h-12 text-base bg-muted/30 border-border/50 focus:border-primary focus:ring-primary/20"
             />
-          </div>
-        </motion.div>
-
-        {/* Contact Information Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.2 }}
-          className="bg-card rounded-2xl border border-border p-5 shadow-sm space-y-5"
-        >
-          <div className="flex items-center gap-2 pb-2 border-b border-border/50">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Mail className="w-4 h-4 text-primary" />
-            </div>
-            <h3 className="font-display font-semibold text-foreground">Contact Information</h3>
           </div>
           
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="email" className="text-sm font-medium text-muted-foreground">
-                Email Address
-              </Label>
+            <Label htmlFor="email" className="text-sm font-medium text-foreground flex items-center gap-2">
+              <Mail className="w-4 h-4 text-primary" />
+              Email Address
               {emailVerified && (
-                <span className="flex items-center gap-1 text-xs text-green-600 font-medium bg-green-500/10 px-2 py-0.5 rounded-full">
+                <span className="ml-auto flex items-center gap-1 text-xs text-green-600 font-normal">
                   <CheckCircle2 className="w-3 h-3" />
                   Verified
                 </span>
               )}
-            </div>
+            </Label>
             <div className="flex gap-2">
               <Input 
                 id="email" 
@@ -425,63 +394,40 @@ const EditProfile = () => {
                   }
                 }} 
                 placeholder="your@email.com"
-                className="h-12 text-base bg-muted/30 border-border/50 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/10 flex-1"
+                className="h-12 text-base bg-muted/30 border-border/50 focus:border-primary focus:ring-primary/20 flex-1"
               />
               {email && !emailVerified && (
                 <Button
                   type="button"
                   variant="outline"
+                  size="sm"
                   onClick={openEmailVerifyDialog}
-                  className="h-12 px-4 rounded-xl text-primary border-primary/30 hover:bg-primary/5 font-medium"
+                  className="h-12 px-4 text-primary border-primary/30 hover:bg-primary/5"
                 >
                   Verify
                 </Button>
               )}
             </div>
-            <p className="text-xs text-muted-foreground">Used for booking confirmations & receipts</p>
+            <p className="text-xs text-muted-foreground pl-1">Used for booking confirmations & receipts</p>
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="phone" className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+            <Label htmlFor="phone" className="text-sm font-medium text-foreground flex items-center gap-2">
+              <Phone className="w-4 h-4 text-primary" />
               Phone Number
-              <span className="text-xs text-muted-foreground/60 font-normal">(cannot be changed)</span>
             </Label>
-            <div className="relative">
-              <Input 
-                id="phone" 
-                value={phone} 
-                onChange={(e) => setPhone(e.target.value)} 
-                placeholder="+91 98765 43210"
-                className="h-12 text-base bg-muted/50 border-border/30 rounded-xl text-muted-foreground cursor-not-allowed"
-                disabled
-              />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                <Phone className="w-4 h-4 text-muted-foreground/40" />
-              </div>
-            </div>
+            <Input 
+              id="phone" 
+              value={phone} 
+              onChange={(e) => setPhone(e.target.value)} 
+              placeholder="+91 98765 43210"
+              className="h-12 text-base bg-muted/30 border-border/50 focus:border-primary focus:ring-primary/20 bg-muted/50"
+              disabled
+            />
+            <p className="text-xs text-muted-foreground pl-1">Phone number cannot be changed</p>
           </div>
-        </motion.div>
-
-        {/* Tips Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.3 }}
-          className="bg-primary/5 rounded-2xl border border-primary/10 p-4"
-        >
-          <div className="flex gap-3">
-            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <CheckCircle2 className="w-4 h-4 text-primary" />
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-foreground mb-1">Keep your profile updated</h4>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                A complete profile helps us personalize your experience and ensures you receive important booking updates.
-              </p>
-            </div>
-          </div>
-        </motion.div>
-      </div>
+        </div>
+      </motion.div>
 
       {/* Email Verification Dialog */}
       <Dialog open={showEmailVerifyDialog} onOpenChange={setShowEmailVerifyDialog}>
