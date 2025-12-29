@@ -188,15 +188,13 @@ const Header = () => {
         {/* Actions */}
         <div className="flex items-center gap-2">
           {/* Search Button */}
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+          <button
             onClick={() => setShowSearchModal(true)}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-muted/60 ring-1 ring-border/50 hover:bg-muted hover:ring-primary/30 transition-all duration-200"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-muted/60 ring-1 ring-border/50 hover:bg-muted transition-colors"
             title="Search salons"
           >
             <Search className="h-[18px] w-[18px] text-foreground" strokeWidth={1.75} />
-          </motion.button>
+          </button>
           
           <NotificationCenter />
           <UserMenu />

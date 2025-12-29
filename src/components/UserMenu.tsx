@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { User, LogOut, Calendar, Settings, Gift, Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -74,18 +73,14 @@ const UserMenu = () => {
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
-        <motion.button 
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="relative flex h-10 w-10 items-center justify-center rounded-full ring-2 ring-primary/20 hover:ring-primary/50 transition-all duration-200 focus:outline-none focus-visible:ring-primary/60"
-        >
-          <Avatar className="h-10 w-10 ring-1 ring-border/30 transition-shadow hover:shadow-md">
+        <button className="relative flex h-10 w-10 items-center justify-center rounded-full ring-2 ring-primary/20 hover:ring-primary/40 transition-all focus:outline-none focus-visible:ring-primary/60">
+          <Avatar className="h-10 w-10 ring-1 ring-border/30">
             <AvatarImage src={avatarUrl || undefined} alt={displayName || 'User'} className="object-cover" />
             <AvatarFallback className="bg-gradient-primary text-primary-foreground font-semibold text-sm">
               {initials}
             </AvatarFallback>
           </Avatar>
-        </motion.button>
+        </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56 z-[100]" align="end" forceMount>
         <div className="flex items-center justify-start gap-2 p-2">
