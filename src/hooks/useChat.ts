@@ -13,6 +13,7 @@ interface Conversation {
   created_at: string;
   updated_at: string;
   last_message_at: string;
+  unread_count?: number;
 }
 
 interface Message {
@@ -24,10 +25,24 @@ interface Message {
   created_at: string;
 }
 
+// Salon auto-reply messages
+const salonAutoReplies = [
+  "Thank you for your message! We'll get back to you shortly.",
+  "Hi there! Your appointment details look great. See you soon!",
+  "Thanks for reaching out! Our team will respond within the hour.",
+  "We appreciate your patience. Is there anything specific you'd like to know?",
+  "Hello! We've received your message and will respond as soon as possible.",
+];
+
+const getRandomReply = () => {
+  return salonAutoReplies[Math.floor(Math.random() * salonAutoReplies.length)];
+};
+
 export const useChat = (conversationId?: string) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [isTyping, setIsTyping] = useState(false);
 
   // Subscribe to real-time messages
   useEffect(() => {
@@ -46,6 +61,7 @@ export const useChat = (conversationId?: string) => {
         (payload) => {
           console.log('New message received:', payload);
           queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+          queryClient.invalidateQueries({ queryKey: ['unread-count'] });
         }
       )
       .subscribe();
@@ -55,7 +71,30 @@ export const useChat = (conversationId?: string) => {
     };
   }, [conversationId, queryClient]);
 
-  // Fetch all conversations
+  // Fetch total unread count
+  const { data: totalUnreadCount = 0 } = useQuery({
+    queryKey: ['unread-count'],
+    queryFn: async () => {
+      if (!user) return 0;
+
+      const { data, error } = await supabase
+        .from('messages')
+        .select('id, conversation_id, conversations!inner(user_id)')
+        .eq('sender_type', 'salon')
+        .eq('is_read', false)
+        .eq('conversations.user_id', user.id);
+
+      if (error) {
+        console.error('Error fetching unread count:', error);
+        return 0;
+      }
+      return data?.length || 0;
+    },
+    enabled: !!user,
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
+
+  // Fetch all conversations with unread counts
   const { data: conversations = [], isLoading: conversationsLoading } = useQuery({
     queryKey: ['conversations'],
     queryFn: async () => {
@@ -68,7 +107,22 @@ export const useChat = (conversationId?: string) => {
         .order('last_message_at', { ascending: false });
 
       if (error) throw error;
-      return data as Conversation[];
+
+      // Fetch unread counts for each conversation
+      const conversationsWithUnread = await Promise.all(
+        (data as Conversation[]).map(async (conv) => {
+          const { count } = await supabase
+            .from('messages')
+            .select('*', { count: 'exact', head: true })
+            .eq('conversation_id', conv.id)
+            .eq('sender_type', 'salon')
+            .eq('is_read', false);
+
+          return { ...conv, unread_count: count || 0 };
+        })
+      );
+
+      return conversationsWithUnread;
     },
     enabled: !!user,
   });
@@ -133,6 +187,31 @@ export const useChat = (conversationId?: string) => {
     },
   });
 
+  // Simulate salon auto-reply
+  const simulateSalonReply = async (convId: string) => {
+    // Show typing indicator
+    setIsTyping(true);
+    
+    // Wait 1-3 seconds before replying
+    const delay = 1000 + Math.random() * 2000;
+    await new Promise(resolve => setTimeout(resolve, delay));
+    
+    setIsTyping(false);
+    
+    // Insert salon reply using service role (simulated - in production this would be from salon side)
+    const { error } = await supabase
+      .from('messages')
+      .insert({
+        conversation_id: convId,
+        sender_type: 'salon',
+        content: getRandomReply(),
+      });
+
+    if (error) {
+      console.error('Error sending auto-reply:', error);
+    }
+  };
+
   // Send a message
   const sendMessage = useMutation({
     mutationFn: async ({ conversationId, content }: { conversationId: string; content: string }) => {
@@ -151,9 +230,12 @@ export const useChat = (conversationId?: string) => {
       if (error) throw error;
       return data as Message;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      
+      // Trigger salon auto-reply (demo feature)
+      simulateSalonReply(variables.conversationId);
     },
     onError: (error) => {
       console.error('Error sending message:', error);
@@ -179,6 +261,8 @@ export const useChat = (conversationId?: string) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['unread-count'] });
     },
   });
 
@@ -190,5 +274,7 @@ export const useChat = (conversationId?: string) => {
     getOrCreateConversation,
     sendMessage,
     markAsRead,
+    totalUnreadCount,
+    isTyping,
   };
 };

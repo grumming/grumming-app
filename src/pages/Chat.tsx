@@ -8,6 +8,32 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useChat } from '@/hooks/useChat';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
+import { motion } from 'framer-motion';
+
+// Typing indicator component
+const TypingIndicator = () => (
+  <div className="flex justify-start">
+    <div className="bg-muted rounded-2xl rounded-bl-md px-4 py-3">
+      <div className="flex items-center gap-1">
+        <motion.span
+          className="w-2 h-2 bg-muted-foreground/50 rounded-full"
+          animate={{ scale: [1, 1.2, 1] }}
+          transition={{ duration: 0.6, repeat: Infinity, delay: 0 }}
+        />
+        <motion.span
+          className="w-2 h-2 bg-muted-foreground/50 rounded-full"
+          animate={{ scale: [1, 1.2, 1] }}
+          transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }}
+        />
+        <motion.span
+          className="w-2 h-2 bg-muted-foreground/50 rounded-full"
+          animate={{ scale: [1, 1.2, 1] }}
+          transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }}
+        />
+      </div>
+    </div>
+  </div>
+);
 
 const Chat = () => {
   const { conversationId } = useParams();
@@ -25,6 +51,7 @@ const Chat = () => {
     getOrCreateConversation,
     sendMessage,
     markAsRead,
+    isTyping,
   } = useChat(conversationId);
 
   const [activeConversation, setActiveConversation] = useState<string | undefined>(conversationId);
@@ -49,12 +76,12 @@ const Chat = () => {
     }
   }, [bookingId, salonId, salonName, user, conversationId]);
 
-  // Scroll to bottom on new messages
+  // Scroll to bottom on new messages or typing
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages]);
+  }, [messages, isTyping]);
 
   // Mark messages as read
   useEffect(() => {
@@ -105,7 +132,13 @@ const Chat = () => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate(-1)}
+            onClick={() => {
+              if (activeConversation && !conversationId) {
+                setActiveConversation(undefined);
+              } else {
+                navigate(-1);
+              }
+            }}
             className="shrink-0"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -122,7 +155,7 @@ const Chat = () => {
                   {currentConversation.salon_name}
                 </h1>
                 <p className="text-xs text-muted-foreground">
-                  Typically replies within a few hours
+                  {isTyping ? 'Typing...' : 'Typically replies within a few hours'}
                 </p>
               </div>
             </div>
@@ -135,7 +168,7 @@ const Chat = () => {
       {/* Content */}
       {!activeConversation ? (
         // Conversation list
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto pb-20">
           {conversationsLoading ? (
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -163,22 +196,31 @@ const Chat = () => {
                   }}
                   className="w-full px-4 py-4 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left"
                 >
-                  <Avatar className="h-12 w-12 shrink-0">
-                    <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                      {conv.salon_name.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
+                  <div className="relative">
+                    <Avatar className="h-12 w-12 shrink-0">
+                      <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                        {conv.salon_name.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    {conv.unread_count && conv.unread_count > 0 && (
+                      <span className="absolute -top-1 -right-1 min-w-[20px] h-[20px] flex items-center justify-center text-[10px] font-bold bg-destructive text-destructive-foreground rounded-full px-1">
+                        {conv.unread_count > 99 ? '99+' : conv.unread_count}
+                      </span>
+                    )}
+                  </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                      <h3 className="font-medium text-foreground truncate">
+                      <h3 className={`font-medium truncate ${conv.unread_count && conv.unread_count > 0 ? 'text-foreground font-semibold' : 'text-foreground'}`}>
                         {conv.salon_name}
                       </h3>
                       <span className="text-xs text-muted-foreground shrink-0">
                         {format(new Date(conv.last_message_at), 'MMM d')}
                       </span>
                     </div>
-                    <p className="text-sm text-muted-foreground truncate">
-                      Tap to view conversation
+                    <p className={`text-sm truncate ${conv.unread_count && conv.unread_count > 0 ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
+                      {conv.unread_count && conv.unread_count > 0 
+                        ? `${conv.unread_count} new message${conv.unread_count > 1 ? 's' : ''}`
+                        : 'Tap to view conversation'}
                     </p>
                   </div>
                 </button>
@@ -203,8 +245,10 @@ const Chat = () => {
             ) : (
               <div className="space-y-4">
                 {messages.map((msg) => (
-                  <div
+                  <motion.div
                     key={msg.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
                     className={`flex ${
                       msg.sender_type === 'user' ? 'justify-end' : 'justify-start'
                     }`}
@@ -229,8 +273,9 @@ const Chat = () => {
                         {format(new Date(msg.created_at), 'h:mm a')}
                       </p>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
+                {isTyping && <TypingIndicator />}
                 <div ref={scrollRef} />
               </div>
             )}
