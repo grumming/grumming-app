@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useReferral } from '@/hooks/useReferral';
+import { useSmsRetriever } from '@/hooks/useSmsRetriever';
 import { supabase } from '@/integrations/supabase/client';
 import { ReferralSuccessAnimation } from '@/components/ReferralSuccessAnimation';
 import { z } from 'zod';
@@ -66,6 +67,32 @@ const Auth = () => {
   
   // Resend OTP cooldown (30 seconds)
   const [resendCooldown, setResendCooldown] = useState(0);
+
+  // Ref to store handleVerifyOTP function for SMS auto-read callback
+  const verifyOtpRef = useRef<(otp: string) => void>(() => {});
+
+  // SMS Auto-read callback
+  const handleOtpAutoRead = useCallback((otp: string) => {
+    if (step === 'otp' && otp.length === 6) {
+      // Auto-fill the OTP digits
+      const digits = otp.split('');
+      setOtpDigits(digits);
+      setOtpComplete(true);
+      
+      toast({
+        title: 'OTP Auto-filled',
+        description: 'OTP detected from SMS',
+      });
+      
+      // Auto-verify after a short delay using the ref
+      setTimeout(() => {
+        verifyOtpRef.current(otp);
+      }, 500);
+    }
+  }, [step, toast]);
+
+  // SMS Retriever hook for Android OTP auto-read
+  const { startListening: startSmsListener, stopListening: stopSmsListener, isAndroid } = useSmsRetriever(handleOtpAutoRead);
 
   // Haptic feedback helper
   const triggerHaptic = (type: 'light' | 'success' | 'error') => {
@@ -268,6 +295,11 @@ const Auth = () => {
         description: 'Please check your phone for the verification code.',
       });
 
+      // Start SMS auto-read listener on Android
+      if (isAndroid) {
+        startSmsListener();
+      }
+
       // In dev mode, show the OTP in toast if returned
       if (data.debug_otp) {
         console.log('Debug OTP:', data.debug_otp);
@@ -291,12 +323,15 @@ const Auth = () => {
     await sendOtp(isSignUp);
   };
 
-  const handleVerifyOTP = async (otp: string) => {
+  const handleVerifyOTP = useCallback(async (otp: string) => {
     if (!validateField('otp', otp)) return;
     
     const formattedPhone = `+91${phone}`;
     
     setIsLoading(true);
+    
+    // Stop SMS listener when verifying
+    stopSmsListener();
     
     try {
       // Verify OTP via edge function
@@ -380,7 +415,12 @@ const Auth = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [phone, navigate, toast, stopSmsListener]);
+
+  // Keep verifyOtpRef updated with the latest handleVerifyOTP
+  useEffect(() => {
+    verifyOtpRef.current = handleVerifyOTP;
+  }, [handleVerifyOTP]);
 
   const handleProfileComplete = async () => {
     if (!validateField('fullName', fullName)) return;
@@ -427,6 +467,7 @@ const Auth = () => {
     if (step === 'otp') {
       setStep('phone');
       setOtpDigits(['', '', '', '', '', '']);
+      stopSmsListener(); // Stop SMS listener when going back
     } else if (step === 'profile') {
       // Can't go back from profile - must complete it
       return;
