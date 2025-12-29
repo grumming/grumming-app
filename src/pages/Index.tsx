@@ -5,6 +5,7 @@ import FeaturedSalons from "@/components/FeaturedSalons";
 import BottomNav from "@/components/BottomNav";
 import WelcomeBanner from "@/components/WelcomeBanner";
 import Footer from "@/components/Footer";
+import BackToTop from "@/components/BackToTop";
 import { usePendingProfile } from "@/hooks/usePendingProfile";
 
 const Index = () => {
@@ -21,6 +22,7 @@ const Index = () => {
         <FeaturedSalons />
       </main>
       <Footer />
+      <BackToTop />
       <BottomNav />
     </div>
   );
