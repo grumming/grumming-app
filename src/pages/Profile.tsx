@@ -249,37 +249,52 @@ const Profile = () => {
         className="bg-gradient-to-b from-primary/5 to-transparent"
       >
         {isEditing ? (
-          <div className="p-4 space-y-4">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-foreground">Edit Profile</h2>
+          <div className="p-5 space-y-5">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <h2 className="font-display text-lg font-semibold text-foreground">Edit Profile</h2>
               <div className="flex gap-2">
-                <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)}>
-                  <X className="w-4 h-4" />
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setIsEditing(false)}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  Cancel
                 </Button>
-                <Button size="sm" onClick={handleSaveProfile} disabled={isSaving}>
+                <Button 
+                  size="sm" 
+                  onClick={handleSaveProfile} 
+                  disabled={isSaving}
+                  className="gap-2"
+                >
                   {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  Save
                 </Button>
               </div>
             </div>
             
-            <div className="flex justify-center mb-4">
+            {/* Avatar Section */}
+            <div className="flex justify-center py-2">
               <div className="relative">
-                <Avatar className="w-24 h-24 ring-4 ring-primary/20 ring-offset-2 ring-offset-background">
-                  <AvatarImage src={avatarUrl || undefined} alt={fullName} />
-                  <AvatarFallback className="bg-gradient-primary text-primary-foreground text-2xl font-bold">
+                <Avatar className="w-28 h-28 ring-4 ring-primary/20 ring-offset-4 ring-offset-background shadow-xl">
+                  <AvatarImage src={avatarUrl || undefined} alt={fullName} className="object-cover" />
+                  <AvatarFallback className="bg-gradient-primary text-primary-foreground text-3xl font-bold">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isUploadingAvatar}
-                  className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg border-2 border-background"
+                  className="absolute bottom-1 right-1 w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg border-3 border-background hover:bg-primary/90 transition-colors"
                 >
                   {isUploadingAvatar ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
                 </button>
                 <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
               </div>
             </div>
+
+            <p className="text-center text-xs text-muted-foreground -mt-2">Tap the camera to change photo</p>
 
             <ImageCropDialog
               open={cropDialogOpen}
@@ -289,18 +304,52 @@ const Profile = () => {
               aspectRatio={1}
             />
 
-            <div className="space-y-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="fullName" className="text-xs text-muted-foreground">Full Name</Label>
-                <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Enter your full name" />
+            {/* Form Fields */}
+            <div className="space-y-4 pt-2">
+              <div className="space-y-2">
+                <Label htmlFor="fullName" className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <User className="w-4 h-4 text-primary" />
+                  Full Name
+                </Label>
+                <Input 
+                  id="fullName" 
+                  value={fullName} 
+                  onChange={(e) => setFullName(e.target.value)} 
+                  placeholder="Enter your full name"
+                  className="h-12 text-base bg-muted/30 border-border/50 focus:border-primary focus:ring-primary/20"
+                />
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="email" className="text-xs text-muted-foreground">Email Address (for booking confirmations & receipts)</Label>
-                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter your email for booking updates" />
+              
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-primary" />
+                  Email Address
+                </Label>
+                <Input 
+                  id="email" 
+                  type="email" 
+                  value={email} 
+                  onChange={(e) => setEmail(e.target.value)} 
+                  placeholder="your@email.com"
+                  className="h-12 text-base bg-muted/30 border-border/50 focus:border-primary focus:ring-primary/20"
+                />
+                <p className="text-xs text-muted-foreground pl-1">Used for booking confirmations & receipts</p>
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="phone" className="text-xs text-muted-foreground">Phone Number</Label>
-                <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Enter your phone number" />
+              
+              <div className="space-y-2">
+                <Label htmlFor="phone" className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-primary" />
+                  Phone Number
+                </Label>
+                <Input 
+                  id="phone" 
+                  value={phone} 
+                  onChange={(e) => setPhone(e.target.value)} 
+                  placeholder="+91 98765 43210"
+                  className="h-12 text-base bg-muted/30 border-border/50 focus:border-primary focus:ring-primary/20"
+                  disabled
+                />
+                <p className="text-xs text-muted-foreground pl-1">Phone number cannot be changed</p>
               </div>
             </div>
           </div>
