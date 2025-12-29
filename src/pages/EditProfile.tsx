@@ -310,10 +310,9 @@ const EditProfile = () => {
             <h1 className="font-display text-lg font-semibold text-foreground">Edit Profile</h1>
           </div>
           <Button 
-            size="sm" 
             onClick={handleSaveProfile} 
             disabled={isSaving}
-            className="gap-2"
+            className="gap-2.5 rounded-full px-5 py-2 h-auto shadow-md hover:shadow-lg transition-all"
           >
             {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             Save
