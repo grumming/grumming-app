@@ -9,6 +9,10 @@ import { useChat } from '@/hooks/useChat';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
+import EmojiPicker from '@/components/chat/EmojiPicker';
+import MessageReactions from '@/components/chat/MessageReactions';
+import ChatImageUpload from '@/components/chat/ChatImageUpload';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 
 // Typing indicator component
 const TypingIndicator = () => (
@@ -41,6 +45,8 @@ const Chat = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const [message, setMessage] = useState('');
+  const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   
   const {
@@ -52,6 +58,8 @@ const Chat = () => {
     sendMessage,
     markAsRead,
     isTyping,
+    addReaction,
+    getMessageReactions,
   } = useChat(conversationId);
 
   const [activeConversation, setActiveConversation] = useState<string | undefined>(conversationId);
@@ -98,13 +106,15 @@ const Chat = () => {
   }, [user, authLoading, navigate]);
 
   const handleSend = () => {
-    if (!message.trim() || !activeConversation) return;
+    if ((!message.trim() && !pendingImageUrl) || !activeConversation) return;
 
     sendMessage.mutate({
       conversationId: activeConversation,
       content: message,
+      imageUrl: pendingImageUrl || undefined,
     });
     setMessage('');
+    setPendingImageUrl(null);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -112,6 +122,14 @@ const Chat = () => {
       e.preventDefault();
       handleSend();
     }
+  };
+
+  const handleImageUploaded = (url: string) => {
+    setPendingImageUrl(url);
+  };
+
+  const handleReaction = (messageId: string, emoji: string) => {
+    addReaction.mutate({ messageId, emoji });
   };
 
   const currentConversation = conversations.find((c) => c.id === activeConversation);
@@ -244,46 +262,99 @@ const Chat = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {messages.map((msg) => (
-                  <motion.div
-                    key={msg.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`flex ${
-                      msg.sender_type === 'user' ? 'justify-end' : 'justify-start'
-                    }`}
-                  >
-                    <div
-                      className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
-                        msg.sender_type === 'user'
-                          ? 'bg-primary text-primary-foreground rounded-br-md'
-                          : 'bg-muted text-foreground rounded-bl-md'
+                {messages.map((msg) => {
+                  const reactions = getMessageReactions(msg.id);
+                  return (
+                    <motion.div
+                      key={msg.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`flex flex-col ${
+                        msg.sender_type === 'user' ? 'items-end' : 'items-start'
                       }`}
                     >
-                      <p className="text-sm whitespace-pre-wrap break-words">
-                        {msg.content}
-                      </p>
-                      <p
-                        className={`text-xs mt-1 ${
-                          msg.sender_type === 'user'
-                            ? 'text-primary-foreground/70'
-                            : 'text-muted-foreground'
-                        }`}
-                      >
-                        {format(new Date(msg.created_at), 'h:mm a')}
-                      </p>
-                    </div>
-                  </motion.div>
-                ))}
+                      <div className="group relative">
+                        <div
+                          className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
+                            msg.sender_type === 'user'
+                              ? 'bg-primary text-primary-foreground rounded-br-md'
+                              : 'bg-muted text-foreground rounded-bl-md'
+                          }`}
+                        >
+                          {msg.image_url && (
+                            <img
+                              src={msg.image_url}
+                              alt="Attachment"
+                              className="max-w-full rounded-lg mb-2 cursor-pointer hover:opacity-90 transition-opacity"
+                              onClick={() => setPreviewImage(msg.image_url!)}
+                            />
+                          )}
+                          {msg.content && msg.content !== '📷 Image' && (
+                            <p className="text-sm whitespace-pre-wrap break-words">
+                              {msg.content}
+                            </p>
+                          )}
+                          <p
+                            className={`text-xs mt-1 ${
+                              msg.sender_type === 'user'
+                                ? 'text-primary-foreground/70'
+                                : 'text-muted-foreground'
+                            }`}
+                          >
+                            {format(new Date(msg.created_at), 'h:mm a')}
+                          </p>
+                        </div>
+                        
+                        {/* Emoji reaction button */}
+                        <div className={`absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity ${
+                          msg.sender_type === 'user' ? '-left-8' : '-right-8'
+                        }`}>
+                          <EmojiPicker
+                            onSelect={(emoji) => handleReaction(msg.id, emoji)}
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* Reactions display */}
+                      <MessageReactions
+                        reactions={reactions}
+                        onReact={(emoji) => handleReaction(msg.id, emoji)}
+                      />
+                    </motion.div>
+                  );
+                })}
                 {isTyping && <TypingIndicator />}
                 <div ref={scrollRef} />
               </div>
             )}
           </ScrollArea>
 
+          {/* Pending image preview */}
+          {pendingImageUrl && (
+            <div className="px-4 py-2 border-t border-border bg-muted/50">
+              <div className="relative inline-block">
+                <img
+                  src={pendingImageUrl}
+                  alt="Pending attachment"
+                  className="h-16 w-16 object-cover rounded-lg border border-border"
+                />
+                <button
+                  onClick={() => setPendingImageUrl(null)}
+                  className="absolute -top-2 -right-2 h-5 w-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center text-xs"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Message input */}
           <div className="sticky bottom-0 bg-card border-t border-border p-4">
             <div className="flex items-center gap-2">
+              <ChatImageUpload
+                onImageUploaded={handleImageUploaded}
+                disabled={sendMessage.isPending}
+              />
               <Input
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
@@ -294,7 +365,7 @@ const Chat = () => {
               />
               <Button
                 onClick={handleSend}
-                disabled={!message.trim() || sendMessage.isPending}
+                disabled={(!message.trim() && !pendingImageUrl) || sendMessage.isPending}
                 size="icon"
                 className="shrink-0"
               >
@@ -304,6 +375,19 @@ const Chat = () => {
           </div>
         </>
       )}
+
+      {/* Image preview dialog */}
+      <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
+        <DialogContent className="max-w-3xl p-0 overflow-hidden">
+          {previewImage && (
+            <img
+              src={previewImage}
+              alt="Preview"
+              className="w-full h-auto"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

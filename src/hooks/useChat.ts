@@ -23,6 +23,15 @@ interface Message {
   content: string;
   is_read: boolean;
   created_at: string;
+  image_url?: string | null;
+}
+
+interface MessageReaction {
+  id: string;
+  message_id: string;
+  user_id: string;
+  emoji: string;
+  created_at: string;
 }
 
 // Salon auto-reply messages
@@ -44,11 +53,11 @@ export const useChat = (conversationId?: string) => {
   const queryClient = useQueryClient();
   const [isTyping, setIsTyping] = useState(false);
 
-  // Subscribe to real-time messages
+  // Subscribe to real-time messages and reactions
   useEffect(() => {
     if (!conversationId) return;
 
-    const channel = supabase
+    const messagesChannel = supabase
       .channel(`messages:${conversationId}`)
       .on(
         'postgres_changes',
@@ -66,8 +75,24 @@ export const useChat = (conversationId?: string) => {
       )
       .subscribe();
 
+    const reactionsChannel = supabase
+      .channel(`reactions:${conversationId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'message_reactions',
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['reactions', conversationId] });
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(messagesChannel);
+      supabase.removeChannel(reactionsChannel);
     };
   }, [conversationId, queryClient]);
 
@@ -91,7 +116,7 @@ export const useChat = (conversationId?: string) => {
       return data?.length || 0;
     },
     enabled: !!user,
-    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchInterval: 30000,
   });
 
   // Fetch all conversations with unread counts
@@ -108,7 +133,6 @@ export const useChat = (conversationId?: string) => {
 
       if (error) throw error;
 
-      // Fetch unread counts for each conversation
       const conversationsWithUnread = await Promise.all(
         (data as Conversation[]).map(async (conv) => {
           const { count } = await supabase
@@ -145,12 +169,29 @@ export const useChat = (conversationId?: string) => {
     enabled: !!conversationId,
   });
 
+  // Fetch reactions for messages in a conversation
+  const { data: reactions = [] } = useQuery({
+    queryKey: ['reactions', conversationId],
+    queryFn: async () => {
+      if (!conversationId || messages.length === 0) return [];
+
+      const messageIds = messages.map((m) => m.id);
+      const { data, error } = await supabase
+        .from('message_reactions')
+        .select('*')
+        .in('message_id', messageIds);
+
+      if (error) throw error;
+      return data as MessageReaction[];
+    },
+    enabled: !!conversationId && messages.length > 0,
+  });
+
   // Create or get conversation for a booking
   const getOrCreateConversation = useMutation({
     mutationFn: async ({ bookingId, salonId, salonName }: { bookingId: string; salonId: string; salonName: string }) => {
       if (!user) throw new Error('Not authenticated');
 
-      // Check if conversation exists
       const { data: existing } = await supabase
         .from('conversations')
         .select('*')
@@ -159,7 +200,6 @@ export const useChat = (conversationId?: string) => {
 
       if (existing) return existing as Conversation;
 
-      // Create new conversation
       const { data, error } = await supabase
         .from('conversations')
         .insert({
@@ -189,16 +229,13 @@ export const useChat = (conversationId?: string) => {
 
   // Simulate salon auto-reply
   const simulateSalonReply = async (convId: string) => {
-    // Show typing indicator
     setIsTyping(true);
     
-    // Wait 1-3 seconds before replying
     const delay = 1000 + Math.random() * 2000;
     await new Promise(resolve => setTimeout(resolve, delay));
     
     setIsTyping(false);
     
-    // Insert salon reply using service role (simulated - in production this would be from salon side)
     const { error } = await supabase
       .from('messages')
       .insert({
@@ -212,9 +249,9 @@ export const useChat = (conversationId?: string) => {
     }
   };
 
-  // Send a message
+  // Send a message (with optional image)
   const sendMessage = useMutation({
-    mutationFn: async ({ conversationId, content }: { conversationId: string; content: string }) => {
+    mutationFn: async ({ conversationId, content, imageUrl }: { conversationId: string; content: string; imageUrl?: string }) => {
       if (!user) throw new Error('Not authenticated');
 
       const { data, error } = await supabase
@@ -222,7 +259,8 @@ export const useChat = (conversationId?: string) => {
         .insert({
           conversation_id: conversationId,
           sender_type: 'user',
-          content: content.trim(),
+          content: content.trim() || (imageUrl ? '📷 Image' : ''),
+          image_url: imageUrl || null,
         })
         .select()
         .single();
@@ -234,8 +272,10 @@ export const useChat = (conversationId?: string) => {
       queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       
-      // Trigger salon auto-reply (demo feature)
-      simulateSalonReply(variables.conversationId);
+      // Only trigger auto-reply for text messages (not image-only)
+      if (variables.content.trim()) {
+        simulateSalonReply(variables.conversationId);
+      }
     },
     onError: (error) => {
       console.error('Error sending message:', error);
@@ -244,6 +284,51 @@ export const useChat = (conversationId?: string) => {
         description: 'Failed to send message',
         variant: 'destructive',
       });
+    },
+  });
+
+  // Add reaction to a message
+  const addReaction = useMutation({
+    mutationFn: async ({ messageId, emoji }: { messageId: string; emoji: string }) => {
+      if (!user) throw new Error('Not authenticated');
+
+      // Check if user already reacted with this emoji
+      const { data: existing } = await supabase
+        .from('message_reactions')
+        .select('*')
+        .eq('message_id', messageId)
+        .eq('user_id', user.id)
+        .eq('emoji', emoji)
+        .maybeSingle();
+
+      if (existing) {
+        // Remove reaction if already exists
+        const { error } = await supabase
+          .from('message_reactions')
+          .delete()
+          .eq('id', existing.id);
+
+        if (error) throw error;
+        return { action: 'removed' };
+      } else {
+        // Add new reaction
+        const { error } = await supabase
+          .from('message_reactions')
+          .insert({
+            message_id: messageId,
+            user_id: user.id,
+            emoji,
+          });
+
+        if (error) throw error;
+        return { action: 'added' };
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reactions', conversationId] });
+    },
+    onError: (error) => {
+      console.error('Error toggling reaction:', error);
     },
   });
 
@@ -266,6 +351,30 @@ export const useChat = (conversationId?: string) => {
     },
   });
 
+  // Helper to get reactions for a specific message
+  const getMessageReactions = (messageId: string) => {
+    const messageReactions = reactions.filter((r) => r.message_id === messageId);
+    const groupedReactions: { emoji: string; count: number; hasReacted: boolean }[] = [];
+
+    messageReactions.forEach((reaction) => {
+      const existing = groupedReactions.find((r) => r.emoji === reaction.emoji);
+      if (existing) {
+        existing.count++;
+        if (reaction.user_id === user?.id) {
+          existing.hasReacted = true;
+        }
+      } else {
+        groupedReactions.push({
+          emoji: reaction.emoji,
+          count: 1,
+          hasReacted: reaction.user_id === user?.id,
+        });
+      }
+    });
+
+    return groupedReactions;
+  };
+
   return {
     conversations,
     conversationsLoading,
@@ -276,5 +385,7 @@ export const useChat = (conversationId?: string) => {
     markAsRead,
     totalUnreadCount,
     isTyping,
+    addReaction,
+    getMessageReactions,
   };
 };
