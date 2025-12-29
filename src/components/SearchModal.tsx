@@ -87,6 +87,7 @@ const SearchModal = ({ isOpen, onClose }: SearchModalProps) => {
   const hasRecentSearches = searchQuery === '' && recentSearches.length > 0;
   const hasSearchHistory = searchQuery === '' && searchHistory.length > 0;
   const showNearbySuggestions = searchQuery === '' && !hasRecentSearches && !hasSearchHistory && nearbySalons.length > 0;
+  const showNoNearbySalons = searchQuery === '' && !hasRecentSearches && !hasSearchHistory && nearbySalons.length === 0 && selectedCity;
 
   const portalRoot = typeof document !== "undefined" ? document.body : null;
 
@@ -314,8 +315,30 @@ const SearchModal = ({ isOpen, onClose }: SearchModalProps) => {
                 </>
               )}
 
-              {/* Initial state - only when no nearby salons either */}
-              {!hasResults && !hasRecentSearches && !hasSearchHistory && !showNearbySuggestions && searchQuery.length < 2 && (
+              {/* No nearby salons message */}
+              {showNoNearbySalons && (
+                <div className="px-4 py-8 text-center">
+                  <MapPin className="w-10 h-10 text-muted-foreground/50 mx-auto mb-3" />
+                  <p className="text-foreground font-medium mb-1">No salons in {selectedCity} yet</p>
+                  <p className="text-muted-foreground text-sm mb-4">
+                    We're expanding! Try changing your location or browse all salons.
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    <button
+                      onClick={() => {
+                        onClose();
+                        navigate('/search');
+                      }}
+                      className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
+                    >
+                      Browse All Salons
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Initial state - only when no city selected */}
+              {!hasResults && !hasRecentSearches && !hasSearchHistory && !showNearbySuggestions && !showNoNearbySalons && searchQuery.length < 2 && (
                 <div className="px-4 py-8 text-center">
                   <Search className="w-10 h-10 text-muted-foreground/50 mx-auto mb-2" />
                   <p className="text-muted-foreground text-sm">Start typing to search...</p>
