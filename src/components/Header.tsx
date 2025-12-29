@@ -238,7 +238,7 @@ const Header = () => {
         {/* Search Button */}
         <button
           onClick={() => setShowSearchModal(true)}
-          className="ml-1"
+          className="ml-1 p-1.5 rounded-full hover:bg-muted/50 transition-all duration-200 hover:scale-110 active:scale-95"
           title="Search salons"
         >
           <Search className="w-[18px] h-[18px] text-muted-foreground hover:text-foreground transition-colors" />

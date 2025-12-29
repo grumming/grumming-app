@@ -72,7 +72,7 @@ const UserMenu = () => {
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0">
+        <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 transition-all duration-200 hover:scale-110 active:scale-95">
           <Avatar className="h-8 w-8 border border-border/50">
             <AvatarImage src={avatarUrl || undefined} alt={displayName || 'User'} />
             <AvatarFallback className="bg-gradient-primary text-primary-foreground text-xs font-medium">
