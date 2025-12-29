@@ -140,7 +140,7 @@ const NotificationCenter = () => {
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative h-8 w-8 rounded-full">
+        <Button variant="ghost" size="icon" className="relative h-8 w-8 rounded-full transition-all duration-200 hover:scale-110 hover:bg-muted/50 active:scale-95">
           <Bell className="h-[18px] w-[18px]" />
           {unreadCount > 0 && (
             <motion.span
