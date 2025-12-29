@@ -111,6 +111,13 @@ const Header = () => {
       }`}
     >
       <div className="container mx-auto px-4 h-14 flex items-center gap-3">
+        {/* Logo */}
+        <a href="/" className="font-display text-xl font-bold text-foreground tracking-tight">
+          Grumming
+        </a>
+        
+        <div className="flex-1" />
+
         {/* Location Selector */}
         <div ref={locationInputRef} className="relative">
           <div 
@@ -262,8 +269,6 @@ const Header = () => {
         >
           <Search className="w-[18px] h-[18px] text-muted-foreground hover:text-foreground transition-colors" />
         </button>
-        
-        <div className="flex-1" />
 
         {/* Right Actions */}
         <div className="flex items-center gap-4">
