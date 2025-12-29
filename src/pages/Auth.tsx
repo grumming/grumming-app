@@ -41,7 +41,7 @@ const Auth = () => {
   
   const [step, setStep] = useState<AuthStep>('phone');
   const [isLoading, setIsLoading] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(true);
+  const [isSignUp, setIsSignUp] = useState(false);
   const [showReferralSuccess, setShowReferralSuccess] = useState(false);
   const [showReferralInput, setShowReferralInput] = useState(!!referralCodeFromUrl);
   const [showTermsModal, setShowTermsModal] = useState(false);
