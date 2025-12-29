@@ -560,22 +560,35 @@ const Auth = () => {
               
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="phone" className="text-sm font-medium">
-                    Phone Number
-                  </Label>
                   <div className="flex gap-3">
-                    <div className="w-20 h-12 rounded-lg border border-input bg-muted/50 flex items-center justify-center text-sm font-medium">
+                    <div className="w-20 h-14 rounded-lg border border-input bg-muted/30 flex items-center justify-center text-sm font-medium">
                       🇮🇳 +91
                     </div>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      placeholder="Enter mobile number"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                      onBlur={() => phone && validateField('phone', phone)}
-                      className={`flex-1 h-12 text-lg ${errors.phone ? 'border-destructive' : ''}`}
-                    />
+                    <div className="relative flex-1 group">
+                      <Input
+                        id="phone"
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                        onBlur={() => phone && validateField('phone', phone)}
+                        className={`h-14 text-lg tracking-wide font-medium pl-4 pt-5 pb-2 transition-all duration-200 bg-muted/30 peer focus:bg-background ${errors.phone ? 'border-destructive focus-visible:ring-destructive/30' : ''}`}
+                        placeholder=""
+                      />
+                      <label 
+                        htmlFor="phone"
+                        className={`absolute left-4 transition-all duration-200 pointer-events-none ${
+                          phone 
+                            ? 'top-2 text-[10px] font-semibold uppercase tracking-wider' 
+                            : 'top-1/2 -translate-y-1/2 text-sm'
+                        } ${
+                          errors.phone 
+                            ? 'text-destructive' 
+                            : 'text-muted-foreground peer-focus:text-primary peer-focus:top-2 peer-focus:text-[10px] peer-focus:font-semibold peer-focus:uppercase peer-focus:tracking-wider'
+                        }`}
+                      >
+                        Mobile Number
+                      </label>
+                    </div>
                   </div>
                   {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
                   
