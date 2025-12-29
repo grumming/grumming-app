@@ -245,7 +245,7 @@ const Header = () => {
         </button>
 
         {/* Right Actions */}
-        <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-2">
           <NotificationCenter />
           <UserMenu />
         </div>
