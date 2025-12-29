@@ -86,11 +86,19 @@ const Auth = () => {
 
   useEffect(() => {
     if (!loading && user) {
-      if (referralCode) {
-        applyReferralCode(referralCode).then(() => {
+      // Check for referral code from state or localStorage
+      const storedReferralCode = localStorage.getItem('pendingReferralCode');
+      const codeToApply = referralCode || storedReferralCode;
+      
+      if (codeToApply) {
+        // Clear the stored referral code
+        localStorage.removeItem('pendingReferralCode');
+        
+        applyReferralCode(codeToApply).then(() => {
           // Show the referral success animation
           setShowReferralSuccess(true);
-        }).catch(() => {
+        }).catch((error) => {
+          console.log('Referral apply failed:', error.message);
           // Referral failed, just navigate
           navigate('/');
         });
@@ -385,11 +393,16 @@ const Auth = () => {
     
     try {
       // We'll update the profile after authentication is complete
-      // Store the profile data in localStorage temporarily
+      // Store the profile data and referral code in localStorage temporarily
       localStorage.setItem('pendingProfile', JSON.stringify({
         fullName: fullName.trim(),
         email: email.trim() || null,
       }));
+      
+      // Store referral code for after redirect
+      if (referralCode && referralValidation === 'valid') {
+        localStorage.setItem('pendingReferralCode', referralCode.toUpperCase());
+      }
       
       toast({
         title: 'Profile saved!',
