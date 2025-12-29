@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { toast } from 'sonner';
+import { getCityCoordinates } from '@/data/cityCoordinates';
 
 type DetectLocationOptions = {
   showToast?: boolean;
@@ -18,10 +19,21 @@ interface LocationContextType {
 const LocationContext = createContext<LocationContextType | undefined>(undefined);
 
 export const LocationProvider = ({ children }: { children: ReactNode }) => {
-  const [selectedCity, setSelectedCity] = useState<string>('');
+  const [selectedCity, setSelectedCityInternal] = useState<string>('');
   const [isDetecting, setIsDetecting] = useState(false);
   const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
   const [hasAutoDetected, setHasAutoDetected] = useState(false);
+
+  // Wrapper to also set coordinates when city is manually selected
+  const setSelectedCity = useCallback((city: string) => {
+    setSelectedCityInternal(city);
+    
+    // Try to get coordinates for the selected city
+    const cityCoords = getCityCoordinates(city);
+    if (cityCoords) {
+      setCoordinates(cityCoords);
+    }
+  }, []);
 
   const detectLocation = async (options: DetectLocationOptions = {}): Promise<string | null> => {
     const { showToast = true, forceFresh = false } = options;
@@ -64,7 +76,7 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
               locationName = "Unknown Location";
             }
 
-            setSelectedCity(locationName);
+            setSelectedCityInternal(locationName);
             setIsDetecting(false);
             setHasAutoDetected(true);
 
@@ -76,7 +88,7 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
           } catch {
             // Fallback if geocoding fails
             const fallbackLocation = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-            setSelectedCity(fallbackLocation);
+            setSelectedCityInternal(fallbackLocation);
             setIsDetecting(false);
             setHasAutoDetected(true);
 
@@ -137,7 +149,8 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
           const permission = await navigator.permissions.query({ name: 'geolocation' });
           if (permission.state === 'denied') {
             // Set default city if permission denied
-            setSelectedCity('Mumbai, Maharashtra');
+            setSelectedCityInternal('Mumbai, Maharashtra');
+            setCoordinates(getCityCoordinates('Mumbai'));
             setHasAutoDetected(true);
             return;
           }
@@ -155,7 +168,8 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem('grumming_location_time', Date.now().toString());
       } else if (!selectedCity) {
         // Set default city if detection failed
-        setSelectedCity('Mumbai, Maharashtra');
+        setSelectedCityInternal('Mumbai, Maharashtra');
+        setCoordinates(getCityCoordinates('Mumbai'));
         setHasAutoDetected(true);
       }
     };
