@@ -20,17 +20,16 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get current time and time 1 hour from now
+    // Get current time and check for bookings exactly 1 hour away (with 15-min buffer for cron interval)
     const now = new Date();
-    const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
-    const twoHoursFromNow = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+    const minTime = new Date(now.getTime() + 45 * 60 * 1000); // 45 minutes from now
+    const maxTime = new Date(now.getTime() + 75 * 60 * 1000); // 1 hour 15 minutes from now
     
     const todayStr = now.toISOString().split('T')[0];
-    const currentTime = now.toTimeString().slice(0, 5); // HH:MM format
-    const oneHourTime = oneHourFromNow.toTimeString().slice(0, 5);
-    const twoHourTime = twoHoursFromNow.toTimeString().slice(0, 5);
+    const minTimeStr = minTime.toTimeString().slice(0, 5); // HH:MM format
+    const maxTimeStr = maxTime.toTimeString().slice(0, 5);
 
-    console.log(`Current time: ${currentTime}, Looking for bookings between ${oneHourTime} and ${twoHourTime} on ${todayStr}`);
+    console.log(`Current time: ${now.toTimeString().slice(0, 5)}, Looking for bookings between ${minTimeStr} and ${maxTimeStr} on ${todayStr}`);
 
     // Fetch upcoming bookings for today that are 1 hour away and haven't had reminders sent
     const { data: bookings, error: bookingsError } = await supabase
@@ -47,8 +46,8 @@ serve(async (req) => {
       .eq('booking_date', todayStr)
       .eq('status', 'upcoming')
       .eq('reminder_sent', false)
-      .gte('booking_time', oneHourTime)
-      .lte('booking_time', twoHourTime);
+      .gte('booking_time', minTimeStr)
+      .lte('booking_time', maxTimeStr);
 
     if (bookingsError) {
       console.error('Error fetching bookings:', bookingsError);
