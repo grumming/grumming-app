@@ -160,14 +160,13 @@ export const useReferral = () => {
       throw new Error('You have already used a referral code');
     }
     
-    // Create the referral
+    // Create the referral with pending status - it will be completed when referee makes first booking
     const { error: insertError } = await supabase
       .from('referrals')
       .insert({
         referrer_id: referrerData.user_id,
         referee_id: user.id,
-        status: 'completed',
-        completed_at: new Date().toISOString(),
+        status: 'pending',
       });
     
     if (insertError) throw insertError;
