@@ -39,35 +39,61 @@ const App = () => {
   const [queryClient] = useState(() => new QueryClient());
 
   useEffect(() => {
-    const handler = (event: PromiseRejectionEvent) => {
+    const shouldSuppressWalletExtensionError = (opts: {
+      message?: string;
+      stack?: string;
+      filename?: string;
+    }) => {
+      const message = opts.message ?? "";
+      const stack = opts.stack ?? "";
+      const filename = opts.filename ?? "";
+
+      const isExtensionSource =
+        filename.includes("chrome-extension://") ||
+        filename.includes("moz-extension://") ||
+        stack.includes("chrome-extension://") ||
+        stack.includes("moz-extension://") ||
+        stack.includes("nkbihfbeogaeaoehlefnkodbefgpgknn") || // MetaMask extension ID
+        stack.includes("inpage.js") ||
+        stack.includes("contentscript");
+
+      // Always suppress the specific MetaMask noise we see during development
+      if (message.includes("Failed to connect to MetaMask")) return true;
+
+      const isWalletRelated = /metamask|phantom|wallet|ethereum/i.test(message);
+      return isExtensionSource && isWalletRelated;
+    };
+
+    const onUnhandledRejection = (event: PromiseRejectionEvent) => {
       const reason: any = event.reason;
       const message =
         typeof reason === "string" ? reason : (reason?.message as string | undefined);
       const stack =
         typeof reason === "object" && reason ? (reason?.stack as string | undefined) : undefined;
 
-      // Suppress wallet extension errors (MetaMask, Phantom, etc.)
-      const isWalletError =
-        (message && (
-          message.includes("Failed to connect to MetaMask") ||
-          message.includes("MetaMask") ||
-          message.includes("wallet") ||
-          message.includes("ethereum")
-        )) ||
-        (stack && (
-          stack.includes("nkbihfbeogaeaoehlefnkodbefgpgknn") || // MetaMask extension ID
-          stack.includes("inpage.js") ||
-          stack.includes("contentscript")
-        ));
-
-      if (isWalletError) {
+      if (shouldSuppressWalletExtensionError({ message, stack })) {
         event.preventDefault();
-        console.log("Suppressed wallet extension error:", message);
       }
     };
 
-    window.addEventListener("unhandledrejection", handler);
-    return () => window.removeEventListener("unhandledrejection", handler);
+    const onError = (event: ErrorEvent) => {
+      const message = event.message;
+      const stack = (event.error as any)?.stack as string | undefined;
+      const filename = event.filename;
+
+      if (shouldSuppressWalletExtensionError({ message, stack, filename })) {
+        event.preventDefault();
+      }
+    };
+
+    window.addEventListener("unhandledrejection", onUnhandledRejection);
+    // Capture phase so we can prevent Vite/React overlays from surfacing extension noise
+    window.addEventListener("error", onError, true);
+
+    return () => {
+      window.removeEventListener("unhandledrejection", onUnhandledRejection);
+      window.removeEventListener("error", onError, true);
+    };
   }, []);
 
   return (
