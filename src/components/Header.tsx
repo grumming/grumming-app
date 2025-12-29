@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import UserMenu from "@/components/UserMenu";
 import NotificationCenter from "@/components/NotificationCenter";
 import SearchModal from "@/components/SearchModal";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useLocation } from "@/contexts/LocationContext";
 import { getGroupedFilteredCities, popularCities, GroupedCitySuggestion } from "@/data/indianCities";
 import { useRecentCities } from "@/hooks/useRecentCities";
@@ -17,10 +18,12 @@ const Header = () => {
   const [locationInput, setLocationInput] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [groupedSuggestions, setGroupedSuggestions] = useState<GroupedCitySuggestion[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isHidden, setIsHidden] = useState(false);
   const lastScrollY = useRef(0);
   const locationInputRef = useRef<HTMLDivElement>(null);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (selectedCity) {
@@ -29,8 +32,30 @@ const Header = () => {
   }, [selectedCity]);
 
   useEffect(() => {
-    const grouped = getGroupedFilteredCities(locationInput);
-    setGroupedSuggestions(grouped);
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    // Only show loading for search queries
+    if (locationInput.length >= 2) {
+      setIsSearching(true);
+      searchTimeoutRef.current = setTimeout(() => {
+        const grouped = getGroupedFilteredCities(locationInput);
+        setGroupedSuggestions(grouped);
+        setIsSearching(false);
+      }, 300);
+    } else {
+      const grouped = getGroupedFilteredCities(locationInput);
+      setGroupedSuggestions(grouped);
+      setIsSearching(false);
+    }
+    
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
   }, [locationInput]);
 
   useEffect(() => {
@@ -247,6 +272,24 @@ const Header = () => {
                       ))}
                     </div>
                   </>
+                ) : isSearching ? (
+                  <div className="space-y-2 py-2">
+                    {[1, 2, 3].map((i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.2, delay: i * 0.05 }}
+                        className="px-3"
+                      >
+                        <Skeleton className="h-4 w-20 mb-2" />
+                        <div className="space-y-1">
+                          <Skeleton className="h-8 w-full rounded-lg" />
+                          <Skeleton className="h-8 w-full rounded-lg" />
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
                 ) : groupedSuggestions.length > 0 ? (
                   groupedSuggestions.map((group, groupIndex) => (
                     <motion.div 
