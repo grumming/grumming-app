@@ -20,7 +20,7 @@ serve(async (req) => {
   }
 
   try {
-    const { phone, otp, devBypass } = await req.json();
+    const { phone, otp } = await req.json();
 
     if (!phone || !otp) {
       return new Response(
@@ -29,92 +29,87 @@ serve(async (req) => {
       );
     }
 
+    // Validate OTP format (6 digits only)
+    const otpRegex = /^[0-9]{6}$/;
+    if (!otpRegex.test(otp)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid OTP format. Must be 6 digits.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
-    // Dev bypass - skip OTP validation entirely
-    if (devBypass === true) {
-      console.log(`Dev bypass enabled for ${phone} - skipping OTP validation`);
-    } else {
-      // Validate OTP format (6 digits only)
-      const otpRegex = /^[0-9]{6}$/;
-      if (!otpRegex.test(otp)) {
-        return new Response(
-          JSON.stringify({ error: 'Invalid OTP format. Must be 6 digits.' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+    // Check rate limit for failed verification attempts
+    const rateLimitCutoff = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString();
+    const { data: failedAttempts, error: rateLimitError } = await supabase
+      .from('otp_rate_limits')
+      .select('*')
+      .eq('phone', phone)
+      .eq('attempt_type', 'verify_failed')
+      .gte('attempted_at', rateLimitCutoff);
 
-      // Check rate limit for failed verification attempts
-      const rateLimitCutoff = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString();
-      const { data: failedAttempts, error: rateLimitError } = await supabase
-        .from('otp_rate_limits')
-        .select('*')
-        .eq('phone', phone)
-        .eq('attempt_type', 'verify_failed')
-        .gte('attempted_at', rateLimitCutoff);
-
-      if (rateLimitError) {
-        console.error('Rate limit check error:', rateLimitError);
-      }
-
-      if (failedAttempts && failedAttempts.length >= MAX_VERIFY_ATTEMPTS) {
-        console.log(`Verification rate limit exceeded for ${phone}: ${failedAttempts.length} failed attempts`);
-        return new Response(
-          JSON.stringify({ error: 'Too many failed attempts. Please request a new OTP.' }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Get stored OTP
-      const { data: otpRecord, error: fetchError } = await supabase
-        .from('phone_otps')
-        .select('*')
-        .eq('phone', phone)
-        .single();
-
-      if (fetchError || !otpRecord) {
-        console.error('OTP not found:', fetchError);
-        return new Response(
-          JSON.stringify({ error: 'OTP not found. Please request a new one.' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Check if OTP is expired
-      if (new Date(otpRecord.expires_at) < new Date()) {
-        return new Response(
-          JSON.stringify({ error: 'OTP has expired. Please request a new one.' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Verify OTP (constant-time comparison to prevent timing attacks)
-      const isValidOtp = otp.length === otpRecord.otp_code.length &&
-        otp.split('').every((char: string, i: number) => char === otpRecord.otp_code[i]);
-
-      if (!isValidOtp) {
-        // Record failed attempt for rate limiting
-        await supabase
-          .from('otp_rate_limits')
-          .insert({
-            phone,
-            attempt_type: 'verify_failed',
-            ip_address: req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown',
-          });
-
-        console.log(`Invalid OTP attempt for ${phone}`);
-        return new Response(
-          JSON.stringify({ error: 'Invalid OTP. Please try again.' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Mark OTP as verified
-      await supabase
-        .from('phone_otps')
-        .update({ verified: true })
-        .eq('phone', phone);
+    if (rateLimitError) {
+      console.error('Rate limit check error:', rateLimitError);
     }
+
+    if (failedAttempts && failedAttempts.length >= MAX_VERIFY_ATTEMPTS) {
+      console.log(`Verification rate limit exceeded for ${phone}: ${failedAttempts.length} failed attempts`);
+      return new Response(
+        JSON.stringify({ error: 'Too many failed attempts. Please request a new OTP.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Get stored OTP
+    const { data: otpRecord, error: fetchError } = await supabase
+      .from('phone_otps')
+      .select('*')
+      .eq('phone', phone)
+      .single();
+
+    if (fetchError || !otpRecord) {
+      console.error('OTP not found:', fetchError);
+      return new Response(
+        JSON.stringify({ error: 'OTP not found. Please request a new one.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if OTP is expired
+    if (new Date(otpRecord.expires_at) < new Date()) {
+      return new Response(
+        JSON.stringify({ error: 'OTP has expired. Please request a new one.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verify OTP (constant-time comparison to prevent timing attacks)
+    const isValidOtp = otp.length === otpRecord.otp_code.length &&
+      otp.split('').every((char: string, i: number) => char === otpRecord.otp_code[i]);
+
+    if (!isValidOtp) {
+      // Record failed attempt for rate limiting
+      await supabase
+        .from('otp_rate_limits')
+        .insert({
+          phone,
+          attempt_type: 'verify_failed',
+          ip_address: req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown',
+        });
+
+      console.log(`Invalid OTP attempt for ${phone}`);
+      return new Response(
+        JSON.stringify({ error: 'Invalid OTP. Please try again.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Mark OTP as verified
+    await supabase
+      .from('phone_otps')
+      .update({ verified: true })
+      .eq('phone', phone);
 
     // Mark OTP as verified
     await supabase
