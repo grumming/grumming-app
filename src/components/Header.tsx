@@ -91,7 +91,7 @@ const Header = () => {
           : 'bg-background/50 backdrop-blur-sm'
       }`}
     >
-      <div className="container mx-auto px-4 h-14 flex items-center justify-between">
+      <div className="container mx-auto px-4 h-14 flex items-center gap-3">
         {/* Location Selector */}
         <div ref={locationInputRef} className="relative">
           <div 
@@ -235,15 +235,17 @@ const Header = () => {
           )}
         </div>
         
-        {/* Right Actions - Search, Notification, Profile */}
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => setShowSearchModal(true)}
-            className="p-2 rounded-full hover:bg-muted/70 transition-colors"
-            title="Search salons"
-          >
-            <Search className="w-[18px] h-[18px] text-foreground" />
-          </button>
+        {/* Search Button - Centered */}
+        <button
+          onClick={() => setShowSearchModal(true)}
+          className="flex-1 flex items-center justify-center"
+          title="Search salons"
+        >
+          <Search className="w-[18px] h-[18px] text-muted-foreground hover:text-foreground transition-colors" />
+        </button>
+
+        {/* Right Actions */}
+        <div className="flex items-center gap-0.5">
           <NotificationCenter />
           <UserMenu />
         </div>
