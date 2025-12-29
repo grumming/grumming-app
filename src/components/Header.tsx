@@ -122,7 +122,7 @@ const Header = () => {
         <div ref={locationInputRef} className="relative">
           <button 
             className="flex items-center gap-1.5 px-3 py-1.5 bg-muted/40 rounded-full border border-border/40 cursor-pointer hover:bg-muted/60 transition-colors"
-            onClick={() => setShowSuggestions(true)}
+            onClick={() => setShowSuggestions(!showSuggestions)}
           >
             <MapPin className="w-3.5 h-3.5 text-primary flex-shrink-0" />
             <span className="text-xs text-foreground font-medium max-w-20 truncate">
