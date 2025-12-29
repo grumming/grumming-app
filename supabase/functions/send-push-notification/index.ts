@@ -11,6 +11,7 @@ interface PushNotificationPayload {
   title: string;
   body: string;
   data?: Record<string, string>;
+  notification_type?: 'booking_reminder' | 'booking_confirmation' | 'promotion' | 'app_update' | 'general';
 }
 
 // Generate JWT for Firebase Cloud Messaging using service account
@@ -175,6 +176,51 @@ async function sendFCMNotification(
   }
 }
 
+// Check if user has enabled this notification type
+async function shouldSendNotification(
+  supabase: any,
+  userId: string,
+  notificationType?: string
+): Promise<boolean> {
+  if (!notificationType || notificationType === 'general') {
+    return true; // Always send general notifications
+  }
+
+  try {
+    const { data: prefs, error } = await supabase
+      .from('notification_preferences')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error fetching notification preferences:', error);
+      return true; // Default to sending if error
+    }
+
+    if (!prefs) {
+      return true; // Default to sending if no preferences set
+    }
+
+    // Map notification type to preference field
+    switch (notificationType) {
+      case 'booking_reminder':
+        return prefs.booking_reminders === true;
+      case 'booking_confirmation':
+        return prefs.booking_confirmations === true;
+      case 'promotion':
+        return prefs.promotions === true;
+      case 'app_update':
+        return prefs.app_updates === true;
+      default:
+        return true;
+    }
+  } catch (error) {
+    console.error('Error checking notification preferences:', error);
+    return true; // Default to sending if error
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -186,11 +232,22 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const payload: PushNotificationPayload = await req.json();
-    const { user_id, title, body, data } = payload;
+    const { user_id, title, body, data, notification_type } = payload;
 
     console.log('Sending push notification to user:', user_id);
     console.log('Title:', title);
     console.log('Body:', body);
+    console.log('Type:', notification_type);
+
+    // Check if user wants this type of notification
+    const shouldSend = await shouldSendNotification(supabase, user_id, notification_type);
+    if (!shouldSend) {
+      console.log('User has disabled this notification type:', notification_type);
+      return new Response(
+        JSON.stringify({ success: true, message: 'Notification type disabled by user' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Get all FCM tokens for the user
     const { data: tokens, error: tokensError } = await supabase

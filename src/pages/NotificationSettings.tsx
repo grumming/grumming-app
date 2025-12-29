@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Bell, BellOff, Loader2, Smartphone, Calendar, MessageSquare, Tag } from 'lucide-react';
@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { useNotificationPreferences } from '@/hooks/useNotificationPreferences';
 
 const NotificationSettings = () => {
   const navigate = useNavigate();
@@ -24,14 +25,7 @@ const NotificationSettings = () => {
     unregister 
   } = usePushNotifications();
 
-  // Local notification preferences (would typically be stored in database)
-  const [preferences, setPreferences] = useState({
-    bookingReminders: true,
-    bookingConfirmations: true,
-    promotions: false,
-    updates: true,
-  });
-  const [isProcessing, setIsProcessing] = useState(false);
+  const { preferences, isLoading: prefsLoading, updatePreferences } = useNotificationPreferences();
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -40,8 +34,6 @@ const NotificationSettings = () => {
   }, [user, authLoading, navigate]);
 
   const handleTogglePushNotifications = async () => {
-    setIsProcessing(true);
-    
     if (isRegistered) {
       await unregister();
       toast({
@@ -63,25 +55,27 @@ const NotificationSettings = () => {
         });
       }
     }
+  };
+
+  const handlePreferenceChange = (key: 'booking_reminders' | 'booking_confirmations' | 'promotions' | 'app_updates') => {
+    if (!preferences) return;
     
-    setIsProcessing(false);
+    const newValue = !preferences[key];
+    updatePreferences.mutate(
+      { [key]: newValue },
+      {
+        onSuccess: () => {
+          const label = key.replace(/_/g, ' ');
+          toast({
+            title: 'Preference updated',
+            description: `${label} notifications ${newValue ? 'enabled' : 'disabled'}.`,
+          });
+        },
+      }
+    );
   };
 
-  const handlePreferenceChange = (key: keyof typeof preferences) => {
-    setPreferences(prev => {
-      const newPrefs = { ...prev, [key]: !prev[key] };
-      
-      // In a real app, you would save this to the database
-      toast({
-        title: 'Preference updated',
-        description: `${key.replace(/([A-Z])/g, ' $1').toLowerCase()} notifications ${newPrefs[key] ? 'enabled' : 'disabled'}.`,
-      });
-      
-      return newPrefs;
-    });
-  };
-
-  if (authLoading) {
+  if (authLoading || prefsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -98,7 +92,7 @@ const NotificationSettings = () => {
             onClick={() => navigate(-1)} 
             className="p-2.5 rounded-full bg-muted hover:bg-muted/80 transition-colors"
           >
-            <ArrowLeft className="w-5 h-5 text-primary" />
+            <ArrowLeft className="w-5 h-5 text-foreground" />
           </button>
           <h1 className="font-display text-xl font-bold text-foreground">Notification Settings</h1>
         </div>
@@ -152,9 +146,9 @@ const NotificationSettings = () => {
                       variant={isRegistered ? 'outline' : 'default'}
                       size="sm"
                       onClick={handleTogglePushNotifications}
-                      disabled={isProcessing}
+                      disabled={updatePreferences.isPending}
                     >
-                      {isProcessing ? (
+                      {updatePreferences.isPending ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
                       ) : isRegistered ? (
                         'Disable'
@@ -212,8 +206,9 @@ const NotificationSettings = () => {
                 </div>
                 <Switch
                   id="bookingReminders"
-                  checked={preferences.bookingReminders}
-                  onCheckedChange={() => handlePreferenceChange('bookingReminders')}
+                  checked={preferences?.booking_reminders ?? true}
+                  onCheckedChange={() => handlePreferenceChange('booking_reminders')}
+                  disabled={updatePreferences.isPending}
                 />
               </div>
 
@@ -236,8 +231,9 @@ const NotificationSettings = () => {
                 </div>
                 <Switch
                   id="bookingConfirmations"
-                  checked={preferences.bookingConfirmations}
-                  onCheckedChange={() => handlePreferenceChange('bookingConfirmations')}
+                  checked={preferences?.booking_confirmations ?? true}
+                  onCheckedChange={() => handlePreferenceChange('booking_confirmations')}
+                  disabled={updatePreferences.isPending}
                 />
               </div>
 
@@ -260,8 +256,9 @@ const NotificationSettings = () => {
                 </div>
                 <Switch
                   id="promotions"
-                  checked={preferences.promotions}
+                  checked={preferences?.promotions ?? false}
                   onCheckedChange={() => handlePreferenceChange('promotions')}
+                  disabled={updatePreferences.isPending}
                 />
               </div>
 
@@ -284,8 +281,9 @@ const NotificationSettings = () => {
                 </div>
                 <Switch
                   id="updates"
-                  checked={preferences.updates}
-                  onCheckedChange={() => handlePreferenceChange('updates')}
+                  checked={preferences?.app_updates ?? true}
+                  onCheckedChange={() => handlePreferenceChange('app_updates')}
+                  disabled={updatePreferences.isPending}
                 />
               </div>
             </CardContent>
