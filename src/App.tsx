@@ -46,12 +46,23 @@ const App = () => {
       const stack =
         typeof reason === "object" && reason ? (reason?.stack as string | undefined) : undefined;
 
-      const isMetaMask =
-        (message && message.includes("Failed to connect to MetaMask")) ||
-        (stack && stack.includes("nkbihfbeogaeaoehlefnkodbefgpgknn"));
+      // Suppress wallet extension errors (MetaMask, Phantom, etc.)
+      const isWalletError =
+        (message && (
+          message.includes("Failed to connect to MetaMask") ||
+          message.includes("MetaMask") ||
+          message.includes("wallet") ||
+          message.includes("ethereum")
+        )) ||
+        (stack && (
+          stack.includes("nkbihfbeogaeaoehlefnkodbefgpgknn") || // MetaMask extension ID
+          stack.includes("inpage.js") ||
+          stack.includes("contentscript")
+        ));
 
-      if (isMetaMask) {
+      if (isWalletError) {
         event.preventDefault();
+        console.log("Suppressed wallet extension error:", message);
       }
     };
 
