@@ -28,7 +28,7 @@ const TEST_PHONE_NUMBERS = [
 ];
 
 // Fixed test OTP for whitelisted numbers
-const TEST_OTP = '123456';
+const TEST_OTP = '111456';
 
 // Generate a 6-digit OTP
 function generateOTP(): string {
