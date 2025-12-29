@@ -664,7 +664,7 @@ const Auth = () => {
                               type="text"
                               value={referralCode}
                               onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                              className={`h-14 uppercase tracking-widest text-base font-medium pr-24 pl-4 pt-5 pb-2 transition-all duration-200 bg-muted/30 peer placeholder-transparent ${
+                              className={`h-14 uppercase tracking-widest text-base font-medium pr-24 pl-4 pt-5 pb-2 transition-all duration-200 bg-muted/30 peer ${
                                 referralValidation === 'valid' 
                                   ? 'border-green-500 bg-green-50/50 dark:bg-green-950/20 focus-visible:ring-green-500/30' 
                                   : referralValidation === 'invalid'
@@ -673,7 +673,7 @@ const Auth = () => {
                               }`}
                               maxLength={8}
                               autoFocus
-                              placeholder="CODE"
+                              placeholder=""
                             />
                             <label 
                               htmlFor="referral"
@@ -686,7 +686,7 @@ const Auth = () => {
                                   ? 'text-green-600 dark:text-green-400' 
                                   : referralValidation === 'invalid'
                                   ? 'text-destructive'
-                                  : 'text-muted-foreground peer-focus:text-primary'
+                                  : 'text-muted-foreground peer-focus:text-primary peer-focus:top-2 peer-focus:text-[10px] peer-focus:font-semibold peer-focus:uppercase peer-focus:tracking-wider'
                               }`}
                             >
                               Referral Code
