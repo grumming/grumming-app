@@ -403,30 +403,12 @@ const Auth = () => {
         setStep('profile');
       } else {
         // Existing user - complete login immediately
-        // If salon owner mode, check if user has an approved salon
-        if (isSalonOwnerMode && data.userId) {
-          // First check if user has any salon ownership records
-          const { data: ownerData, error: ownerError } = await supabase
-            .from('salon_owners')
-            .select('salon_id')
-            .eq('user_id', data.userId);
-          
-          if (ownerError || !ownerData || ownerData.length === 0) {
-            triggerHaptic('error');
-            toast({
-              title: 'No Salon Found',
-              description: 'You don\'t have any registered salon. Please list your salon first.',
-              variant: 'destructive',
-            });
-            setIsLoading(false);
-            navigate('/salon-registration');
-            return;
-          }
-          
-          // User has salon ownership, redirect to dashboard
-          // Dashboard will show pending status if salon not yet approved
-          navigate('/salon-dashboard');
-          return;
+        // NOTE: In salon owner mode, don't query salon tables here.
+        // The session is established only after redirecting via verificationUrl,
+        // so RLS-protected queries would run as anon and incorrectly return empty.
+        if (isSalonOwnerMode) {
+          // Hint for post-login routing (Index already auto-routes owners to dashboard)
+          localStorage.setItem('postLoginMode', 'salon_owner');
         }
         
         if (data.verificationUrl) {
