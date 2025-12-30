@@ -5,7 +5,7 @@ import {
   ArrowLeft, Users, Calendar, Wallet, Tag, TrendingUp, 
   BarChart3, Clock, CheckCircle, XCircle, Loader2, 
   AlertTriangle, ChevronRight, Search, MoreVertical,
-  Mail, Phone, UserCheck, UserX, Eye, RefreshCw
+  Mail, Phone, UserCheck, UserX, Eye, RefreshCw, Store, Bell
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -317,6 +317,47 @@ const AdminDashboard = () => {
 
             {/* Overview Tab */}
             <TabsContent value="overview" className="space-y-6">
+              {/* Pending Salon Approvals Alert */}
+              {pendingSalonCount > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <Card className="border-orange-500/50 bg-orange-500/5">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center">
+                            <Store className="w-6 h-6 text-orange-600" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-semibold">New Salon Registrations</h3>
+                              <Badge variant="destructive" className="animate-pulse">
+                                {pendingSalonCount} Pending
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {pendingSalonCount} salon{pendingSalonCount !== 1 ? 's are' : ' is'} waiting for your approval
+                            </p>
+                          </div>
+                        </div>
+                        <Button 
+                          onClick={() => {
+                            const salonsTab = document.querySelector<HTMLButtonElement>('[data-value="salons"]');
+                            if (salonsTab) salonsTab.click();
+                          }}
+                          className="gap-2"
+                        >
+                          <Bell className="w-4 h-4" />
+                          Review Now
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
+
               {/* Quick Stats */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard
