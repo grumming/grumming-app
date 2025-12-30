@@ -448,16 +448,22 @@ const Auth = () => {
         localStorage.setItem('pendingReferralCode', referralCode.toUpperCase());
       }
       
+      // Store salon owner mode flag for redirect after auth
+      if (isSalonOwnerMode) {
+        localStorage.setItem('pendingSalonOwnerRegistration', 'true');
+      }
+      
       toast({
         title: 'Profile saved!',
-        description: 'Welcome to Grumming!',
+        description: isSalonOwnerMode ? 'Now let\'s register your salon!' : 'Welcome to Grumming!',
       });
       
       // Now redirect to complete authentication
       if (pendingVerificationUrl) {
         window.location.href = pendingVerificationUrl;
       } else {
-        navigate('/');
+        // If salon owner mode, redirect to salon registration
+        navigate(isSalonOwnerMode ? '/salon-registration' : '/');
       }
     } catch (error: any) {
       toast({

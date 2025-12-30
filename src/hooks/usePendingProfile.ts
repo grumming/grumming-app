@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
@@ -6,6 +7,7 @@ import { useToast } from './use-toast';
 export const usePendingProfile = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const updatePendingProfile = async () => {
@@ -113,7 +115,21 @@ export const usePendingProfile = () => {
       }
     };
 
+    const handleSalonOwnerRedirect = () => {
+      if (!user) return;
+      
+      const pendingSalonOwner = localStorage.getItem('pendingSalonOwnerRegistration');
+      if (!pendingSalonOwner) return;
+      
+      // Clear the flag
+      localStorage.removeItem('pendingSalonOwnerRegistration');
+      
+      // Redirect to salon registration
+      navigate('/salon-registration');
+    };
+
     updatePendingProfile();
     applyPendingReferral();
-  }, [user, toast]);
+    handleSalonOwnerRedirect();
+  }, [user, toast, navigate]);
 };
