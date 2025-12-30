@@ -143,6 +143,8 @@ const SalonRegistration = () => {
 
   useEffect(() => {
     if (!authLoading && !user) {
+      // Store the intended destination so user returns here after login
+      localStorage.setItem('pendingSalonOwnerRegistration', 'true');
       navigate('/auth');
     }
   }, [user, authLoading, navigate]);
