@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -8,6 +8,12 @@ export const usePendingProfile = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [isCheckingOwnerStatus, setIsCheckingOwnerStatus] = useState(() => {
+    // Check if we need to verify salon owner status on mount
+    const postLoginMode = localStorage.getItem('postLoginMode');
+    const pendingSalonOwner = localStorage.getItem('pendingSalonOwnerRegistration');
+    return !!(postLoginMode || pendingSalonOwner);
+  });
 
   useEffect(() => {
     const updatePendingProfile = async () => {
@@ -116,13 +122,21 @@ export const usePendingProfile = () => {
     };
 
     const handleSalonOwnerRedirect = async () => {
-      if (!user) return;
+      if (!user) {
+        setIsCheckingOwnerStatus(false);
+        return;
+      }
       
       const postLoginMode = localStorage.getItem('postLoginMode');
       const pendingSalonOwner = localStorage.getItem('pendingSalonOwnerRegistration');
       
       // Only process if there's a salon owner flag
-      if (!postLoginMode && !pendingSalonOwner) return;
+      if (!postLoginMode && !pendingSalonOwner) {
+        setIsCheckingOwnerStatus(false);
+        return;
+      }
+      
+      setIsCheckingOwnerStatus(true);
       
       // Clear flags first to prevent loops
       if (postLoginMode) localStorage.removeItem('postLoginMode');
@@ -162,6 +176,8 @@ export const usePendingProfile = () => {
         }
       } catch (err) {
         console.error('Error in salon owner redirect:', err);
+      } finally {
+        setIsCheckingOwnerStatus(false);
       }
     };
 
@@ -169,4 +185,6 @@ export const usePendingProfile = () => {
     applyPendingReferral();
     handleSalonOwnerRedirect();
   }, [user, toast, navigate]);
+
+  return { isCheckingOwnerStatus };
 };
