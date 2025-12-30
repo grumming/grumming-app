@@ -17,42 +17,41 @@ export const SalonOwnerRouteGuard = ({ children }: SalonOwnerRouteGuardProps) =>
   const navigate = useNavigate();
   const location = useLocation();
   const [isChecking, setIsChecking] = useState(true);
-  const [isSalonOwner, setIsSalonOwner] = useState(false);
+  const [shouldRedirect, setShouldRedirect] = useState(false);
 
   useEffect(() => {
     const checkSalonOwnerStatus = async () => {
       // Wait for auth to finish loading
       if (authLoading) return;
 
-      // No user = not a salon owner, allow access
+      // No user = not a salon owner, allow access immediately
       if (!user) {
         setIsChecking(false);
-        setIsSalonOwner(false);
+        setShouldRedirect(false);
         return;
       }
 
-      // Ensure we never render customer pages while we re-check
-      setIsChecking(true);
-
       try {
-        // First: if they already own a salon, always route them to the dashboard.
-        // (This also supports legacy data where role rows might be missing.)
+        // Check if user owns a salon (direct check - most reliable)
         const { data: ownerData, error: ownerErr } = await supabase
           .from('salon_owners')
           .select('salon_id, salons(name)')
-          .eq('user_id', user.id);
+          .eq('user_id', user.id)
+          .limit(1);
 
         if (!ownerErr && ownerData && ownerData.length > 0) {
+          // User owns a salon - redirect to dashboard
           const salonName = (ownerData[0] as any)?.salons?.name;
           if (salonName) {
             localStorage.setItem('welcomeBackSalon', salonName);
           }
-          setIsSalonOwner(true);
+          setShouldRedirect(true);
+          setIsChecking(false);
           navigate('/salon-dashboard', { replace: true });
           return;
         }
 
-        // Second: if they have the salon_owner role but no salon yet, route to registration.
+        // Check if user has salon_owner role but no salon yet
         const { data: roleData } = await supabase
           .from('user_roles')
           .select('role')
@@ -61,23 +60,25 @@ export const SalonOwnerRouteGuard = ({ children }: SalonOwnerRouteGuardProps) =>
           .maybeSingle();
 
         if (roleData) {
-          setIsSalonOwner(true);
+          // Has role but no salon - redirect to registration
+          setShouldRedirect(true);
+          setIsChecking(false);
           navigate('/salon-registration', { replace: true });
           return;
         }
 
-        // Otherwise allow customer pages
-        setIsSalonOwner(false);
+        // Not a salon owner - allow customer pages
+        setShouldRedirect(false);
+        setIsChecking(false);
       } catch (err) {
         console.error('Error checking salon owner status:', err);
-        setIsSalonOwner(false);
-      } finally {
+        setShouldRedirect(false);
         setIsChecking(false);
       }
     };
 
     checkSalonOwnerStatus();
-  }, [user, authLoading, navigate, location.pathname]);
+  }, [user, authLoading, navigate]);
 
   // Show loading while auth is initializing or checking owner status
   if (authLoading || isChecking) {
@@ -91,8 +92,8 @@ export const SalonOwnerRouteGuard = ({ children }: SalonOwnerRouteGuardProps) =>
     );
   }
 
-  // If salon owner, don't render children (redirect is happening)
-  if (isSalonOwner) {
+  // If redirecting, don't render children
+  if (shouldRedirect) {
     return null;
   }
 
