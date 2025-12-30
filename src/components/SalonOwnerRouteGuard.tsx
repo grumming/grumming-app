@@ -10,7 +10,8 @@ interface SalonOwnerRouteGuardProps {
 
 /**
  * Global route guard that redirects salon owners away from customer pages
- * to their salon dashboard. No localStorage flags needed.
+ * to their salon dashboard ONLY if they logged in via the salon owner flow.
+ * Customers who happen to own salons are NOT redirected.
  */
 export const SalonOwnerRouteGuard = ({ children }: SalonOwnerRouteGuardProps) => {
   const { user, loading: authLoading } = useAuth();
@@ -26,6 +27,26 @@ export const SalonOwnerRouteGuard = ({ children }: SalonOwnerRouteGuardProps) =>
 
       // No user = not a salon owner, allow access immediately
       if (!user) {
+        setIsChecking(false);
+        setShouldRedirect(false);
+        return;
+      }
+
+      // Check if user logged in via salon owner flow
+      const pendingSalonOwnerRegistration = localStorage.getItem('pendingSalonOwnerRegistration');
+      const postLoginMode = localStorage.getItem('postLoginMode');
+      const isSalonOwnerLogin = pendingSalonOwnerRegistration === 'true' || postLoginMode === 'salon_owner';
+
+      // Clear the flags after reading
+      if (pendingSalonOwnerRegistration) {
+        localStorage.removeItem('pendingSalonOwnerRegistration');
+      }
+      if (postLoginMode) {
+        localStorage.removeItem('postLoginMode');
+      }
+
+      // If user didn't log in via salon owner flow, allow customer pages
+      if (!isSalonOwnerLogin) {
         setIsChecking(false);
         setShouldRedirect(false);
         return;
