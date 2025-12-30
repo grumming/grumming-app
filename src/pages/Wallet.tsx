@@ -1,7 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Wallet as WalletIcon, TrendingUp, TrendingDown, Gift, Loader2, ArrowUpRight, ArrowDownLeft, Plus, X, CreditCard } from 'lucide-react';
+import { ArrowLeft, Wallet as WalletIcon, TrendingUp, TrendingDown, Gift, Loader2, ArrowUpRight, ArrowDownLeft, Plus, CreditCard, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
 import { format } from 'date-fns';
@@ -50,6 +50,56 @@ const Wallet = () => {
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Pull-to-refresh state
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [pullDistance, setPullDistance] = useState(0);
+  const touchStartY = useRef(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const PULL_THRESHOLD = 80;
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (containerRef.current?.scrollTop === 0) {
+      touchStartY.current = e.touches[0].clientY;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (containerRef.current?.scrollTop !== 0 || isRefreshing) return;
+    
+    const currentY = e.touches[0].clientY;
+    const diff = currentY - touchStartY.current;
+    
+    if (diff > 0) {
+      setPullDistance(Math.min(diff * 0.5, PULL_THRESHOLD * 1.5));
+    }
+  };
+
+  const handleTouchEnd = async () => {
+    if (pullDistance >= PULL_THRESHOLD && !isRefreshing) {
+      setIsRefreshing(true);
+      setPullDistance(PULL_THRESHOLD);
+      
+      try {
+        await refetchWallet();
+        toast({
+          title: "Refreshed",
+          description: "Wallet data updated successfully",
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to refresh wallet data",
+          variant: "destructive",
+        });
+      } finally {
+        setIsRefreshing(false);
+        setPullDistance(0);
+      }
+    } else {
+      setPullDistance(0);
+    }
+  };
 
   const loadRazorpayScript = useCallback((): Promise<boolean> => {
     return new Promise((resolve) => {
@@ -219,7 +269,28 @@ const Wallet = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div 
+      ref={containerRef}
+      className="min-h-screen bg-background pb-24 overflow-y-auto"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Pull-to-refresh indicator */}
+      <div 
+        className="flex justify-center items-center overflow-hidden transition-all duration-200"
+        style={{ height: pullDistance }}
+      >
+        <motion.div
+          animate={{ rotate: isRefreshing ? 360 : pullDistance * 2 }}
+          transition={{ duration: isRefreshing ? 1 : 0, repeat: isRefreshing ? Infinity : 0, ease: "linear" }}
+        >
+          <RefreshCw 
+            className={`w-6 h-6 ${pullDistance >= PULL_THRESHOLD ? 'text-primary' : 'text-muted-foreground'}`}
+          />
+        </motion.div>
+      </div>
+
       {/* Header */}
       <header className="bg-card border-b border-border px-4 py-3 sticky top-0 z-10">
         <div className="flex items-center gap-4">
