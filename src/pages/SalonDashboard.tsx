@@ -86,6 +86,7 @@ const SalonDashboard = () => {
   const { isSalonOwner, ownedSalons, isLoading: isOwnerLoading } = useSalonOwner();
 
   const [selectedSalonId, setSelectedSalonId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('overview');
   const [selectedSalon, setSelectedSalon] = useState<any>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [services, setServices] = useState<SalonService[]>([]);
@@ -554,19 +555,19 @@ const SalonDashboard = () => {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => navigate('/profile')}>
-                    <User className="mr-2 h-4 w-4" />
-                    My Profile
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/settings')}>
+                  <DropdownMenuItem onClick={() => setActiveTab('manage')}>
                     <Settings className="mr-2 h-4 w-4" />
-                    Settings
+                    Salon Settings
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate('/notification-settings')}>
                     <Bell className="mr-2 h-4 w-4" />
                     Notifications
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate('/profile')}>
+                    <User className="mr-2 h-4 w-4" />
+                    Personal Account
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate('/help')}>
                     <HelpCircle className="mr-2 h-4 w-4" />
                     Help & Support
@@ -618,7 +619,7 @@ const SalonDashboard = () => {
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
         ) : (
-          <Tabs defaultValue="overview" className="space-y-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="bookings">Bookings</TabsTrigger>
