@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Store, MapPin, Clock, Phone, Mail, Image, Loader2, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Store, MapPin, Clock, Phone, Mail, Image, Loader2, CheckCircle, Camera, X, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -32,14 +32,21 @@ const salonSchema = z.object({
 
 type SalonFormData = z.infer<typeof salonSchema>;
 
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
 const SalonRegistration = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [step, setStep] = useState<'form' | 'success'>('form');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   
   const [formData, setFormData] = useState<SalonFormData>({
     name: '',
@@ -76,6 +83,84 @@ const SalonRegistration = () => {
     }
   };
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      toast({
+        title: 'Invalid file type',
+        description: 'Please upload a JPEG, PNG, or WebP image',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validate file size
+    if (file.size > MAX_IMAGE_SIZE) {
+      toast({
+        title: 'File too large',
+        description: 'Image must be less than 5MB',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setSelectedImage(file);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const uploadImage = async (salonId: string): Promise<string | null> => {
+    if (!selectedImage) return null;
+    
+    setIsUploadingImage(true);
+    
+    try {
+      const fileExt = selectedImage.name.split('.').pop();
+      const fileName = `${salonId}/main.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('salon-images')
+        .upload(fileName, selectedImage, {
+          cacheControl: '3600',
+          upsert: true,
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrlData } = supabase.storage
+        .from('salon-images')
+        .getPublicUrl(fileName);
+
+      return publicUrlData.publicUrl;
+    } catch (error: any) {
+      console.error('Image upload error:', error);
+      toast({
+        title: 'Image upload failed',
+        description: 'Salon registered but image upload failed. You can add it later.',
+        variant: 'destructive',
+      });
+      return null;
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!validateForm()) return;
     if (!user) {
@@ -91,7 +176,7 @@ const SalonRegistration = () => {
     setIsLoading(true);
 
     try {
-      // Create the salon
+      // Create the salon first
       const { data: salonData, error: salonError } = await supabase
         .from('salons')
         .insert({
@@ -109,6 +194,17 @@ const SalonRegistration = () => {
         .single();
 
       if (salonError) throw salonError;
+
+      // Upload image if selected
+      if (selectedImage) {
+        const imageUrl = await uploadImage(salonData.id);
+        if (imageUrl) {
+          await supabase
+            .from('salons')
+            .update({ image_url: imageUrl })
+            .eq('id', salonData.id);
+        }
+      }
 
       // Link the user as salon owner
       const { error: ownerError } = await supabase
@@ -205,6 +301,67 @@ const SalonRegistration = () => {
 
             {/* Form */}
             <div className="space-y-5">
+              {/* Salon Image Upload */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Camera className="w-4 h-4" />
+                  Salon Photo
+                </Label>
+                <div className="flex items-start gap-4">
+                  {imagePreview ? (
+                    <div className="relative">
+                      <img
+                        src={imagePreview}
+                        alt="Salon preview"
+                        className="w-32 h-32 object-cover rounded-xl border border-border"
+                      />
+                      <button
+                        type="button"
+                        onClick={removeImage}
+                        className="absolute -top-2 -right-2 w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center shadow-md hover:bg-destructive/90 transition-colors"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-32 h-32 border-2 border-dashed border-border rounded-xl flex flex-col items-center justify-center gap-2 hover:border-primary/50 hover:bg-primary/5 transition-colors"
+                    >
+                      <Upload className="w-6 h-6 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">Upload</span>
+                    </button>
+                  )}
+                  <div className="flex-1 pt-2">
+                    <p className="text-sm text-muted-foreground">
+                      Add a photo of your salon to attract more customers
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      JPEG, PNG or WebP • Max 5MB
+                    </p>
+                    {imagePreview && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="mt-3"
+                      >
+                        Change Photo
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                />
+              </div>
+
               {/* Salon Name */}
               <div className="space-y-2">
                 <Label htmlFor="name">Salon Name *</Label>
@@ -340,20 +497,20 @@ const SalonRegistration = () => {
               <div className="p-4 bg-muted/50 rounded-lg border border-border/50">
                 <p className="text-sm text-muted-foreground">
                   <strong className="text-foreground">Note:</strong> Your salon will be reviewed by our team before it goes live. 
-                  You can add services and upload images from your Salon Dashboard after approval.
+                  You can add more photos and services from your Salon Dashboard after approval.
                 </p>
               </div>
 
               {/* Submit Button */}
               <Button
                 onClick={handleSubmit}
-                disabled={isLoading}
+                disabled={isLoading || isUploadingImage}
                 className="w-full h-12"
               >
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Registering...
+                    {isUploadingImage ? 'Uploading image...' : 'Registering...'}
                   </>
                 ) : (
                   'Register Salon'
