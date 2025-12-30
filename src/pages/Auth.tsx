@@ -135,8 +135,13 @@ const Auth = () => {
         const codeToApply = referralCode || storedReferralCode;
         const postLoginMode = localStorage.getItem('postLoginMode');
         
-        // Clear the mode flag
-        if (postLoginMode) localStorage.removeItem('postLoginMode');
+        // Determine if this is a salon owner login
+        const isSalonOwnerLogin = postLoginMode === 'salon_owner' || isSalonOwnerMode;
+        
+        // Clear the mode flag AFTER reading it
+        if (postLoginMode) {
+          localStorage.removeItem('postLoginMode');
+        }
 
         // Handle referral code first
         if (codeToApply) {
@@ -145,14 +150,17 @@ const Auth = () => {
           try {
             await applyReferralCode(codeToApply);
             setShowReferralSuccess(true);
-            return; // Wait for animation to complete before navigating
+            // Don't return here for salon owners - continue to proper redirect after animation
+            if (!isSalonOwnerLogin) {
+              return; // Wait for animation to complete before navigating
+            }
           } catch (error: any) {
             console.log('Referral apply failed:', error.message);
           }
         }
         
         // If salon owner mode, redirect directly to dashboard or registration
-        if (postLoginMode === 'salon_owner' || isSalonOwnerMode) {
+        if (isSalonOwnerLogin) {
           setIsCheckingOwnerStatus(true);
           try {
             // Check if user has salon_owner role

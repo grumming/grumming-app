@@ -115,10 +115,58 @@ export const usePendingProfile = () => {
       }
     };
 
-    // Note: Salon owner redirect is now handled directly in Auth.tsx
-    // to avoid showing customer dashboard briefly before redirecting
+    const handleSalonOwnerRedirect = async () => {
+      if (!user) return;
+      
+      const postLoginMode = localStorage.getItem('postLoginMode');
+      const pendingSalonOwner = localStorage.getItem('pendingSalonOwnerRegistration');
+      
+      // Only process if there's a salon owner flag
+      if (!postLoginMode && !pendingSalonOwner) return;
+      
+      // Clear flags first to prevent loops
+      if (postLoginMode) localStorage.removeItem('postLoginMode');
+      if (pendingSalonOwner) localStorage.removeItem('pendingSalonOwnerRegistration');
+      
+      // Check if user is a salon owner (has salon_owner role)
+      try {
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .eq('role', 'salon_owner')
+          .maybeSingle();
+        
+        if (roleData) {
+          // User is a salon owner - check if they have salons
+          const { data: ownerData } = await supabase
+            .from('salon_owners')
+            .select('salon_id, salons(name)')
+            .eq('user_id', user.id);
+          
+          if (ownerData && ownerData.length > 0) {
+            // Store salon name for welcome toast
+            const salonName = (ownerData[0] as any)?.salons?.name;
+            if (salonName) {
+              localStorage.setItem('welcomeBackSalon', salonName);
+            }
+            navigate('/salon-dashboard');
+          } else {
+            navigate('/salon-registration');
+          }
+        } else {
+          // Not a salon owner yet - go to registration
+          if (postLoginMode === 'salon_owner' || pendingSalonOwner) {
+            navigate('/salon-registration');
+          }
+        }
+      } catch (err) {
+        console.error('Error in salon owner redirect:', err);
+      }
+    };
 
     updatePendingProfile();
     applyPendingReferral();
+    handleSalonOwnerRedirect();
   }, [user, toast, navigate]);
 };
