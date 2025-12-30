@@ -27,6 +27,7 @@ import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import AdminBookingListener from '@/components/AdminBookingListener';
 import LiveActivityFeed from '@/components/LiveActivityFeed';
 import RevenueAnalytics from '@/components/RevenueAnalytics';
+import SalonManagement from '@/components/admin/SalonManagement';
 
 interface UserProfile {
   id: string;
@@ -285,8 +286,9 @@ const AdminDashboard = () => {
           </div>
         ) : (
           <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="salons">Salons</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
               <TabsTrigger value="users">Users</TabsTrigger>
               <TabsTrigger value="tools">Tools</TabsTrigger>
@@ -419,6 +421,11 @@ const AdminDashboard = () => {
                   </CardContent>
                 </Card>
               </div>
+            </TabsContent>
+
+            {/* Salons Tab */}
+            <TabsContent value="salons" className="space-y-6">
+              <SalonManagement />
             </TabsContent>
 
             {/* Analytics Tab */}
