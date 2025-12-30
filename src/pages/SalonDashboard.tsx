@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
-  ArrowLeft, Store, Calendar, Clock, Star, Users, TrendingUp,
+  Store, Calendar, Clock, Star, Users, TrendingUp,
   Package, MessageSquare, Settings, Bell, Loader2, AlertTriangle,
   CheckCircle, XCircle, Eye, Edit2, ChevronRight, IndianRupee,
-  Send, Reply, Plus, Trash2
+  Send, Reply, Plus, Trash2, LogOut, User, HelpCircle, MoreVertical
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -22,6 +22,9 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useSalonOwner } from '@/hooks/useSalonOwner';
@@ -557,6 +560,12 @@ const SalonDashboard = () => {
     );
   }
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/');
+    toast({ title: 'Logged out', description: 'You have been signed out successfully' });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -564,25 +573,60 @@ const SalonDashboard = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="font-display text-xl font-bold">Salon Dashboard</h1>
+              <h1 className="font-display text-xl font-bold text-foreground">Salon Dashboard</h1>
               <p className="text-xs text-muted-foreground">Manage your salon</p>
             </div>
 
-            {/* Salon Selector */}
-            {ownedSalons.length > 1 && (
-              <Select value={selectedSalonId || ''} onValueChange={setSelectedSalonId}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Select salon" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ownedSalons.map(salon => (
-                    <SelectItem key={salon.id} value={salon.id}>
-                      {salon.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
+            <div className="flex items-center gap-3">
+              {/* Salon Selector */}
+              {ownedSalons.length > 1 && (
+                <Select value={selectedSalonId || ''} onValueChange={setSelectedSalonId}>
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue placeholder="Select salon" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ownedSalons.map(salon => (
+                      <SelectItem key={salon.id} value={salon.id}>
+                        {salon.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+
+              {/* Settings & Menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="rounded-full bg-muted hover:bg-muted/80">
+                    <MoreVertical className="w-5 h-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer">
+                    <User className="w-4 h-4 mr-3" />
+                    My Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/settings')} className="cursor-pointer">
+                    <Settings className="w-4 h-4 mr-3" />
+                    Account Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/notification-settings')} className="cursor-pointer">
+                    <Bell className="w-4 h-4 mr-3" />
+                    Notifications
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate('/privacy')} className="cursor-pointer">
+                    <HelpCircle className="w-4 h-4 mr-3" />
+                    Help & Support
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive focus:text-destructive">
+                    <LogOut className="w-4 h-4 mr-3" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
       </header>
