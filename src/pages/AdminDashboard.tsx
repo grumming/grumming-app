@@ -26,6 +26,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import AdminBookingListener from '@/components/AdminBookingListener';
 import LiveActivityFeed from '@/components/LiveActivityFeed';
+import RevenueAnalytics from '@/components/RevenueAnalytics';
 
 interface UserProfile {
   id: string;
@@ -284,8 +285,9 @@ const AdminDashboard = () => {
           </div>
         ) : (
           <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="analytics">Analytics</TabsTrigger>
               <TabsTrigger value="users">Users</TabsTrigger>
               <TabsTrigger value="tools">Tools</TabsTrigger>
             </TabsList>
@@ -417,6 +419,11 @@ const AdminDashboard = () => {
                   </CardContent>
                 </Card>
               </div>
+            </TabsContent>
+
+            {/* Analytics Tab */}
+            <TabsContent value="analytics" className="space-y-6">
+              <RevenueAnalytics />
             </TabsContent>
 
             {/* Users Tab */}
