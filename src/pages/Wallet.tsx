@@ -310,31 +310,39 @@ const Wallet = () => {
         animate={{ opacity: 1, y: 0 }}
         className="mx-4 mt-4"
       >
-        <div className="bg-gradient-primary rounded-2xl p-6 text-white shadow-lg">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
-              <WalletIcon className="w-6 h-6 text-white" />
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500 p-[2px]">
+          <div className="relative rounded-[14px] bg-gradient-to-r from-violet-500/90 via-purple-500/90 to-fuchsia-500/90 p-6">
+            {/* Animated background sparkles */}
+            <div className="absolute inset-0 overflow-hidden rounded-[14px]">
+              <div className="absolute -top-4 -left-4 w-24 h-24 bg-white/20 rounded-full blur-2xl animate-pulse" />
+              <div className="absolute -bottom-4 -right-4 w-32 h-32 bg-fuchsia-300/20 rounded-full blur-2xl animate-pulse delay-300" />
             </div>
-            <div>
-              <p className="text-sm text-white/80">Available Balance</p>
-              <h2 className="text-3xl font-bold text-white">₹{wallet?.balance?.toFixed(0) || 0}</h2>
-            </div>
-          </div>
-          
-          <div className="flex gap-6 pt-4 border-t border-white/20">
-            <div className="flex-1">
-              <div className="flex items-center gap-1 text-sm text-white/80 mb-1">
-                <TrendingUp className="w-4 h-4 text-white" />
-                <span>Total Earned</span>
+            
+            <div className="relative flex items-center gap-3 mb-4">
+              <div className="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                <WalletIcon className="w-7 h-7 text-white" />
               </div>
-              <p className="text-lg font-semibold text-white">₹{wallet?.total_earned?.toFixed(0) || 0}</p>
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-1 text-sm text-white/80 mb-1">
-                <TrendingDown className="w-4 h-4 text-white" />
-                <span>Total Spent</span>
+              <div>
+                <p className="text-sm text-white/80">Available Balance</p>
+                <h2 className="text-3xl font-bold text-white">₹{wallet?.balance?.toFixed(0) || 0}</h2>
               </div>
-              <p className="text-lg font-semibold text-white">₹{wallet?.total_spent?.toFixed(0) || 0}</p>
+            </div>
+            
+            <div className="relative flex gap-6 pt-4 border-t border-white/20">
+              <div className="flex-1">
+                <div className="flex items-center gap-1 text-sm text-white/80 mb-1">
+                  <TrendingUp className="w-4 h-4 text-white" />
+                  <span>Total Earned</span>
+                </div>
+                <p className="text-lg font-semibold text-white">₹{wallet?.total_earned?.toFixed(0) || 0}</p>
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-1 text-sm text-white/80 mb-1">
+                  <TrendingDown className="w-4 h-4 text-white" />
+                  <span>Total Spent</span>
+                </div>
+                <p className="text-lg font-semibold text-white">₹{wallet?.total_spent?.toFixed(0) || 0}</p>
+              </div>
             </div>
           </div>
         </div>
