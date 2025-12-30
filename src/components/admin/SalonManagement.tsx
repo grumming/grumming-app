@@ -411,29 +411,28 @@ export const SalonManagement = () => {
 
   const SalonForm = ({ isEdit = false }: { isEdit?: boolean }) => (
     <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="name">Salon Name *</Label>
-          <Input
-            id="name"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            placeholder="Enter salon name"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="city">City *</Label>
-          <Select value={formData.city} onValueChange={(v) => setFormData({ ...formData, city: v })}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select city" />
-            </SelectTrigger>
-            <SelectContent>
-              {INDIAN_CITIES.map(city => (
-                <SelectItem key={city} value={city}>{city}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="space-y-2">
+        <Label htmlFor="name">Salon Name *</Label>
+        <Input
+          id="name"
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          placeholder="Enter salon name"
+        />
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="city">City *</Label>
+        <Select value={formData.city} onValueChange={(v) => setFormData({ ...formData, city: v })}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select city" />
+          </SelectTrigger>
+          <SelectContent className="max-h-[200px]">
+            {INDIAN_CITIES.map(city => (
+              <SelectItem key={city} value={city}>{city}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="space-y-2">
