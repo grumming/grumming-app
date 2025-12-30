@@ -5,7 +5,7 @@ import {
   ArrowLeft, Store, Calendar, Clock, Star, Users, TrendingUp,
   Package, MessageSquare, Settings, Bell, Loader2, AlertTriangle,
   CheckCircle, XCircle, Eye, Edit2, ChevronRight, IndianRupee,
-  Send, Reply, Plus, Trash2, LogOut, User, Lock, Mail, Phone
+  Send, Reply, Plus, Trash2, LogOut
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -28,7 +28,6 @@ import { useSalonOwner } from '@/hooks/useSalonOwner';
 import { supabase } from '@/integrations/supabase/client';
 import { format, subDays, isToday, isTomorrow, parseISO } from 'date-fns';
 import SalonOwnerBottomNav from '@/components/SalonOwnerBottomNav';
-import { useNotificationPreferences } from '@/hooks/useNotificationPreferences';
 
 interface Booking {
   id: string;
@@ -120,16 +119,6 @@ const SalonDashboard = () => {
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [isSavingDescription, setIsSavingDescription] = useState(false);
 
-  // Profile/Account settings state
-  const [ownerProfile, setOwnerProfile] = useState<{ full_name: string; phone: string; email: string }>({ 
-    full_name: '', phone: '', email: '' 
-  });
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [passwordForm, setPasswordForm] = useState({ newPassword: '', confirmPassword: '' });
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const { preferences, isLoading: isLoadingPrefs, updatePreferences } = useNotificationPreferences();
-
   // Select first salon by default
   useEffect(() => {
     if (ownedSalons.length > 0 && !selectedSalonId) {
@@ -137,26 +126,6 @@ const SalonDashboard = () => {
       setSelectedSalonId(primarySalon.id);
     }
   }, [ownedSalons, selectedSalonId]);
-
-  // Fetch owner profile
-  useEffect(() => {
-    const fetchOwnerProfile = async () => {
-      if (!user) return;
-      const { data } = await supabase
-        .from('profiles')
-        .select('full_name, phone, email')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      if (data) {
-        setOwnerProfile({
-          full_name: data.full_name || '',
-          phone: data.phone || '',
-          email: data.email || user.email || ''
-        });
-      }
-    };
-    fetchOwnerProfile();
-  }, [user]);
 
   // Fetch salon details and data
   useEffect(() => {
@@ -467,54 +436,6 @@ const SalonDashboard = () => {
     }
 
     setIsSavingDescription(false);
-  };
-
-  const handleSaveProfile = async () => {
-    if (!user) return;
-
-    setIsSavingProfile(true);
-
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        full_name: ownerProfile.full_name.trim(),
-        phone: ownerProfile.phone.trim(),
-        email: ownerProfile.email.trim()
-      })
-      .eq('user_id', user.id);
-
-    if (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    } else {
-      setIsEditingProfile(false);
-      toast({ title: 'Success', description: 'Profile updated successfully' });
-    }
-
-    setIsSavingProfile(false);
-  };
-
-  const handleChangePassword = async () => {
-    if (passwordForm.newPassword.length < 6) {
-      toast({ title: 'Error', description: 'Password must be at least 6 characters', variant: 'destructive' });
-      return;
-    }
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      toast({ title: 'Error', description: 'Passwords do not match', variant: 'destructive' });
-      return;
-    }
-
-    setIsChangingPassword(true);
-
-    const { error } = await supabase.auth.updateUser({ password: passwordForm.newPassword });
-
-    if (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    } else {
-      setPasswordForm({ newPassword: '', confirmPassword: '' });
-      toast({ title: 'Success', description: 'Password changed successfully' });
-    }
-
-    setIsChangingPassword(false);
   };
 
   const renderStars = (rating: number) => {
@@ -843,11 +764,10 @@ const SalonDashboard = () => {
             {/* Manage Tab - with nested tabs for Reviews, Services, Settings */}
             <TabsContent value="manage" className="space-y-4">
               <Tabs defaultValue="reviews" className="space-y-4">
-                <TabsList className="grid w-full grid-cols-4 bg-muted/50">
+                <TabsList className="grid w-full grid-cols-3 bg-muted/50">
                   <TabsTrigger value="reviews" className="text-sm">Reviews</TabsTrigger>
                   <TabsTrigger value="services" className="text-sm">Services</TabsTrigger>
                   <TabsTrigger value="status" className="text-sm">Status</TabsTrigger>
-                  <TabsTrigger value="account" className="text-sm">Account</TabsTrigger>
                 </TabsList>
 
                 {/* Reviews Sub-Tab */}
@@ -1159,244 +1079,6 @@ const SalonDashboard = () => {
                       <p className="text-sm text-muted-foreground text-center pt-4">
                         Contact the admin to update your salon details
                       </p>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                {/* Account Sub-Tab */}
-                <TabsContent value="account" className="space-y-4">
-                  {/* Personal Information */}
-                  <Card>
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <CardTitle className="flex items-center gap-2">
-                            <User className="w-5 h-5" />
-                            Personal Information
-                          </CardTitle>
-                          <CardDescription>Manage your personal details</CardDescription>
-                        </div>
-                        {!isEditingProfile && (
-                          <Button variant="outline" size="sm" onClick={() => setIsEditingProfile(true)}>
-                            <Edit2 className="w-4 h-4 mr-1" />
-                            Edit
-                          </Button>
-                        )}
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {isEditingProfile ? (
-                        <div className="space-y-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="fullName">Full Name</Label>
-                            <Input
-                              id="fullName"
-                              value={ownerProfile.full_name}
-                              onChange={(e) => setOwnerProfile(p => ({ ...p, full_name: e.target.value }))}
-                              placeholder="Your full name"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="phone">Phone Number</Label>
-                            <div className="relative">
-                              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                              <Input
-                                id="phone"
-                                value={ownerProfile.phone}
-                                onChange={(e) => setOwnerProfile(p => ({ ...p, phone: e.target.value }))}
-                                placeholder="+91 XXXXX XXXXX"
-                                className="pl-10"
-                              />
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="email">Email Address</Label>
-                            <div className="relative">
-                              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                              <Input
-                                id="email"
-                                type="email"
-                                value={ownerProfile.email}
-                                onChange={(e) => setOwnerProfile(p => ({ ...p, email: e.target.value }))}
-                                placeholder="email@example.com"
-                                className="pl-10"
-                              />
-                            </div>
-                          </div>
-                          <div className="flex gap-2 pt-2">
-                            <Button 
-                              variant="outline" 
-                              onClick={() => setIsEditingProfile(false)}
-                              className="flex-1"
-                            >
-                              Cancel
-                            </Button>
-                            <Button 
-                              onClick={handleSaveProfile}
-                              disabled={isSavingProfile}
-                              className="flex-1"
-                            >
-                              {isSavingProfile && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                              Save Changes
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                            <User className="w-5 h-5 text-muted-foreground" />
-                            <div>
-                              <p className="text-sm text-muted-foreground">Full Name</p>
-                              <p className="font-medium">{ownerProfile.full_name || 'Not set'}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                            <Phone className="w-5 h-5 text-muted-foreground" />
-                            <div>
-                              <p className="text-sm text-muted-foreground">Phone</p>
-                              <p className="font-medium">{ownerProfile.phone || 'Not set'}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                            <Mail className="w-5 h-5 text-muted-foreground" />
-                            <div>
-                              <p className="text-sm text-muted-foreground">Email</p>
-                              <p className="font-medium">{ownerProfile.email || 'Not set'}</p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  {/* Change Password */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Lock className="w-5 h-5" />
-                        Change Password
-                      </CardTitle>
-                      <CardDescription>Update your account password</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="newPassword">New Password</Label>
-                        <Input
-                          id="newPassword"
-                          type="password"
-                          value={passwordForm.newPassword}
-                          onChange={(e) => setPasswordForm(p => ({ ...p, newPassword: e.target.value }))}
-                          placeholder="Enter new password"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="confirmPassword">Confirm Password</Label>
-                        <Input
-                          id="confirmPassword"
-                          type="password"
-                          value={passwordForm.confirmPassword}
-                          onChange={(e) => setPasswordForm(p => ({ ...p, confirmPassword: e.target.value }))}
-                          placeholder="Confirm new password"
-                        />
-                      </div>
-                      <Button 
-                        onClick={handleChangePassword}
-                        disabled={isChangingPassword || !passwordForm.newPassword}
-                        className="w-full"
-                      >
-                        {isChangingPassword && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                        Update Password
-                      </Button>
-                    </CardContent>
-                  </Card>
-
-                  {/* Notification Preferences */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Bell className="w-5 h-5" />
-                        Notification Preferences
-                      </CardTitle>
-                      <CardDescription>Choose which notifications you receive</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {isLoadingPrefs ? (
-                        <div className="flex justify-center py-4">
-                          <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between">
-                            <div className="space-y-0.5">
-                              <Label>Booking Reminders</Label>
-                              <p className="text-sm text-muted-foreground">Get reminded about upcoming bookings</p>
-                            </div>
-                            <Switch
-                              checked={preferences?.booking_reminders ?? true}
-                              onCheckedChange={(checked) => updatePreferences.mutate({ booking_reminders: checked })}
-                            />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="space-y-0.5">
-                              <Label>Booking Confirmations</Label>
-                              <p className="text-sm text-muted-foreground">Receive confirmation when customers book</p>
-                            </div>
-                            <Switch
-                              checked={preferences?.booking_confirmations ?? true}
-                              onCheckedChange={(checked) => updatePreferences.mutate({ booking_confirmations: checked })}
-                            />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="space-y-0.5">
-                              <Label>Promotions</Label>
-                              <p className="text-sm text-muted-foreground">Updates about offers and discounts</p>
-                            </div>
-                            <Switch
-                              checked={preferences?.promotions ?? false}
-                              onCheckedChange={(checked) => updatePreferences.mutate({ promotions: checked })}
-                            />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="space-y-0.5">
-                              <Label>App Updates</Label>
-                              <p className="text-sm text-muted-foreground">News about new features and improvements</p>
-                            </div>
-                            <Switch
-                              checked={preferences?.app_updates ?? true}
-                              onCheckedChange={(checked) => updatePreferences.mutate({ app_updates: checked })}
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  {/* Sign Out */}
-                  <Card className="border-destructive/20">
-                    <CardContent className="pt-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center">
-                            <LogOut className="w-5 h-5 text-destructive" />
-                          </div>
-                          <div>
-                            <p className="font-medium">Sign Out</p>
-                            <p className="text-sm text-muted-foreground">Log out of your account</p>
-                          </div>
-                        </div>
-                        <Button 
-                          variant="outline" 
-                          className="border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                          onClick={async () => {
-                            await signOut();
-                            navigate('/');
-                            toast({ title: 'Signed out', description: 'You have been logged out successfully' });
-                          }}
-                        >
-                          <LogOut className="w-4 h-4 mr-2" />
-                          Logout
-                        </Button>
-                      </div>
                     </CardContent>
                   </Card>
                 </TabsContent>
