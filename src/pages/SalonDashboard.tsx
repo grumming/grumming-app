@@ -564,10 +564,11 @@ const SalonDashboard = () => {
           </div>
         ) : (
           <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="bookings">Bookings</TabsTrigger>
               <TabsTrigger value="manage">Manage</TabsTrigger>
+              <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
 
             {/* Overview Tab */}
@@ -770,10 +771,9 @@ const SalonDashboard = () => {
             {/* Manage Tab - with nested tabs for Reviews, Services, Settings */}
             <TabsContent value="manage" className="space-y-4">
               <Tabs defaultValue="reviews" className="space-y-4">
-                <TabsList className="grid w-full grid-cols-3 bg-muted/50">
+                <TabsList className="grid w-full grid-cols-2 bg-muted/50">
                   <TabsTrigger value="reviews" className="text-sm">Reviews</TabsTrigger>
                   <TabsTrigger value="services" className="text-sm">Services</TabsTrigger>
-                  <TabsTrigger value="status" className="text-sm">Status</TabsTrigger>
                 </TabsList>
 
                 {/* Reviews Sub-Tab */}
@@ -958,228 +958,228 @@ const SalonDashboard = () => {
                     </CardContent>
                   </Card>
                 </TabsContent>
+              </Tabs>
+            </TabsContent>
 
-                {/* Salon Settings Sub-Tab */}
-                <TabsContent value="status" className="space-y-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Salon Settings</CardTitle>
-                      <CardDescription>Manage your salon information</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium">Salon Visibility</p>
-                            {selectedSalon?.status === 'pending' && (
-                              <Badge variant="secondary" className="text-xs">Pending Approval</Badge>
-                            )}
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            {selectedSalon?.status === 'pending' 
-                              ? 'Visibility can be changed after admin approval'
-                              : selectedSalon?.is_active 
-                                ? 'Your salon is visible in search results' 
-                                : 'Your salon is hidden from customers'}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <Switch
-                            checked={selectedSalon?.is_active ?? false}
-                            onCheckedChange={handleToggleVisibility}
-                            disabled={selectedSalon?.status === 'pending'}
-                          />
-                          <Badge variant={selectedSalon?.is_active ? 'default' : 'secondary'}>
-                            {selectedSalon?.is_active ? 'Visible' : 'Hidden'}
-                          </Badge>
-                        </div>
-                      </div>
-
-                      {/* Salon Description Editor */}
-                      <div className="p-4 border rounded-lg space-y-3">
-                        <div className="flex items-center justify-between">
-                          <p className="font-medium">Salon Description</p>
-                          {!isEditingDescription && (
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => setIsEditingDescription(true)}
-                            >
-                              <Edit2 className="w-4 h-4 mr-1" />
-                              Edit
-                            </Button>
-                          )}
-                        </div>
-                        
-                        {isEditingDescription ? (
-                          <div className="space-y-3">
-                            <Textarea
-                              value={salonDescription}
-                              onChange={(e) => setSalonDescription(e.target.value)}
-                              placeholder="Describe your salon, specialties, and what makes you unique..."
-                              rows={4}
-                              maxLength={500}
-                              className="resize-none"
-                            />
-                            <div className="flex items-center justify-between">
-                              <p className="text-xs text-muted-foreground">
-                                {salonDescription.length}/500 characters
-                              </p>
-                              <div className="flex gap-2">
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => {
-                                    setSalonDescription(selectedSalon?.description || '');
-                                    setIsEditingDescription(false);
-                                  }}
-                                >
-                                  Cancel
-                                </Button>
-                                <Button 
-                                  size="sm"
-                                  onClick={handleSaveDescription}
-                                  disabled={isSavingDescription}
-                                >
-                                  {isSavingDescription && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                                  Save
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">
-                            {selectedSalon?.description || 'No description added yet. Add a description to help customers learn more about your salon.'}
-                          </p>
+            {/* Settings Tab */}
+            <TabsContent value="settings" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Salon Settings</CardTitle>
+                  <CardDescription>Manage your salon information</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">Salon Visibility</p>
+                        {selectedSalon?.status === 'pending' && (
+                          <Badge variant="secondary" className="text-xs">Pending Approval</Badge>
                         )}
                       </div>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedSalon?.status === 'pending' 
+                          ? 'Visibility can be changed after admin approval'
+                          : selectedSalon?.is_active 
+                            ? 'Your salon is visible in search results' 
+                            : 'Your salon is hidden from customers'}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Switch
+                        checked={selectedSalon?.is_active ?? false}
+                        onCheckedChange={handleToggleVisibility}
+                        disabled={selectedSalon?.status === 'pending'}
+                      />
+                      <Badge variant={selectedSalon?.is_active ? 'default' : 'secondary'}>
+                        {selectedSalon?.is_active ? 'Visible' : 'Hidden'}
+                      </Badge>
+                    </div>
+                  </div>
 
-                      <div className="p-4 border rounded-lg space-y-3">
-                        <p className="font-medium">Contact Information</p>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <p className="text-muted-foreground">Phone</p>
-                            <p>{selectedSalon?.phone || 'Not set'}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Email</p>
-                            <p>{selectedSalon?.email || 'Not set'}</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="p-4 border rounded-lg space-y-3">
+                  {/* Salon Description Editor */}
+                  <div className="p-4 border rounded-lg space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="font-medium">Salon Description</p>
+                      {!isEditingDescription && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => setIsEditingDescription(true)}
+                        >
+                          <Edit2 className="w-4 h-4 mr-1" />
+                          Edit
+                        </Button>
+                      )}
+                    </div>
+                    
+                    {isEditingDescription ? (
+                      <div className="space-y-3">
+                        <Textarea
+                          value={salonDescription}
+                          onChange={(e) => setSalonDescription(e.target.value)}
+                          placeholder="Describe your salon, specialties, and what makes you unique..."
+                          rows={4}
+                          maxLength={500}
+                          className="resize-none"
+                        />
                         <div className="flex items-center justify-between">
-                          <p className="font-medium">Business Hours</p>
-                          {!isEditingHours && (
+                          <p className="text-xs text-muted-foreground">
+                            {salonDescription.length}/500 characters
+                          </p>
+                          <div className="flex gap-2">
                             <Button 
-                              variant="ghost" 
+                              variant="outline" 
                               size="sm"
                               onClick={() => {
-                                setOpeningTime(selectedSalon?.opening_time?.slice(0, 5) || '09:00');
-                                setClosingTime(selectedSalon?.closing_time?.slice(0, 5) || '21:00');
-                                setIsEditingHours(true);
+                                setSalonDescription(selectedSalon?.description || '');
+                                setIsEditingDescription(false);
                               }}
                             >
-                              <Edit2 className="w-4 h-4 mr-1" />
-                              Edit
+                              Cancel
                             </Button>
-                          )}
+                            <Button 
+                              size="sm"
+                              onClick={handleSaveDescription}
+                              disabled={isSavingDescription}
+                            >
+                              {isSavingDescription && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                              Save
+                            </Button>
+                          </div>
                         </div>
-                        
-                        {isEditingHours ? (
-                          <div className="space-y-3">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-2">
-                                <Label>Opening Time</Label>
-                                <Input
-                                  type="time"
-                                  value={openingTime}
-                                  onChange={(e) => setOpeningTime(e.target.value)}
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <Label>Closing Time</Label>
-                                <Input
-                                  type="time"
-                                  value={closingTime}
-                                  onChange={(e) => setClosingTime(e.target.value)}
-                                />
-                              </div>
-                            </div>
-                            <div className="flex justify-end gap-2">
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => setIsEditingHours(false)}
-                              >
-                                Cancel
-                              </Button>
-                              <Button 
-                                size="sm"
-                                onClick={async () => {
-                                  if (!selectedSalonId) return;
-                                  setIsSavingHours(true);
-                                  const { error } = await supabase
-                                    .from('salons')
-                                    .update({ 
-                                      opening_time: openingTime + ':00',
-                                      closing_time: closingTime + ':00'
-                                    })
-                                    .eq('id', selectedSalonId);
-                                  if (error) {
-                                    toast({ title: 'Error', description: error.message, variant: 'destructive' });
-                                  } else {
-                                    setSelectedSalon((prev: any) => prev ? { 
-                                      ...prev, 
-                                      opening_time: openingTime + ':00',
-                                      closing_time: closingTime + ':00'
-                                    } : null);
-                                    setIsEditingHours(false);
-                                    toast({ title: 'Success', description: 'Business hours updated' });
-                                  }
-                                  setIsSavingHours(false);
-                                }}
-                                disabled={isSavingHours}
-                              >
-                                {isSavingHours && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                                Save
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <p className="text-muted-foreground">Opens</p>
-                              <p>{selectedSalon?.opening_time?.slice(0, 5) || '09:00'}</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Closes</p>
-                              <p>{selectedSalon?.closing_time?.slice(0, 5) || '21:00'}</p>
-                            </div>
-                          </div>
-                        )}
                       </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        {selectedSalon?.description || 'No description added yet. Add a description to help customers learn more about your salon.'}
+                      </p>
+                    )}
+                  </div>
 
-                      {/* Logout Section */}
-                      <div className="pt-6 border-t mt-6">
+                  <div className="p-4 border rounded-lg space-y-3">
+                    <p className="font-medium">Contact Information</p>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Phone</p>
+                        <p>{selectedSalon?.phone || 'Not set'}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Email</p>
+                        <p>{selectedSalon?.email || 'Not set'}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 border rounded-lg space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="font-medium">Business Hours</p>
+                      {!isEditingHours && (
                         <Button 
-                          variant="outline" 
-                          className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={async () => {
-                            await signOut();
-                            navigate('/');
-                            toast({ title: 'Signed out', description: 'You have been logged out successfully' });
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            setOpeningTime(selectedSalon?.opening_time?.slice(0, 5) || '09:00');
+                            setClosingTime(selectedSalon?.closing_time?.slice(0, 5) || '21:00');
+                            setIsEditingHours(true);
                           }}
                         >
-                          <LogOut className="w-4 h-4 mr-2" />
-                          Sign Out
+                          <Edit2 className="w-4 h-4 mr-1" />
+                          Edit
                         </Button>
+                      )}
+                    </div>
+                    
+                    {isEditingHours ? (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Opening Time</Label>
+                            <Input
+                              type="time"
+                              value={openingTime}
+                              onChange={(e) => setOpeningTime(e.target.value)}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Closing Time</Label>
+                            <Input
+                              type="time"
+                              value={closingTime}
+                              onChange={(e) => setClosingTime(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                        <div className="flex justify-end gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setIsEditingHours(false)}
+                          >
+                            Cancel
+                          </Button>
+                          <Button 
+                            size="sm"
+                            onClick={async () => {
+                              if (!selectedSalonId) return;
+                              setIsSavingHours(true);
+                              const { error } = await supabase
+                                .from('salons')
+                                .update({ 
+                                  opening_time: openingTime + ':00',
+                                  closing_time: closingTime + ':00'
+                                })
+                                .eq('id', selectedSalonId);
+                              if (error) {
+                                toast({ title: 'Error', description: error.message, variant: 'destructive' });
+                              } else {
+                                setSelectedSalon((prev: any) => prev ? { 
+                                  ...prev, 
+                                  opening_time: openingTime + ':00',
+                                  closing_time: closingTime + ':00'
+                                } : null);
+                                setIsEditingHours(false);
+                                toast({ title: 'Success', description: 'Business hours updated' });
+                              }
+                              setIsSavingHours(false);
+                            }}
+                            disabled={isSavingHours}
+                          >
+                            {isSavingHours && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                            Save
+                          </Button>
+                        </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </Tabs>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <p className="text-muted-foreground">Opens</p>
+                          <p>{selectedSalon?.opening_time?.slice(0, 5) || '09:00'}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Closes</p>
+                          <p>{selectedSalon?.closing_time?.slice(0, 5) || '21:00'}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Logout Section */}
+                  <div className="pt-6 border-t mt-6">
+                    <Button 
+                      variant="outline" 
+                      className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={async () => {
+                        await signOut();
+                        navigate('/');
+                        toast({ title: 'Signed out', description: 'You have been logged out successfully' });
+                      }}
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Sign Out
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         )}
