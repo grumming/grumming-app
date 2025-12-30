@@ -20,7 +20,11 @@ import {
   Building,
   Check,
   Eye,
-  Edit2
+  Edit2,
+  Scissors,
+  Plus,
+  Trash2,
+  IndianRupee
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -79,15 +83,31 @@ interface ImageFile {
   id: string;
 }
 
-type WizardStep = 1 | 2 | 3 | 4 | 5;
+interface ServiceItem {
+  id: string;
+  name: string;
+  duration: string;
+  price: number;
+}
+
+type WizardStep = 1 | 2 | 3 | 4 | 5 | 6;
 
 const STEPS = [
   { id: 1, title: 'Basic Info', icon: Store, description: 'Name & about your salon' },
   { id: 2, title: 'Location', icon: MapPin, description: 'Where is your salon' },
   { id: 3, title: 'Contact', icon: Phone, description: 'Hours & contact details' },
   { id: 4, title: 'Photos', icon: Camera, description: 'Add salon photos' },
-  { id: 5, title: 'Review', icon: Eye, description: 'Review & submit' },
+  { id: 5, title: 'Services', icon: Scissors, description: 'Add your services' },
+  { id: 6, title: 'Review', icon: Eye, description: 'Review & submit' },
 ];
+
+const DEFAULT_SERVICES: ServiceItem[] = [
+  { id: '1', name: 'Regular Haircut', duration: '30 min', price: 49 },
+  { id: '2', name: 'Beard Trim', duration: '15 min', price: 49 },
+  { id: '3', name: 'Haircut + Beard', duration: '45 min', price: 89 },
+];
+
+const DURATION_OPTIONS = ['15 min', '30 min', '45 min', '60 min'];
 
 const SalonRegistration = () => {
   const navigate = useNavigate();
@@ -102,6 +122,8 @@ const SalonRegistration = () => {
   const [isComplete, setIsComplete] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [selectedImages, setSelectedImages] = useState<ImageFile[]>([]);
+  const [services, setServices] = useState<ServiceItem[]>(DEFAULT_SERVICES);
+  const [newService, setNewService] = useState({ name: '', duration: '30 min', price: 49 });
   
   // Crop dialog state
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
@@ -149,6 +171,18 @@ const SalonRegistration = () => {
           break;
         case 4:
           return true; // Photos are optional
+        case 5:
+          if (services.length === 0) {
+            toast({
+              title: 'Add at least one service',
+              description: 'Please add at least one haircut service',
+              variant: 'destructive',
+            });
+            return false;
+          }
+          return true;
+        case 6:
+          return true; // Review step
       }
       setErrors({});
       return true;
@@ -168,7 +202,7 @@ const SalonRegistration = () => {
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
-      if (currentStep < 5) {
+      if (currentStep < 6) {
         setCurrentStep((prev) => (prev + 1) as WizardStep);
       } else {
         handleSubmit();
@@ -180,6 +214,32 @@ const SalonRegistration = () => {
     if (currentStep > 1) {
       setCurrentStep((prev) => (prev - 1) as WizardStep);
     }
+  };
+
+  // Service management functions
+  const addService = () => {
+    if (!newService.name.trim()) {
+      toast({
+        title: 'Enter service name',
+        description: 'Please provide a name for the service',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    const service: ServiceItem = {
+      id: crypto.randomUUID(),
+      name: newService.name.trim(),
+      duration: newService.duration,
+      price: newService.price,
+    };
+    
+    setServices(prev => [...prev, service]);
+    setNewService({ name: '', duration: '30 min', price: 49 });
+  };
+
+  const removeService = (id: string) => {
+    setServices(prev => prev.filter(s => s.id !== id));
   };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -354,6 +414,27 @@ const SalonRegistration = () => {
         }
       }
 
+      // Save services
+      if (services.length > 0) {
+        const servicesToInsert = services.map(service => ({
+          salon_id: salonData.id,
+          name: service.name,
+          category: 'Haircut',
+          duration: service.duration,
+          price: service.price,
+          is_active: true,
+        }));
+        
+        const { error: servicesError } = await supabase
+          .from('salon_services')
+          .insert(servicesToInsert);
+          
+        if (servicesError) {
+          console.error('Services insert error:', servicesError);
+          // Don't throw - services can be added later
+        }
+      }
+
       const { error: ownerError } = await supabase
         .from('salon_owners')
         .insert({
@@ -466,7 +547,7 @@ const SalonRegistration = () => {
             </button>
             <div className="flex-1">
               <h1 className="text-lg font-semibold">List Your Salon</h1>
-              <p className="text-xs text-muted-foreground">Step {currentStep} of 5</p>
+              <p className="text-xs text-muted-foreground">Step {currentStep} of 6</p>
             </div>
           </div>
         </header>
@@ -794,8 +875,125 @@ const SalonRegistration = () => {
                 </div>
               )}
 
-              {/* Step 5: Review */}
+              {/* Step 5: Services */}
               {currentStep === 5 && (
+                <div className="space-y-6">
+                  <div className="text-center mb-6">
+                    <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <Scissors className="w-7 h-7 text-primary" />
+                    </div>
+                    <h2 className="text-xl font-semibold">Add Your Services</h2>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      List the haircut services you offer
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    {/* Current Services */}
+                    {services.length > 0 && (
+                      <div className="space-y-2">
+                        <Label>Your Services</Label>
+                        <div className="space-y-2">
+                          {services.map((service) => (
+                            <motion.div
+                              key={service.id}
+                              initial={{ opacity: 0, y: -10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="flex items-center justify-between p-3 bg-muted/30 rounded-xl border border-border/50"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                                  <Scissors className="w-5 h-5 text-primary" />
+                                </div>
+                                <div>
+                                  <p className="font-medium text-sm">{service.name}</p>
+                                  <p className="text-xs text-muted-foreground">{service.duration}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span className="text-sm font-semibold text-primary">₹{service.price}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => removeService(service.id)}
+                                  className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Add New Service */}
+                    <div className="p-4 bg-muted/30 rounded-xl border border-border/50 space-y-3">
+                      <Label className="flex items-center gap-2">
+                        <Plus className="w-4 h-4" />
+                        Add New Service
+                      </Label>
+                      
+                      <div className="space-y-3">
+                        <Input
+                          placeholder="Service name (e.g., Kids Haircut)"
+                          value={newService.name}
+                          onChange={(e) => setNewService(prev => ({ ...prev, name: e.target.value }))}
+                        />
+                        
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Duration</Label>
+                            <Select
+                              value={newService.duration}
+                              onValueChange={(value) => setNewService(prev => ({ ...prev, duration: value }))}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {DURATION_OPTIONS.map((d) => (
+                                  <SelectItem key={d} value={d}>{d}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Price (₹)</Label>
+                            <Input
+                              type="number"
+                              min={1}
+                              value={newService.price}
+                              onChange={(e) => setNewService(prev => ({ ...prev, price: parseInt(e.target.value) || 0 }))}
+                            />
+                          </div>
+                        </div>
+                        
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={addService}
+                          className="w-full"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add Service
+                        </Button>
+                      </div>
+                    </div>
+
+                    {services.length === 0 && (
+                      <div className="p-4 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-900/50 text-center">
+                        <p className="text-sm text-amber-800 dark:text-amber-200">
+                          Please add at least one service to continue
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Step 6: Review */}
+              {currentStep === 6 && (
                 <div className="space-y-6">
                   <div className="text-center mb-6">
                     <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -936,6 +1134,31 @@ const SalonRegistration = () => {
                       )}
                     </div>
 
+                    {/* Services Review */}
+                    <div className="p-4 bg-muted/30 rounded-xl border border-border/50">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <Scissors className="w-4 h-4 text-primary" />
+                          <h3 className="font-medium">Services ({services.length})</h3>
+                        </div>
+                        <button
+                          onClick={() => setCurrentStep(5)}
+                          className="text-xs text-primary flex items-center gap-1 hover:underline"
+                        >
+                          <Edit2 className="w-3 h-3" />
+                          Edit
+                        </button>
+                      </div>
+                      <div className="space-y-2">
+                        {services.map((service) => (
+                          <div key={service.id} className="flex items-center justify-between text-sm">
+                            <span>{service.name}</span>
+                            <span className="font-medium text-primary">₹{service.price}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
                     {/* Note */}
                     <div className="p-4 bg-green-50 dark:bg-green-950/30 rounded-xl border border-green-200 dark:border-green-900/50">
                       <div className="flex items-start gap-3">
@@ -982,7 +1205,7 @@ const SalonRegistration = () => {
                     ? `Uploading... ${uploadProgress}%` 
                     : 'Submitting...'}
                 </>
-              ) : currentStep === 5 ? (
+              ) : currentStep === 6 ? (
                 <>
                   Submit for Review
                   <CheckCircle className="w-4 h-4 ml-2" />
