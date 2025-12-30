@@ -164,13 +164,18 @@ const Auth = () => {
               .maybeSingle();
             
             if (roleData) {
-              // Check if they have any salons
+              // Check if they have any salons and get salon name
               const { data: ownerData } = await supabase
                 .from('salon_owners')
-                .select('salon_id')
+                .select('salon_id, salons(name)')
                 .eq('user_id', user.id);
               
               if (ownerData && ownerData.length > 0) {
+                // Store salon name for welcome toast
+                const salonName = (ownerData[0] as any)?.salons?.name;
+                if (salonName) {
+                  localStorage.setItem('welcomeBackSalon', salonName);
+                }
                 navigate('/salon-dashboard');
               } else {
                 navigate('/salon-registration');
