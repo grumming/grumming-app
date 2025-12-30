@@ -386,9 +386,9 @@ const AdminDashboard = () => {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="text-lg">Recent Users</CardTitle>
-                    <TabsTrigger value="users" className="text-xs">
+                    <Button variant="ghost" size="sm" className="text-xs" onClick={() => document.querySelector<HTMLButtonElement>('[data-value="users"]')?.click()}>
                       View All <ChevronRight className="w-4 h-4 ml-1" />
-                    </TabsTrigger>
+                    </Button>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
