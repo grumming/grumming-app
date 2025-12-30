@@ -127,28 +127,70 @@ const Auth = () => {
   };
 
   useEffect(() => {
-    if (!loading && user) {
-      // Check for referral code from state or localStorage
-      const storedReferralCode = localStorage.getItem('pendingReferralCode');
-      const codeToApply = referralCode || storedReferralCode;
-
-      if (codeToApply) {
-        // Clear the stored referral code
-        localStorage.removeItem('pendingReferralCode');
+    const handlePostLoginRedirect = async () => {
+      if (!loading && user) {
+        // Check for referral code from state or localStorage
+        const storedReferralCode = localStorage.getItem('pendingReferralCode');
+        const codeToApply = referralCode || storedReferralCode;
+        const postLoginMode = localStorage.getItem('postLoginMode');
         
-        applyReferralCode(codeToApply).then(() => {
-          // Show the referral success animation
-          setShowReferralSuccess(true);
-        }).catch((error) => {
-          console.log('Referral apply failed:', error.message);
-          // Referral failed, just navigate
-          navigate('/');
-        });
-      } else {
+        // Clear the mode flag
+        if (postLoginMode) localStorage.removeItem('postLoginMode');
+
+        // Handle referral code first
+        if (codeToApply) {
+          localStorage.removeItem('pendingReferralCode');
+          
+          try {
+            await applyReferralCode(codeToApply);
+            setShowReferralSuccess(true);
+            return; // Wait for animation to complete before navigating
+          } catch (error: any) {
+            console.log('Referral apply failed:', error.message);
+          }
+        }
+        
+        // If salon owner mode, redirect directly to dashboard or registration
+        if (postLoginMode === 'salon_owner' || isSalonOwnerMode) {
+          try {
+            // Check if user has salon_owner role
+            const { data: roleData } = await supabase
+              .from('user_roles')
+              .select('role')
+              .eq('user_id', user.id)
+              .eq('role', 'salon_owner')
+              .maybeSingle();
+            
+            if (roleData) {
+              // Check if they have any salons
+              const { data: ownerData } = await supabase
+                .from('salon_owners')
+                .select('salon_id')
+                .eq('user_id', user.id);
+              
+              if (ownerData && ownerData.length > 0) {
+                navigate('/salon-dashboard');
+              } else {
+                navigate('/salon-registration');
+              }
+            } else {
+              // Not a salon owner yet, go to registration
+              navigate('/salon-registration');
+            }
+          } catch (err) {
+            console.error('Error checking salon owner status:', err);
+            navigate('/');
+          }
+          return;
+        }
+        
+        // Default: customer dashboard
         navigate('/');
       }
-    }
-  }, [user, loading, navigate, referralCode, applyReferralCode]);
+    };
+    
+    handlePostLoginRedirect();
+  }, [user, loading, navigate, referralCode, applyReferralCode, isSalonOwnerMode]);
 
   // Resend cooldown timer effect
   useEffect(() => {
