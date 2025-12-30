@@ -32,7 +32,7 @@ interface SalonRevenue {
   count: number;
 }
 
-const COLORS = ['hsl(var(--primary))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
+const COLORS = ['#9b87f5', '#7E69AB', '#6E59A5', '#D6BCFA', '#E5DEFF'];
 
 export const RevenueAnalytics = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -260,25 +260,25 @@ export const RevenueAnalytics = () => {
               <AreaChart data={dailyRevenue}>
                 <defs>
                   <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#9b87f5" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#9b87f5" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
                 <XAxis 
                   dataKey="date" 
-                  className="text-xs"
-                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                  fontSize={12}
+                  tick={{ fill: '#737373' }}
                 />
                 <YAxis 
-                  className="text-xs"
-                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                  fontSize={12}
+                  tick={{ fill: '#737373' }}
                   tickFormatter={(value) => `₹${value}`}
                 />
                 <Tooltip 
                   contentStyle={{ 
-                    backgroundColor: 'hsl(var(--card))', 
-                    border: '1px solid hsl(var(--border))',
+                    backgroundColor: '#ffffff', 
+                    border: '1px solid #e5e5e5',
                     borderRadius: '8px'
                   }}
                   formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Revenue']}
@@ -286,7 +286,7 @@ export const RevenueAnalytics = () => {
                 <Area 
                   type="monotone" 
                   dataKey="revenue" 
-                  stroke="hsl(var(--primary))" 
+                  stroke="#9b87f5" 
                   fillOpacity={1}
                   fill="url(#colorRevenue)"
                   strokeWidth={2}
@@ -332,8 +332,8 @@ export const RevenueAnalytics = () => {
                     </Pie>
                     <Tooltip 
                       contentStyle={{ 
-                        backgroundColor: 'hsl(var(--card))', 
-                        border: '1px solid hsl(var(--border))',
+                        backgroundColor: '#ffffff', 
+                        border: '1px solid #e5e5e5',
                         borderRadius: '8px'
                       }}
                       formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Revenue']}
@@ -364,29 +364,29 @@ export const RevenueAnalytics = () => {
               <div className="h-[250px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={salonRevenue} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
                     <XAxis 
                       type="number"
-                      tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                      tick={{ fill: '#737373' }}
                       tickFormatter={(value) => `₹${value}`}
                     />
                     <YAxis 
                       dataKey="name" 
                       type="category"
                       width={100}
-                      tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                      tick={{ fill: '#737373', fontSize: 12 }}
                     />
                     <Tooltip 
                       contentStyle={{ 
-                        backgroundColor: 'hsl(var(--card))', 
-                        border: '1px solid hsl(var(--border))',
+                        backgroundColor: '#ffffff', 
+                        border: '1px solid #e5e5e5',
                         borderRadius: '8px'
                       }}
                       formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Revenue']}
                     />
                     <Bar 
                       dataKey="revenue" 
-                      fill="hsl(var(--primary))" 
+                      fill="#9b87f5" 
                       radius={[0, 4, 4, 0]}
                     />
                   </BarChart>
