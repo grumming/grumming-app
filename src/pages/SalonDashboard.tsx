@@ -513,7 +513,7 @@ const SalonDashboard = () => {
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="bookings">Bookings</TabsTrigger>
-              <TabsTrigger value="settings">Settings</TabsTrigger>
+              <TabsTrigger value="manage">Manage</TabsTrigger>
             </TabsList>
 
             {/* Overview Tab */}
@@ -713,8 +713,8 @@ const SalonDashboard = () => {
               </Card>
             </TabsContent>
 
-            {/* Settings Tab - with nested tabs for Reviews, Services, Settings */}
-            <TabsContent value="settings" className="space-y-4">
+            {/* Manage Tab - with nested tabs for Reviews, Services, Settings */}
+            <TabsContent value="manage" className="space-y-4">
               <Tabs defaultValue="reviews" className="space-y-4">
                 <TabsList className="grid w-full grid-cols-3 bg-muted/50">
                   <TabsTrigger value="reviews" className="text-sm">Reviews</TabsTrigger>
