@@ -4,12 +4,22 @@ import { ArrowLeft, Heart, MapPin, Star, Clock, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import BottomNav from '@/components/BottomNav';
-import { salonsData } from '@/components/FeaturedSalons';
+import { useSalons } from '@/hooks/useSalons';
+
+const formatTime = (time: string | null): string => {
+  if (!time) return '';
+  const [hours, minutes] = time.split(':');
+  const hour = parseInt(hours);
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  const hour12 = hour % 12 || 12;
+  return `${hour12}${minutes !== '00' ? ':' + minutes : ''} ${ampm}`;
+};
 
 const Favorites = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { favorites, isLoading, toggleFavorite } = useFavorites();
+  const { favorites, isLoading: favoritesLoading, toggleFavorite } = useFavorites();
+  const { salons, isLoading: salonsLoading } = useSalons();
 
   // Redirect to auth if not logged in
   if (!authLoading && !user) {
@@ -17,11 +27,13 @@ const Favorites = () => {
     return null;
   }
 
-  const favoriteSalons = salonsData.filter(salon => 
+  const favoriteSalons = salons.filter(salon => 
     favorites.includes(String(salon.id))
   );
 
-  if (authLoading || isLoading) {
+  const isLoading = authLoading || favoritesLoading || salonsLoading;
+
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -74,7 +86,7 @@ const Favorites = () => {
                   onClick={() => navigate(`/salon/${salon.id}`)}
                 >
                   <img
-                    src={salon.image}
+                    src={salon.image_url || "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400"}
                     alt={salon.name}
                     className="w-24 h-24 rounded-lg object-cover flex-shrink-0"
                   />
@@ -93,21 +105,20 @@ const Favorites = () => {
                     </div>
                     <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
                       <MapPin className="w-3.5 h-3.5" />
-                      <span className="truncate">{salon.location}</span>
+                      <span className="truncate">{salon.location}, {salon.city}</span>
                     </div>
                     <div className="flex items-center gap-3 mt-2">
                       <div className="flex items-center gap-1">
                         <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                        <span className="text-sm font-medium text-foreground">{salon.rating}</span>
+                        <span className="text-sm font-medium text-foreground">{salon.rating?.toFixed(1) || '4.5'}</span>
                       </div>
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>{salon.timing}</span>
-                      </div>
+                      {salon.opening_time && salon.closing_time && (
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <Clock className="w-3.5 h-3.5" />
+                          <span>{formatTime(salon.opening_time)} - {formatTime(salon.closing_time)}</span>
+                        </div>
+                      )}
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1 truncate">
-                      {salon.services.join(' • ')}
-                    </p>
                   </div>
                 </div>
               </motion.div>
