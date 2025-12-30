@@ -119,6 +119,12 @@ const SalonDashboard = () => {
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [isSavingDescription, setIsSavingDescription] = useState(false);
 
+  // Business hours editor state
+  const [openingTime, setOpeningTime] = useState('09:00');
+  const [closingTime, setClosingTime] = useState('21:00');
+  const [isEditingHours, setIsEditingHours] = useState(false);
+  const [isSavingHours, setIsSavingHours] = useState(false);
+
   // Select first salon by default
   useEffect(() => {
     if (ownedSalons.length > 0 && !selectedSalonId) {
@@ -1063,22 +1069,97 @@ const SalonDashboard = () => {
                       </div>
 
                       <div className="p-4 border rounded-lg space-y-3">
-                        <p className="font-medium">Business Hours</p>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <p className="text-muted-foreground">Opens</p>
-                            <p>{selectedSalon?.opening_time?.slice(0, 5) || '09:00'}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Closes</p>
-                            <p>{selectedSalon?.closing_time?.slice(0, 5) || '21:00'}</p>
-                          </div>
+                        <div className="flex items-center justify-between">
+                          <p className="font-medium">Business Hours</p>
+                          {!isEditingHours && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => {
+                                setOpeningTime(selectedSalon?.opening_time?.slice(0, 5) || '09:00');
+                                setClosingTime(selectedSalon?.closing_time?.slice(0, 5) || '21:00');
+                                setIsEditingHours(true);
+                              }}
+                            >
+                              <Edit2 className="w-4 h-4 mr-1" />
+                              Edit
+                            </Button>
+                          )}
                         </div>
+                        
+                        {isEditingHours ? (
+                          <div className="space-y-3">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label>Opening Time</Label>
+                                <Input
+                                  type="time"
+                                  value={openingTime}
+                                  onChange={(e) => setOpeningTime(e.target.value)}
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label>Closing Time</Label>
+                                <Input
+                                  type="time"
+                                  value={closingTime}
+                                  onChange={(e) => setClosingTime(e.target.value)}
+                                />
+                              </div>
+                            </div>
+                            <div className="flex justify-end gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => setIsEditingHours(false)}
+                              >
+                                Cancel
+                              </Button>
+                              <Button 
+                                size="sm"
+                                onClick={async () => {
+                                  if (!selectedSalonId) return;
+                                  setIsSavingHours(true);
+                                  const { error } = await supabase
+                                    .from('salons')
+                                    .update({ 
+                                      opening_time: openingTime + ':00',
+                                      closing_time: closingTime + ':00'
+                                    })
+                                    .eq('id', selectedSalonId);
+                                  if (error) {
+                                    toast({ title: 'Error', description: error.message, variant: 'destructive' });
+                                  } else {
+                                    setSelectedSalon((prev: any) => prev ? { 
+                                      ...prev, 
+                                      opening_time: openingTime + ':00',
+                                      closing_time: closingTime + ':00'
+                                    } : null);
+                                    setIsEditingHours(false);
+                                    toast({ title: 'Success', description: 'Business hours updated' });
+                                  }
+                                  setIsSavingHours(false);
+                                }}
+                                disabled={isSavingHours}
+                              >
+                                {isSavingHours && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                                Save
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <p className="text-muted-foreground">Opens</p>
+                              <p>{selectedSalon?.opening_time?.slice(0, 5) || '09:00'}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Closes</p>
+                              <p>{selectedSalon?.closing_time?.slice(0, 5) || '21:00'}</p>
+                            </div>
+                          </div>
+                        )}
                       </div>
-
-                      <p className="text-sm text-muted-foreground text-center pt-4">
-                        Contact the admin to update your salon details
-                      </p>
 
                       {/* Logout Section */}
                       <div className="pt-6 border-t mt-6">
