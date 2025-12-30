@@ -537,21 +537,34 @@ const SalonDashboard = () => {
               {/* Account Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full h-10 w-10 border border-border/50 hover:border-border hover:bg-accent/50 transition-all">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+                  <Button 
+                    variant="ghost" 
+                    className="h-10 px-3 gap-2 rounded-full border border-border/40 bg-background/80 backdrop-blur-sm hover:bg-accent/50 hover:border-border transition-all shadow-sm"
+                  >
+                    <Avatar className="h-7 w-7">
+                      <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 text-primary-foreground text-xs font-semibold">
                         {user?.email?.charAt(0).toUpperCase() || 'O'}
                       </AvatarFallback>
                     </Avatar>
+                    <span className="text-sm font-medium text-foreground hidden sm:inline-block max-w-[100px] truncate">
+                      {user?.email?.split('@')[0] || 'Owner'}
+                    </span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuContent align="end" className="w-56 shadow-lg border-border/50">
                   <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">Account</p>
-                      <p className="text-xs leading-none text-muted-foreground truncate">
-                        {user?.email}
-                      </p>
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-9 w-9">
+                        <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 text-primary-foreground text-sm font-semibold">
+                          {user?.email?.charAt(0).toUpperCase() || 'O'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col space-y-0.5">
+                        <p className="text-sm font-semibold leading-none">Owner Account</p>
+                        <p className="text-xs leading-none text-muted-foreground truncate max-w-[160px]">
+                          {user?.email}
+                        </p>
+                      </div>
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
