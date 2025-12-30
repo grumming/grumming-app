@@ -28,22 +28,7 @@ export const useSalonOwner = () => {
       }
 
       try {
-        // Check if user has salon_owner role
-        const { data: roleData } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id)
-          .eq('role', 'salon_owner')
-          .maybeSingle();
-
-        if (!roleData) {
-          setIsSalonOwner(false);
-          setOwnedSalons([]);
-          setIsLoading(false);
-          return;
-        }
-
-        // Fetch owned salons
+        // First check if user has any salon ownership records (regardless of role)
         const { data: ownershipData, error } = await supabase
           .from('salon_owners')
           .select(`
@@ -73,7 +58,15 @@ export const useSalonOwner = () => {
             }));
           setOwnedSalons(salons);
         } else {
-          setIsSalonOwner(false);
+          // No ownership records - check if user has salon_owner role but no salons yet
+          const { data: roleData } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', user.id)
+            .eq('role', 'salon_owner')
+            .maybeSingle();
+
+          setIsSalonOwner(!!roleData);
           setOwnedSalons([]);
         }
       } catch (err) {
