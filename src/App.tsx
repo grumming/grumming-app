@@ -52,10 +52,6 @@ const App = () => {
       const stack = opts.stack ?? "";
       const filename = opts.filename ?? "";
 
-      // Only suppress wallet-related extension errors
-      const isWalletRelated = /metamask|phantom|wallet|ethereum/i.test(message) ||
-        message.includes("Failed to connect to MetaMask");
-
       const isExtensionSource =
         filename.includes("chrome-extension://") ||
         filename.includes("moz-extension://") ||
@@ -64,7 +60,16 @@ const App = () => {
         stack.includes("nkbihfbeogaeaoehlefnkodbefgpgknn") ||
         stack.includes("inpage.js");
 
-      return isWalletRelated && isExtensionSource;
+      // In DEV we suppress all extension-sourced errors to avoid blank screens.
+      // In PROD we still suppress the common extension injection failures (they're outside our app).
+      const isKnownExtensionNoise =
+        /metamask|phantom|wallet|ethereum/i.test(message) ||
+        message.includes("Failed to connect to MetaMask") ||
+        /Cannot redefine property: ethereum/i.test(message) ||
+        /Cannot set property ethereum/i.test(message) ||
+        /Invalid property descriptor/i.test(message);
+
+      return isExtensionSource && (import.meta.env.DEV || isKnownExtensionNoise);
     };
 
     const onUnhandledRejection = (event: PromiseRejectionEvent) => {
