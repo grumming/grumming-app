@@ -28,14 +28,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-// Whitelisted test phone numbers (for development)
-const TEST_PHONE_NUMBERS = [
-  '9262582899',
-  '7004414512',
-  '9534310739',
-  '9135812785',
-];
-const TEST_OTP = '111456';
+// Test phone numbers are now managed server-side only
+const TEST_PHONE_NUMBERS: string[] = [];
 
 const phoneSchema = z.string().min(10, 'Phone number must be at least 10 digits').regex(/^[0-9]+$/, 'Please enter a valid phone number');
 const otpSchema = z.string().length(6, 'OTP must be 6 digits');
@@ -1120,23 +1114,6 @@ const Auth = () => {
                 Sent to +91 {phone}
               </p>
               
-              {/* Test OTP hint for whitelisted numbers */}
-              {TEST_PHONE_NUMBERS.includes(phone) && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mb-6 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-amber-600 dark:text-amber-400 text-sm font-medium">
-                      🧪 Test Mode
-                    </span>
-                  </div>
-                  <p className="text-amber-700 dark:text-amber-300 text-sm mt-1">
-                    Use OTP: <span className="font-mono font-bold tracking-wider">{TEST_OTP}</span>
-                  </p>
-                </motion.div>
-              )}
               
               <div className="space-y-6">
                 <div className="space-y-4">
