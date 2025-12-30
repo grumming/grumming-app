@@ -114,6 +114,20 @@ const SalonDashboard = () => {
   const [isSubmittingService, setIsSubmittingService] = useState(false);
   const [deleteServiceId, setDeleteServiceId] = useState<string | null>(null);
 
+  // Salon edit state
+  const [isEditSalonDialogOpen, setIsEditSalonDialogOpen] = useState(false);
+  const [isSubmittingSalon, setIsSubmittingSalon] = useState(false);
+  const [salonForm, setSalonForm] = useState({
+    name: '',
+    description: '',
+    location: '',
+    city: '',
+    phone: '',
+    email: '',
+    opening_time: '09:00',
+    closing_time: '21:00'
+  });
+
   // Select first salon by default
   useEffect(() => {
     if (ownedSalons.length > 0 && !selectedSalonId) {
@@ -390,6 +404,99 @@ const SalonDashboard = () => {
     setIsSubmittingResponse(false);
   };
 
+  // Salon edit handlers
+  const handleOpenEditSalon = () => {
+    if (!selectedSalon) return;
+    setSalonForm({
+      name: selectedSalon.name || '',
+      description: selectedSalon.description || '',
+      location: selectedSalon.location || '',
+      city: selectedSalon.city || '',
+      phone: selectedSalon.phone || '',
+      email: selectedSalon.email || '',
+      opening_time: selectedSalon.opening_time?.slice(0, 5) || '09:00',
+      closing_time: selectedSalon.closing_time?.slice(0, 5) || '21:00'
+    });
+    setIsEditSalonDialogOpen(true);
+  };
+
+  const handleSaveSalon = async () => {
+    if (!selectedSalonId || !salonForm.name.trim() || !salonForm.location.trim() || !salonForm.city.trim()) {
+      toast({ title: 'Error', description: 'Name, location, and city are required', variant: 'destructive' });
+      return;
+    }
+
+    setIsSubmittingSalon(true);
+
+    try {
+      const { error } = await supabase
+        .from('salons')
+        .update({
+          name: salonForm.name.trim(),
+          description: salonForm.description.trim() || null,
+          location: salonForm.location.trim(),
+          city: salonForm.city.trim(),
+          phone: salonForm.phone.trim() || null,
+          email: salonForm.email.trim() || null,
+          opening_time: salonForm.opening_time,
+          closing_time: salonForm.closing_time
+        })
+        .eq('id', selectedSalonId);
+
+      if (error) throw error;
+
+      // Update local state
+      setSelectedSalon({
+        ...selectedSalon,
+        name: salonForm.name.trim(),
+        description: salonForm.description.trim() || null,
+        location: salonForm.location.trim(),
+        city: salonForm.city.trim(),
+        phone: salonForm.phone.trim() || null,
+        email: salonForm.email.trim() || null,
+        opening_time: salonForm.opening_time,
+        closing_time: salonForm.closing_time
+      });
+
+      toast({ title: 'Success', description: 'Salon details updated successfully' });
+      setIsEditSalonDialogOpen(false);
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    }
+
+    setIsSubmittingSalon(false);
+  };
+
+  const [isTogglingVisibility, setIsTogglingVisibility] = useState(false);
+
+  const handleToggleVisibility = async () => {
+    if (!selectedSalonId || !selectedSalon) return;
+
+    setIsTogglingVisibility(true);
+
+    try {
+      const newStatus = !selectedSalon.is_active;
+      const { error } = await supabase
+        .from('salons')
+        .update({ is_active: newStatus })
+        .eq('id', selectedSalonId);
+
+      if (error) throw error;
+
+      setSelectedSalon({ ...selectedSalon, is_active: newStatus });
+      toast({ 
+        title: newStatus ? 'Salon Visible' : 'Salon Hidden', 
+        description: newStatus 
+          ? 'Your salon is now visible to customers' 
+          : 'Your salon is now hidden from customers'
+      });
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    }
+
+    setIsTogglingVisibility(false);
+  };
+
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }).map((_, i) => (
       <Star
@@ -481,8 +588,47 @@ const SalonDashboard = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6 pb-24">
+        {/* Rejected Banner with Re-apply */}
+        {selectedSalon && selectedSalon.status === 'rejected' && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-6"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/50 flex items-center justify-center flex-shrink-0">
+                <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-red-900 dark:text-red-100 text-sm">
+                  Registration Not Approved
+                </h3>
+                <p className="text-xs text-red-700 dark:text-red-300 mt-0.5">
+                  Your salon registration was not approved.
+                </p>
+                {selectedSalon.rejection_reason && (
+                  <div className="mt-2 p-2 bg-red-100/50 dark:bg-red-900/30 rounded-md">
+                    <p className="text-xs text-red-800 dark:text-red-200">
+                      <span className="font-medium">Reason:</span> {selectedSalon.rejection_reason}
+                    </p>
+                  </div>
+                )}
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  className="mt-3 border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/50"
+                  onClick={() => navigate(`/salon-registration?edit=${selectedSalon.id}`)}
+                >
+                  <Edit2 className="w-3.5 h-3.5 mr-1.5" />
+                  Edit & Resubmit
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {/* Pending Approval Banner */}
-        {selectedSalon && !selectedSalon.is_active && (
+        {selectedSalon && selectedSalon.status === 'pending' && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -902,22 +1048,66 @@ const SalonDashboard = () => {
             <TabsContent value="settings" className="space-y-4">
               <Card>
                 <CardHeader>
-                  <CardTitle>Salon Settings</CardTitle>
-                  <CardDescription>Manage your salon information</CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Salon Settings</CardTitle>
+                      <CardDescription>Manage your salon information</CardDescription>
+                    </div>
+                    <Button onClick={handleOpenEditSalon}>
+                      <Edit2 className="w-4 h-4 mr-2" />
+                      Edit Details
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <p className="font-medium">Salon Status</p>
-                      <p className="text-sm text-muted-foreground">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">Salon Visibility</p>
+                        <Badge variant={selectedSalon?.is_active ? 'default' : 'secondary'}>
+                          {selectedSalon?.is_active ? 'Visible' : 'Hidden'}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
                         {selectedSalon?.is_active 
-                          ? 'Your salon is visible to customers' 
-                          : 'Your salon is hidden from customers'}
+                          ? 'Your salon is visible to customers and can receive bookings' 
+                          : 'Your salon is hidden from search results and listings'}
                       </p>
                     </div>
-                    <Badge variant={selectedSalon?.is_active ? 'default' : 'secondary'}>
-                      {selectedSalon?.is_active ? 'Active' : 'Inactive'}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      {isTogglingVisibility && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
+                      <Switch
+                        checked={selectedSalon?.is_active || false}
+                        onCheckedChange={handleToggleVisibility}
+                        disabled={isTogglingVisibility || selectedSalon?.status !== 'approved'}
+                      />
+                    </div>
+                  </div>
+                  
+                  {selectedSalon?.status !== 'approved' && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400 px-4">
+                      Note: Visibility can only be toggled after your salon is approved by an admin.
+                    </p>
+                  )}
+
+                  <div className="p-4 border rounded-lg space-y-3">
+                    <p className="font-medium">Salon Details</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Name</p>
+                        <p>{selectedSalon?.name || 'Not set'}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Location</p>
+                        <p>{selectedSalon?.location}, {selectedSalon?.city}</p>
+                      </div>
+                      {selectedSalon?.description && (
+                        <div className="col-span-full">
+                          <p className="text-muted-foreground">Description</p>
+                          <p>{selectedSalon.description}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="p-4 border rounded-lg space-y-3">
@@ -947,10 +1137,6 @@ const SalonDashboard = () => {
                       </div>
                     </div>
                   </div>
-
-                  <p className="text-sm text-muted-foreground text-center pt-4">
-                    Contact the admin to update your salon details
-                  </p>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -1121,6 +1307,130 @@ const SalonDashboard = () => {
             </Button>
             <Button variant="destructive" onClick={handleDeleteService}>
               Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Salon Dialog */}
+      <Dialog open={isEditSalonDialogOpen} onOpenChange={setIsEditSalonDialogOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Salon Details</DialogTitle>
+            <DialogDescription>
+              Update your salon information
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Salon Name *</Label>
+              <Input
+                value={salonForm.name}
+                onChange={(e) => setSalonForm({ ...salonForm, name: e.target.value })}
+                placeholder="e.g., Premium Cuts"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea
+                value={salonForm.description}
+                onChange={(e) => setSalonForm({ ...salonForm, description: e.target.value })}
+                placeholder="Tell customers about your salon..."
+                rows={3}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Location/Address *</Label>
+                <Input
+                  value={salonForm.location}
+                  onChange={(e) => setSalonForm({ ...salonForm, location: e.target.value })}
+                  placeholder="e.g., 123 Main Street"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>City *</Label>
+                <Input
+                  value={salonForm.city}
+                  onChange={(e) => setSalonForm({ ...salonForm, city: e.target.value })}
+                  placeholder="e.g., Mumbai"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Phone Number</Label>
+                <Input
+                  value={salonForm.phone}
+                  onChange={(e) => setSalonForm({ ...salonForm, phone: e.target.value })}
+                  placeholder="e.g., +91 98765 43210"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={salonForm.email}
+                  onChange={(e) => setSalonForm({ ...salonForm, email: e.target.value })}
+                  placeholder="e.g., salon@example.com"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Opening Time</Label>
+                <Select 
+                  value={salonForm.opening_time} 
+                  onValueChange={(v) => setSalonForm({ ...salonForm, opening_time: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 13 }, (_, i) => i + 6).map(hour => (
+                      <SelectItem key={hour} value={`${hour.toString().padStart(2, '0')}:00`}>
+                        {hour.toString().padStart(2, '0')}:00
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Closing Time</Label>
+                <Select 
+                  value={salonForm.closing_time} 
+                  onValueChange={(v) => setSalonForm({ ...salonForm, closing_time: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 13 }, (_, i) => i + 12).map(hour => (
+                      <SelectItem key={hour} value={`${hour.toString().padStart(2, '0')}:00`}>
+                        {hour.toString().padStart(2, '0')}:00
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditSalonDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSaveSalon} 
+              disabled={isSubmittingSalon || !salonForm.name.trim() || !salonForm.location.trim() || !salonForm.city.trim()}
+            >
+              {isSubmittingSalon && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>

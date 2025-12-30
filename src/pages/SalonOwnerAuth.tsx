@@ -34,7 +34,7 @@ const SalonOwnerAuth = () => {
   useEffect(() => {
     const checkAndRedirect = async () => {
       if (!loading && user) {
-        // Check if user is already a salon owner with approved salons
+        // Check if user has any salon ownership records
         const { data: ownershipData } = await supabase
           .from('salon_owners')
           .select(`
@@ -46,13 +46,10 @@ const SalonOwnerAuth = () => {
           .eq('user_id', user.id);
 
         if (ownershipData && ownershipData.length > 0) {
-          const hasActiveSalon = ownershipData.some((o: any) => o.salons?.is_active);
-          if (hasActiveSalon) {
-            navigate('/salon-dashboard');
-          } else {
-            navigate('/salon-registration');
-          }
+          // User has salon(s) - go to dashboard to see status
+          navigate('/salon-dashboard');
         } else {
+          // No salons - go to registration
           navigate('/salon-registration');
         }
       }
@@ -169,7 +166,7 @@ const SalonOwnerAuth = () => {
         localStorage.setItem('pendingSalonOwnerRegistration', 'true');
         window.location.href = data.verificationUrl;
       } else {
-        // Check if user already has salons
+        // Check if user already has salons (pending or active)
         const { data: ownershipData } = await supabase
           .from('salon_owners')
           .select(`
@@ -181,8 +178,8 @@ const SalonOwnerAuth = () => {
           .eq('user_id', data.user?.id);
 
         if (ownershipData && ownershipData.length > 0) {
-          const hasActiveSalon = ownershipData.some((o: any) => o.salons?.is_active);
-          navigate(hasActiveSalon ? '/salon-dashboard' : '/salon-registration');
+          // User has salon(s) - go to dashboard to see status
+          navigate('/salon-dashboard');
         } else {
           navigate('/salon-registration');
         }
@@ -286,7 +283,7 @@ const SalonOwnerAuth = () => {
                     <p className="text-xs text-destructive">{errors.phone}</p>
                   )}
                   {isTestNumber && (
-                    <p className="text-xs text-muted-foreground">🧪 Test Mode</p>
+                    <p className="text-xs text-muted-foreground">🧪 Test Mode - Use OTP: 111456</p>
                   )}
                 </div>
 
@@ -307,6 +304,9 @@ const SalonOwnerAuth = () => {
                 <p className="text-muted-foreground text-sm">
                   Enter the 6-digit code sent to +91 {phone}
                 </p>
+                {isTestNumber && (
+                  <p className="text-xs text-primary font-medium">🧪 Test Mode - Use OTP: 111456</p>
+                )}
               </div>
 
               <div className="space-y-4">
