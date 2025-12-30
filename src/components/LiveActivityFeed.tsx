@@ -1,11 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Activity, Calendar, Clock, IndianRupee, User } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Activity, Calendar, Clock, IndianRupee, Volume2, VolumeX } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
+import { playNotificationSound, isSoundEnabled, setSoundEnabled } from '@/utils/notificationSound';
 
 interface Booking {
   id: string;
@@ -22,6 +24,18 @@ interface Booking {
 export const LiveActivityFeed = () => {
   const [activities, setActivities] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [soundEnabled, setSoundEnabledState] = useState(isSoundEnabled);
+  const isInitialLoad = useRef(true);
+
+  const toggleSound = () => {
+    const newValue = !soundEnabled;
+    setSoundEnabledState(newValue);
+    setSoundEnabled(newValue);
+    // Play a test sound when enabling
+    if (newValue) {
+      playNotificationSound('success');
+    }
+  };
 
   useEffect(() => {
     // Fetch recent bookings
@@ -36,6 +50,10 @@ export const LiveActivityFeed = () => {
         setActivities(data);
       }
       setIsLoading(false);
+      // Mark initial load as complete after a short delay
+      setTimeout(() => {
+        isInitialLoad.current = false;
+      }, 1000);
     };
 
     fetchRecentBookings();
@@ -53,6 +71,11 @@ export const LiveActivityFeed = () => {
         (payload) => {
           const newBooking = payload.new as Booking;
           setActivities(prev => [newBooking, ...prev.slice(0, 19)]);
+          
+          // Play sound for new bookings (only after initial load)
+          if (!isInitialLoad.current && isSoundEnabled()) {
+            playNotificationSound('booking');
+          }
         }
       )
       .on(
@@ -64,11 +87,22 @@ export const LiveActivityFeed = () => {
         },
         (payload) => {
           const updatedBooking = payload.new as Booking;
+          const oldBooking = payload.old as Booking;
+          
           setActivities(prev => 
             prev.map(booking => 
               booking.id === updatedBooking.id ? updatedBooking : booking
             )
           );
+          
+          // Play sound for status changes
+          if (!isInitialLoad.current && isSoundEnabled() && oldBooking.status !== updatedBooking.status) {
+            if (updatedBooking.status === 'completed') {
+              playNotificationSound('success');
+            } else if (updatedBooking.status === 'cancelled') {
+              playNotificationSound('alert');
+            }
+          }
         }
       )
       .subscribe();
@@ -144,13 +178,26 @@ export const LiveActivityFeed = () => {
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <div className="relative">
-            <Activity className="h-5 w-5 text-primary" />
-            <span className="absolute -top-1 -right-1 h-2 w-2 bg-green-500 rounded-full animate-pulse" />
-          </div>
-          Live Activity
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <div className="relative">
+              <Activity className="h-5 w-5 text-primary" />
+              <span className="absolute -top-1 -right-1 h-2 w-2 bg-green-500 rounded-full animate-pulse" />
+            </div>
+            Live Activity
+          </CardTitle>
+          <button
+            onClick={toggleSound}
+            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors p-2 rounded-lg hover:bg-muted/50"
+            title={soundEnabled ? 'Sound alerts on' : 'Sound alerts off'}
+          >
+            {soundEnabled ? (
+              <Volume2 className="h-4 w-4 text-primary" />
+            ) : (
+              <VolumeX className="h-4 w-4" />
+            )}
+          </button>
+        </div>
       </CardHeader>
       <CardContent className="p-0">
         <ScrollArea className="h-[400px] px-6">
