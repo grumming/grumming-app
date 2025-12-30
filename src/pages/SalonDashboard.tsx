@@ -480,6 +480,29 @@ const SalonDashboard = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6 pb-24">
+        {/* Pending Approval Banner */}
+        {selectedSalon && !selectedSalon.is_active && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4 mb-6"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center flex-shrink-0">
+                <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-amber-900 dark:text-amber-100 text-sm">
+                  Pending Approval
+                </h3>
+                <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
+                  Your salon is under review. You'll be notified once it's approved and visible to customers.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {isLoading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
