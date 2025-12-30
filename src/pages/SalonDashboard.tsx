@@ -28,6 +28,7 @@ import { useSalonOwner } from '@/hooks/useSalonOwner';
 import { supabase } from '@/integrations/supabase/client';
 import { format, subDays, isToday, isTomorrow, parseISO } from 'date-fns';
 import SalonOwnerBottomNav from '@/components/SalonOwnerBottomNav';
+import BookingManagement from '@/components/owner/BookingManagement';
 
 interface Booking {
   id: string;
@@ -800,65 +801,12 @@ const SalonDashboard = () => {
 
             {/* Bookings Tab */}
             <TabsContent value="bookings" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>All Bookings</CardTitle>
-                  <CardDescription>Manage your salon bookings</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {bookings.length === 0 ? (
-                    <p className="text-center text-muted-foreground py-8">No bookings yet</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {bookings.map(booking => (
-                        <motion.div
-                          key={booking.id}
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          className="flex items-center justify-between p-4 border rounded-lg"
-                        >
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <p className="font-medium">{booking.service_name}</p>
-                              <Badge variant={
-                                booking.status === 'completed' ? 'default' :
-                                booking.status === 'cancelled' ? 'destructive' : 'secondary'
-                              }>
-                                {booking.status}
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground">
-                              {getBookingDateLabel(booking.booking_date)} at {booking.booking_time}
-                            </p>
-                            <p className="text-sm font-medium mt-1">₹{booking.service_price}</p>
-                          </div>
-                          
-                          {booking.status === 'upcoming' && (
-                            <div className="flex gap-2">
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => handleUpdateBookingStatus(booking.id, 'completed')}
-                              >
-                                <CheckCircle className="w-4 h-4 mr-1" />
-                                Complete
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                className="text-destructive"
-                                onClick={() => handleUpdateBookingStatus(booking.id, 'cancelled')}
-                              >
-                                <XCircle className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          )}
-                        </motion.div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              {selectedSalonId && selectedSalon && (
+                <BookingManagement 
+                  salonId={selectedSalonId} 
+                  salonName={selectedSalon.name} 
+                />
+              )}
             </TabsContent>
 
             {/* Services Tab */}
