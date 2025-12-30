@@ -32,6 +32,7 @@ import { useSalonOwner } from '@/hooks/useSalonOwner';
 import { supabase } from '@/integrations/supabase/client';
 import { format, subDays, isToday, isTomorrow, parseISO } from 'date-fns';
 import SalonOwnerBottomNav from '@/components/SalonOwnerBottomNav';
+import SalonSettingsDialog from '@/components/SalonSettingsDialog';
 
 interface Booking {
   id: string;
@@ -118,6 +119,9 @@ const SalonDashboard = () => {
   });
   const [isSubmittingService, setIsSubmittingService] = useState(false);
   const [deleteServiceId, setDeleteServiceId] = useState<string | null>(null);
+
+  // Settings dialog state
+  const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
 
   // Description editor state
   const [salonDescription, setSalonDescription] = useState('');
@@ -230,6 +234,23 @@ const SalonDashboard = () => {
 
     fetchSalonData();
   }, [selectedSalonId]);
+
+  // Function to refresh salon data after settings update
+  const handleSalonUpdated = async () => {
+    if (!selectedSalonId) return;
+    const { data: salonData } = await supabase
+      .from('salons')
+      .select('*')
+      .eq('id', selectedSalonId)
+      .single();
+
+    if (salonData) {
+      setSelectedSalon(salonData);
+      setSalonDescription(salonData.description || '');
+      setOpeningTime(salonData.opening_time || '09:00');
+      setClosingTime(salonData.closing_time || '21:00');
+    }
+  };
 
   const handleUpdateBookingStatus = async (bookingId: string, newStatus: string) => {
     const { error } = await supabase
@@ -570,7 +591,7 @@ const SalonDashboard = () => {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setActiveTab('manage')}>
+                  <DropdownMenuItem onClick={() => setIsSettingsDialogOpen(true)}>
                     <Settings className="mr-2 h-4 w-4" />
                     Salon Settings
                   </DropdownMenuItem>
@@ -1197,6 +1218,14 @@ const SalonDashboard = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Salon Settings Dialog */}
+      <SalonSettingsDialog
+        open={isSettingsDialogOpen}
+        onOpenChange={setIsSettingsDialogOpen}
+        salon={selectedSalon}
+        onSalonUpdated={handleSalonUpdated}
+      />
 
       {/* Salon Owner Bottom Navigation */}
       <SalonOwnerBottomNav />
