@@ -55,6 +55,7 @@ const Auth = () => {
   
   const [step, setStep] = useState<AuthStep>('phone');
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingOwnerStatus, setIsCheckingOwnerStatus] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [isSalonOwnerMode, setIsSalonOwnerMode] = useState(false);
   const [showReferralSuccess, setShowReferralSuccess] = useState(false);
@@ -152,6 +153,7 @@ const Auth = () => {
         
         // If salon owner mode, redirect directly to dashboard or registration
         if (postLoginMode === 'salon_owner' || isSalonOwnerMode) {
+          setIsCheckingOwnerStatus(true);
           try {
             // Check if user has salon_owner role
             const { data: roleData } = await supabase
@@ -179,6 +181,7 @@ const Auth = () => {
             }
           } catch (err) {
             console.error('Error checking salon owner status:', err);
+            setIsCheckingOwnerStatus(false);
             navigate('/');
           }
           return;
@@ -539,10 +542,35 @@ const Auth = () => {
     }
   };
 
-  if (loading) {
+  if (loading || isCheckingOwnerStatus) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/10 flex flex-col items-center justify-center gap-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex flex-col items-center gap-4"
+        >
+          <div className="relative">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+            <motion.div
+              className="absolute inset-0 rounded-full border-2 border-primary/30"
+              animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+            />
+          </div>
+          {isCheckingOwnerStatus && (
+            <motion.p
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-sm text-muted-foreground"
+            >
+              Setting up your dashboard...
+            </motion.p>
+          )}
+        </motion.div>
       </div>
     );
   }
