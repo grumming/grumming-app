@@ -10,6 +10,7 @@ import { FavoritesProvider } from "@/contexts/FavoritesContext";
 import { PushNotificationSetup } from "@/components/PushNotificationSetup";
 import { ReferralRewardListener } from "@/components/ReferralRewardListener";
 import { DeepLinkHandler } from "@/components/DeepLinkHandler";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -104,55 +105,57 @@ const App = () => {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <FavoritesProvider>
-          <LocationProvider>
-            <TooltipProvider>
-              <PushNotificationSetup />
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
-                <ReferralRewardListener />
-                <DeepLinkHandler />
-                
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/edit-profile" element={<EditProfile />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/privacy-security" element={<PrivacySecurity />} />
-                  <Route path="/salon/:id" element={<SalonDetail />} />
-                  <Route path="/booking-confirmation" element={<BookingConfirmation />} />
-                  <Route path="/notification-settings" element={<NotificationSettings />} />
-                  <Route path="/my-bookings" element={<MyBookings />} />
-                  <Route path="/my-vouchers" element={<MyVouchers />} />
-                  <Route path="/saved-addresses" element={<SavedAddresses />} />
-                  <Route path="/search" element={<SearchSalons />} />
-                  <Route path="/referrals" element={<Referrals />} />
-                  <Route path="/wallet" element={<Wallet />} />
-                  <Route path="/favorites" element={<Favorites />} />
-                  <Route path="/payment-methods" element={<PaymentMethods />} />
-                  <Route path="/payment-history" element={<PaymentHistory />} />
-                  <Route path="/admin" element={<AdminDashboard />} />
-                  <Route path="/admin/promo-codes" element={<AdminPromoCodes />} />
-                  <Route path="/salon-dashboard" element={<SalonDashboard />} />
-                  <Route path="/salon-registration" element={<SalonRegistration />} />
-                  <Route path="/salon-owner-auth" element={<SalonOwnerAuth />} />
-                  <Route path="/terms" element={<Terms />} />
-                  <Route path="/privacy" element={<Privacy />} />
-                  <Route path="/chat" element={<Chat />} />
-                  <Route path="/chat/:conversationId" element={<Chat />} />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </BrowserRouter>
-            </TooltipProvider>
-          </LocationProvider>
-        </FavoritesProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <FavoritesProvider>
+            <LocationProvider>
+              <TooltipProvider>
+                <PushNotificationSetup />
+                <Toaster />
+                <Sonner />
+                <BrowserRouter>
+                  <ReferralRewardListener />
+                  <DeepLinkHandler />
+                  
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/auth" element={<Auth />} />
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/edit-profile" element={<EditProfile />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/privacy-security" element={<PrivacySecurity />} />
+                    <Route path="/salon/:id" element={<SalonDetail />} />
+                    <Route path="/booking-confirmation" element={<BookingConfirmation />} />
+                    <Route path="/notification-settings" element={<NotificationSettings />} />
+                    <Route path="/my-bookings" element={<MyBookings />} />
+                    <Route path="/my-vouchers" element={<MyVouchers />} />
+                    <Route path="/saved-addresses" element={<SavedAddresses />} />
+                    <Route path="/search" element={<SearchSalons />} />
+                    <Route path="/referrals" element={<Referrals />} />
+                    <Route path="/wallet" element={<Wallet />} />
+                    <Route path="/favorites" element={<Favorites />} />
+                    <Route path="/payment-methods" element={<PaymentMethods />} />
+                    <Route path="/payment-history" element={<PaymentHistory />} />
+                    <Route path="/admin" element={<AdminDashboard />} />
+                    <Route path="/admin/promo-codes" element={<AdminPromoCodes />} />
+                    <Route path="/salon-dashboard" element={<SalonDashboard />} />
+                    <Route path="/salon-registration" element={<SalonRegistration />} />
+                    <Route path="/salon-owner-auth" element={<SalonOwnerAuth />} />
+                    <Route path="/terms" element={<Terms />} />
+                    <Route path="/privacy" element={<Privacy />} />
+                    <Route path="/chat" element={<Chat />} />
+                    <Route path="/chat/:conversationId" element={<Chat />} />
+                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </BrowserRouter>
+              </TooltipProvider>
+            </LocationProvider>
+          </FavoritesProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 };
 
