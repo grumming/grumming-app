@@ -21,6 +21,7 @@ export type Database = {
           created_at: string
           id: string
           reminder_sent: boolean
+          salon_id: string | null
           salon_name: string
           service_name: string
           service_price: number
@@ -34,6 +35,7 @@ export type Database = {
           created_at?: string
           id?: string
           reminder_sent?: boolean
+          salon_id?: string | null
           salon_name: string
           service_name: string
           service_price: number
@@ -47,6 +49,7 @@ export type Database = {
           created_at?: string
           id?: string
           reminder_sent?: boolean
+          salon_id?: string | null
           salon_name?: string
           service_name?: string
           service_price?: number
@@ -54,7 +57,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "bookings_salon_id_fkey"
+            columns: ["salon_id"]
+            isOneToOne: false
+            referencedRelation: "salons"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversations: {
         Row: {
