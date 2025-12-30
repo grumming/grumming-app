@@ -595,6 +595,11 @@ const SalonDashboard = () => {
                     <Settings className="mr-2 h-4 w-4" />
                     Salon Settings
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/notification-settings')}>
+                    <Bell className="mr-2 h-4 w-4" />
+                    Notifications
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => navigate('/help')}>
                     <HelpCircle className="mr-2 h-4 w-4" />
                     Help & Support
