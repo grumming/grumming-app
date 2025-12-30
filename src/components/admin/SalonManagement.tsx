@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, Edit2, Trash2, Search, Store, MapPin, Phone, Mail,
   Clock, Star, Eye, EyeOff, Loader2, X, Save, ChevronDown,
-  ChevronUp, Package
+  ChevronUp, Package, Upload, ImageIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -93,6 +93,11 @@ export const SalonManagement = () => {
     is_active: true
   });
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Image upload state
+  const [isUploading, setIsUploading] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Services state
   const [services, setServices] = useState<SalonService[]>([]);
@@ -304,6 +309,7 @@ export const SalonManagement = () => {
       is_active: true
     });
     setSelectedSalon(null);
+    setImagePreview(null);
   };
 
   const resetServiceForm = () => {
@@ -315,6 +321,61 @@ export const SalonManagement = () => {
       description: '',
       is_active: true
     });
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({ title: 'Error', description: 'Please select an image file', variant: 'destructive' });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: 'Error', description: 'Image must be less than 5MB', variant: 'destructive' });
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      // Create unique file name
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `salons/${fileName}`;
+
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from('salon-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('salon-images')
+        .getPublicUrl(filePath);
+
+      setFormData({ ...formData, image_url: publicUrl });
+      setImagePreview(publicUrl);
+      toast({ title: 'Success', description: 'Image uploaded successfully' });
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      toast({ title: 'Upload failed', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setFormData({ ...formData, image_url: '' });
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const openEditDialog = (salon: Salon) => {
@@ -331,6 +392,7 @@ export const SalonManagement = () => {
       closing_time: salon.closing_time,
       is_active: salon.is_active
     });
+    setImagePreview(salon.image_url || null);
     setIsEditDialogOpen(true);
   };
 
@@ -385,13 +447,72 @@ export const SalonManagement = () => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="image_url">Image URL</Label>
-        <Input
-          id="image_url"
-          value={formData.image_url}
-          onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-          placeholder="https://..."
-        />
+        <Label>Salon Image</Label>
+        <div className="flex items-start gap-4">
+          {/* Image Preview */}
+          <div className="relative w-24 h-24 rounded-lg border-2 border-dashed border-muted-foreground/30 flex items-center justify-center overflow-hidden bg-muted/30">
+            {imagePreview || formData.image_url ? (
+              <>
+                <img 
+                  src={imagePreview || formData.image_url} 
+                  alt="Salon preview" 
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={handleRemoveImage}
+                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center hover:bg-destructive/90"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </>
+            ) : (
+              <ImageIcon className="w-8 h-8 text-muted-foreground/50" />
+            )}
+          </div>
+
+          {/* Upload Button */}
+          <div className="flex-1 space-y-2">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImageUpload}
+              accept="image/*"
+              className="hidden"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+            >
+              {isUploading ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Upload className="w-4 h-4 mr-2" />
+              )}
+              {isUploading ? 'Uploading...' : 'Upload Image'}
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              JPG, PNG up to 5MB
+            </p>
+            
+            {/* Or paste URL */}
+            <div className="pt-2">
+              <Input
+                id="image_url"
+                value={formData.image_url}
+                onChange={(e) => {
+                  setFormData({ ...formData, image_url: e.target.value });
+                  setImagePreview(e.target.value);
+                }}
+                placeholder="Or paste image URL..."
+                className="text-xs h-8"
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="space-y-2">
