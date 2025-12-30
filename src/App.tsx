@@ -135,13 +135,13 @@ const App = () => {
                   <Route path="/salon/:id" element={<SalonDetail />} />
                   <Route path="/booking-confirmation" element={<BookingConfirmation />} />
                   <Route path="/notification-settings" element={<NotificationSettings />} />
-                  <Route path="/my-bookings" element={<MyBookings />} />
-                  <Route path="/my-vouchers" element={<MyVouchers />} />
+                  <Route path="/my-bookings" element={<SalonOwnerRouteGuard><MyBookings /></SalonOwnerRouteGuard>} />
+                  <Route path="/my-vouchers" element={<SalonOwnerRouteGuard><MyVouchers /></SalonOwnerRouteGuard>} />
                   <Route path="/saved-addresses" element={<SavedAddresses />} />
-                  <Route path="/search" element={<SearchSalons />} />
-                  <Route path="/referrals" element={<Referrals />} />
+                  <Route path="/search" element={<SalonOwnerRouteGuard><SearchSalons /></SalonOwnerRouteGuard>} />
+                  <Route path="/referrals" element={<SalonOwnerRouteGuard><Referrals /></SalonOwnerRouteGuard>} />
                   <Route path="/wallet" element={<Wallet />} />
-                  <Route path="/favorites" element={<Favorites />} />
+                  <Route path="/favorites" element={<SalonOwnerRouteGuard><Favorites /></SalonOwnerRouteGuard>} />
                   <Route path="/payment-methods" element={<PaymentMethods />} />
                   <Route path="/payment-history" element={<PaymentHistory />} />
                   <Route path="/admin" element={<AdminDashboard />} />
