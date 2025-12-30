@@ -114,6 +114,11 @@ const SalonDashboard = () => {
   const [isSubmittingService, setIsSubmittingService] = useState(false);
   const [deleteServiceId, setDeleteServiceId] = useState<string | null>(null);
 
+  // Description editor state
+  const [salonDescription, setSalonDescription] = useState('');
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [isSavingDescription, setIsSavingDescription] = useState(false);
+
   // Select first salon by default
   useEffect(() => {
     if (ownedSalons.length > 0 && !selectedSalonId) {
@@ -139,6 +144,7 @@ const SalonDashboard = () => {
 
         if (salonData) {
           setSelectedSalon(salonData);
+          setSalonDescription(salonData.description || '');
         }
 
         // Fetch services
@@ -409,6 +415,27 @@ const SalonDashboard = () => {
           : 'Your salon is hidden from customers'
       });
     }
+  };
+
+  const handleSaveDescription = async () => {
+    if (!selectedSalonId) return;
+
+    setIsSavingDescription(true);
+
+    const { error } = await supabase
+      .from('salons')
+      .update({ description: salonDescription.trim() })
+      .eq('id', selectedSalonId);
+
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } else {
+      setSelectedSalon((prev: any) => prev ? { ...prev, description: salonDescription.trim() } : null);
+      setIsEditingDescription(false);
+      toast({ title: 'Success', description: 'Salon description updated' });
+    }
+
+    setIsSavingDescription(false);
   };
 
   const renderStars = (rating: number) => {
@@ -960,6 +987,65 @@ const SalonDashboard = () => {
                             {selectedSalon?.is_active ? 'Visible' : 'Hidden'}
                           </Badge>
                         </div>
+                      </div>
+
+                      {/* Salon Description Editor */}
+                      <div className="p-4 border rounded-lg space-y-3">
+                        <div className="flex items-center justify-between">
+                          <p className="font-medium">Salon Description</p>
+                          {!isEditingDescription && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => setIsEditingDescription(true)}
+                            >
+                              <Edit2 className="w-4 h-4 mr-1" />
+                              Edit
+                            </Button>
+                          )}
+                        </div>
+                        
+                        {isEditingDescription ? (
+                          <div className="space-y-3">
+                            <Textarea
+                              value={salonDescription}
+                              onChange={(e) => setSalonDescription(e.target.value)}
+                              placeholder="Describe your salon, specialties, and what makes you unique..."
+                              rows={4}
+                              maxLength={500}
+                              className="resize-none"
+                            />
+                            <div className="flex items-center justify-between">
+                              <p className="text-xs text-muted-foreground">
+                                {salonDescription.length}/500 characters
+                              </p>
+                              <div className="flex gap-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => {
+                                    setSalonDescription(selectedSalon?.description || '');
+                                    setIsEditingDescription(false);
+                                  }}
+                                >
+                                  Cancel
+                                </Button>
+                                <Button 
+                                  size="sm"
+                                  onClick={handleSaveDescription}
+                                  disabled={isSavingDescription}
+                                >
+                                  {isSavingDescription && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                                  Save
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">
+                            {selectedSalon?.description || 'No description added yet. Add a description to help customers learn more about your salon.'}
+                          </p>
+                        )}
                       </div>
 
                       <div className="p-4 border rounded-lg space-y-3">
