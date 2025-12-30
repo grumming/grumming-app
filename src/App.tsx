@@ -26,6 +26,7 @@ import SavedAddresses from "./pages/SavedAddresses";
 import SearchSalons from "./pages/SearchSalons";
 import Referrals from "./pages/Referrals";
 import AdminPromoCodes from "./pages/AdminPromoCodes";
+import AdminDashboard from "./pages/AdminDashboard";
 import Wallet from "./pages/Wallet";
 import Favorites from "./pages/Favorites";
 import PaymentMethods from "./pages/PaymentMethods";
@@ -126,6 +127,7 @@ const App = () => {
                   <Route path="/favorites" element={<Favorites />} />
                   <Route path="/payment-methods" element={<PaymentMethods />} />
                   <Route path="/payment-history" element={<PaymentHistory />} />
+                  <Route path="/admin" element={<AdminDashboard />} />
                   <Route path="/admin/promo-codes" element={<AdminPromoCodes />} />
                   <Route path="/terms" element={<Terms />} />
                   <Route path="/privacy" element={<Privacy />} />
