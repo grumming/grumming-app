@@ -4,13 +4,14 @@ import { motion } from 'framer-motion';
 import { 
   ArrowLeft, Mail, Phone, Calendar, Edit2, Loader2, 
   ChevronRight, Gift, Settings, LogOut, CreditCard, Heart, Wallet, Ticket,
-  CheckCircle2, AlertCircle, Shield
+  CheckCircle2, AlertCircle, Shield, Store
 } from 'lucide-react';
 import { useWallet } from '@/hooks/useWallet';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/hooks/useAuth';
 import { useAdmin } from '@/hooks/useAdmin';
+import { useSalonOwner } from '@/hooks/useSalonOwner';
 import { supabase } from '@/integrations/supabase/client';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import BottomNav from '@/components/BottomNav';
@@ -29,6 +30,7 @@ const Profile = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading, signOut } = useAuth();
   const { isAdmin } = useAdmin();
+  const { isSalonOwner } = useSalonOwner();
   const { wallet } = useWallet();
   const { favorites } = useFavorites();
   
@@ -105,6 +107,7 @@ const Profile = () => {
     { icon: Heart, label: 'Favorites', onClick: () => navigate('/favorites'), badge: favorites.length > 0 ? `${favorites.length}` : undefined },
     { icon: CreditCard, label: 'Payment Methods', onClick: () => navigate('/payment-methods') },
     { icon: Settings, label: 'Settings', onClick: () => navigate('/settings') },
+    ...(isSalonOwner ? [{ icon: Store, label: 'Salon Dashboard', onClick: () => navigate('/salon-dashboard') }] : []),
     ...(isAdmin ? [{ icon: Shield, label: 'Admin Dashboard', onClick: () => navigate('/admin') }] : []),
   ];
 

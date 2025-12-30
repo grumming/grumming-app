@@ -634,6 +634,38 @@ export type Database = {
           },
         ]
       }
+      salon_owners: {
+        Row: {
+          created_at: string
+          id: string
+          is_primary: boolean | null
+          salon_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean | null
+          salon_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean | null
+          salon_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_owners_salon_id_fkey"
+            columns: ["salon_id"]
+            isOneToOne: false
+            referencedRelation: "salons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       salon_services: {
         Row: {
           category: string
@@ -1004,9 +1036,13 @@ export type Database = {
         }
         Returns: boolean
       }
+      owns_salon: {
+        Args: { _salon_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user"
+      app_role: "admin" | "moderator" | "user" | "salon_owner"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1134,7 +1170,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "moderator", "user"],
+      app_role: ["admin", "moderator", "user", "salon_owner"],
     },
   },
 } as const
