@@ -115,53 +115,10 @@ export const usePendingProfile = () => {
       }
     };
 
-    const handleSalonOwnerRedirect = async () => {
-      if (!user) return;
-      
-      const pendingSalonOwner = localStorage.getItem('pendingSalonOwnerRegistration');
-      const postLoginMode = localStorage.getItem('postLoginMode');
-      
-      // Clear any flags first
-      if (pendingSalonOwner) localStorage.removeItem('pendingSalonOwnerRegistration');
-      if (postLoginMode) localStorage.removeItem('postLoginMode');
-      
-      // Check if user is a salon owner (has salon_owner role)
-      try {
-        const { data: roleData } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id)
-          .eq('role', 'salon_owner')
-          .maybeSingle();
-        
-        if (!roleData) {
-          // Not a salon owner - if they came from salon owner mode, send to registration
-          if (pendingSalonOwner || postLoginMode === 'salon_owner') {
-            navigate('/salon-registration');
-          }
-          return;
-        }
-        
-        // User is a salon owner - check if they have salons
-        const { data: ownerData } = await supabase
-          .from('salon_owners')
-          .select('salon_id')
-          .eq('user_id', user.id);
-        
-        if (ownerData && ownerData.length > 0) {
-          // Has salons - redirect to dashboard
-          navigate('/salon-dashboard');
-        } else {
-          // No salons yet - redirect to registration
-          navigate('/salon-registration');
-        }
-      } catch (err) {
-        console.error('Error in salon owner redirect:', err);
-      }
-    };
+    // Note: Salon owner redirect is now handled directly in Auth.tsx
+    // to avoid showing customer dashboard briefly before redirecting
 
     updatePendingProfile();
     applyPendingReferral();
-    handleSalonOwnerRedirect();
   }, [user, toast, navigate]);
 };
