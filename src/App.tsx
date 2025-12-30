@@ -10,6 +10,7 @@ import { FavoritesProvider } from "@/contexts/FavoritesContext";
 import { PushNotificationSetup } from "@/components/PushNotificationSetup";
 import { ReferralRewardListener } from "@/components/ReferralRewardListener";
 import { DeepLinkHandler } from "@/components/DeepLinkHandler";
+import { SalonOwnerRouteGuard } from "@/components/SalonOwnerRouteGuard";
 
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -125,7 +126,7 @@ const App = () => {
                 <DeepLinkHandler />
                 
                 <Routes>
-                  <Route path="/" element={<Index />} />
+                  <Route path="/" element={<SalonOwnerRouteGuard><Index /></SalonOwnerRouteGuard>} />
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/edit-profile" element={<EditProfile />} />

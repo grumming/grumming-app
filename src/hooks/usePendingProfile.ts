@@ -1,19 +1,15 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 
+/**
+ * Hook to handle pending profile updates and referral applications after signup.
+ * Salon owner redirects are now handled by SalonOwnerRouteGuard.
+ */
 export const usePendingProfile = () => {
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
-  const [isCheckingOwnerStatus, setIsCheckingOwnerStatus] = useState(() => {
-    // Check if we need to verify salon owner status on mount
-    const postLoginMode = localStorage.getItem('postLoginMode');
-    const pendingSalonOwner = localStorage.getItem('pendingSalonOwnerRegistration');
-    return !!(postLoginMode || pendingSalonOwner);
-  });
 
   useEffect(() => {
     const updatePendingProfile = async () => {
@@ -121,73 +117,7 @@ export const usePendingProfile = () => {
       }
     };
 
-    const handleSalonOwnerRedirect = async () => {
-      // Avoid dropping the blocker while auth is still initializing (prevents UI flash)
-      if (loading) return;
-
-      if (!user) {
-        setIsCheckingOwnerStatus(false);
-        return;
-      }
-      
-      const postLoginMode = localStorage.getItem('postLoginMode');
-      const pendingSalonOwner = localStorage.getItem('pendingSalonOwnerRegistration');
-      
-      // Only process if there's a salon owner flag
-      if (!postLoginMode && !pendingSalonOwner) {
-        setIsCheckingOwnerStatus(false);
-        return;
-      }
-      
-      setIsCheckingOwnerStatus(true);
-      
-      // Clear flags first to prevent loops
-      if (postLoginMode) localStorage.removeItem('postLoginMode');
-      if (pendingSalonOwner) localStorage.removeItem('pendingSalonOwnerRegistration');
-      
-      // Check if user is a salon owner (has salon_owner role)
-      try {
-        const { data: roleData } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id)
-          .eq('role', 'salon_owner')
-          .maybeSingle();
-        
-        if (roleData) {
-          // User is a salon owner - check if they have salons
-          const { data: ownerData } = await supabase
-            .from('salon_owners')
-            .select('salon_id, salons(name)')
-            .eq('user_id', user.id);
-          
-          if (ownerData && ownerData.length > 0) {
-            // Store salon name for welcome toast
-            const salonName = (ownerData[0] as any)?.salons?.name;
-            if (salonName) {
-              localStorage.setItem('welcomeBackSalon', salonName);
-            }
-            navigate('/salon-dashboard');
-          } else {
-            navigate('/salon-registration');
-          }
-        } else {
-          // Not a salon owner yet - go to registration
-          if (postLoginMode === 'salon_owner' || pendingSalonOwner) {
-            navigate('/salon-registration');
-          }
-        }
-      } catch (err) {
-        console.error('Error in salon owner redirect:', err);
-      } finally {
-        setIsCheckingOwnerStatus(false);
-      }
-    };
-
     updatePendingProfile();
     applyPendingReferral();
-    handleSalonOwnerRedirect();
-  }, [user, loading, toast, navigate]);
-
-  return { isCheckingOwnerStatus };
+  }, [user, toast]);
 };
