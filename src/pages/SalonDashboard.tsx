@@ -1079,6 +1079,22 @@ const SalonDashboard = () => {
                       <p className="text-sm text-muted-foreground text-center pt-4">
                         Contact the admin to update your salon details
                       </p>
+
+                      {/* Logout Section */}
+                      <div className="pt-6 border-t mt-6">
+                        <Button 
+                          variant="outline" 
+                          className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={async () => {
+                            await signOut();
+                            navigate('/');
+                            toast({ title: 'Signed out', description: 'You have been logged out successfully' });
+                          }}
+                        >
+                          <LogOut className="w-4 h-4 mr-2" />
+                          Sign Out
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 </TabsContent>
