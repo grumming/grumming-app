@@ -409,22 +409,22 @@ export const SalonManagement = () => {
            s.city.toLowerCase().includes(query);
   });
 
-  const SalonForm = ({ isEdit = false }: { isEdit?: boolean }) => (
+  const renderSalonForm = () => (
     <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
       <div className="space-y-2">
-        <Label htmlFor="name">Salon Name *</Label>
+        <Label htmlFor="salon-name">Salon Name *</Label>
         <Input
-          id="name"
+          id="salon-name"
           value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
           placeholder="Enter salon name"
         />
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="city">City *</Label>
-        <Select value={formData.city} onValueChange={(v) => setFormData({ ...formData, city: v })}>
-          <SelectTrigger>
+        <Label htmlFor="salon-city">City *</Label>
+        <Select value={formData.city} onValueChange={(v) => setFormData(prev => ({ ...prev, city: v }))}>
+          <SelectTrigger id="salon-city">
             <SelectValue placeholder="Select city" />
           </SelectTrigger>
           <SelectContent className="max-h-[200px]">
@@ -436,11 +436,11 @@ export const SalonManagement = () => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="location">Location / Area *</Label>
+        <Label htmlFor="salon-location">Location / Area *</Label>
         <Input
-          id="location"
+          id="salon-location"
           value={formData.location}
-          onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+          onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
           placeholder="e.g., Bandra West, Koramangala"
         />
       </div>
@@ -500,10 +500,10 @@ export const SalonManagement = () => {
             {/* Or paste URL */}
             <div className="pt-2">
               <Input
-                id="image_url"
+                id="salon-image-url"
                 value={formData.image_url}
                 onChange={(e) => {
-                  setFormData({ ...formData, image_url: e.target.value });
+                  setFormData(prev => ({ ...prev, image_url: e.target.value }));
                   setImagePreview(e.target.value);
                 }}
                 placeholder="Or paste image URL..."
@@ -515,11 +515,11 @@ export const SalonManagement = () => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
+        <Label htmlFor="salon-description">Description</Label>
         <Textarea
-          id="description"
+          id="salon-description"
           value={formData.description}
-          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
           placeholder="Brief description of the salon"
           rows={3}
         />
@@ -527,21 +527,21 @@ export const SalonManagement = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="phone">Phone</Label>
+          <Label htmlFor="salon-phone">Phone</Label>
           <Input
-            id="phone"
+            id="salon-phone"
             value={formData.phone}
-            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+            onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
             placeholder="+91 XXXXX XXXXX"
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="salon-email">Email</Label>
           <Input
-            id="email"
+            id="salon-email"
             type="email"
             value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
             placeholder="salon@example.com"
           />
         </div>
@@ -549,32 +549,32 @@ export const SalonManagement = () => {
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="opening_time">Opening Time</Label>
+          <Label htmlFor="salon-opening-time">Opening Time</Label>
           <Input
-            id="opening_time"
+            id="salon-opening-time"
             type="time"
             value={formData.opening_time}
-            onChange={(e) => setFormData({ ...formData, opening_time: e.target.value })}
+            onChange={(e) => setFormData(prev => ({ ...prev, opening_time: e.target.value }))}
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="closing_time">Closing Time</Label>
+          <Label htmlFor="salon-closing-time">Closing Time</Label>
           <Input
-            id="closing_time"
+            id="salon-closing-time"
             type="time"
             value={formData.closing_time}
-            onChange={(e) => setFormData({ ...formData, closing_time: e.target.value })}
+            onChange={(e) => setFormData(prev => ({ ...prev, closing_time: e.target.value }))}
           />
         </div>
       </div>
 
       <div className="flex items-center gap-3">
         <Switch
-          id="is_active"
+          id="salon-is-active"
           checked={formData.is_active}
-          onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
+          onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked }))}
         />
-        <Label htmlFor="is_active">Active (visible to customers)</Label>
+        <Label htmlFor="salon-is-active">Active (visible to customers)</Label>
       </div>
     </div>
   );
@@ -752,7 +752,7 @@ export const SalonManagement = () => {
             <DialogTitle>Add New Salon</DialogTitle>
             <DialogDescription>Fill in the details to add a new salon listing.</DialogDescription>
           </DialogHeader>
-          <SalonForm />
+          {renderSalonForm()}
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleAddSalon} disabled={isSaving}>
@@ -770,7 +770,7 @@ export const SalonManagement = () => {
             <DialogTitle>Edit Salon</DialogTitle>
             <DialogDescription>Update salon information.</DialogDescription>
           </DialogHeader>
-          <SalonForm isEdit />
+          {renderSalonForm()}
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleUpdateSalon} disabled={isSaving}>
