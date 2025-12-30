@@ -33,7 +33,14 @@ const salonSchema = z.object({
 type SalonFormData = z.infer<typeof salonSchema>;
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_IMAGES = 5;
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+interface ImageFile {
+  file: File;
+  preview: string;
+  id: string;
+}
 
 const SalonRegistration = () => {
   const navigate = useNavigate();
@@ -43,10 +50,10 @@ const SalonRegistration = () => {
   
   const [isLoading, setIsLoading] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [step, setStep] = useState<'form' | 'success'>('form');
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [selectedImages, setSelectedImages] = useState<ImageFile[]>([]);
   
   const [formData, setFormData] = useState<SalonFormData>({
     name: '',
@@ -84,78 +91,115 @@ const SalonRegistration = () => {
   };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
-    // Validate file type
-    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    const remainingSlots = MAX_IMAGES - selectedImages.length;
+    if (remainingSlots <= 0) {
       toast({
-        title: 'Invalid file type',
-        description: 'Please upload a JPEG, PNG, or WebP image',
+        title: 'Maximum images reached',
+        description: `You can only upload up to ${MAX_IMAGES} images`,
         variant: 'destructive',
       });
       return;
     }
 
-    // Validate file size
-    if (file.size > MAX_IMAGE_SIZE) {
-      toast({
-        title: 'File too large',
-        description: 'Image must be less than 5MB',
-        variant: 'destructive',
+    const filesToAdd = files.slice(0, remainingSlots);
+    const validFiles: ImageFile[] = [];
+
+    for (const file of filesToAdd) {
+      // Validate file type
+      if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+        toast({
+          title: 'Invalid file type',
+          description: `${file.name} is not a valid image type`,
+          variant: 'destructive',
+        });
+        continue;
+      }
+
+      // Validate file size
+      if (file.size > MAX_IMAGE_SIZE) {
+        toast({
+          title: 'File too large',
+          description: `${file.name} exceeds 5MB limit`,
+          variant: 'destructive',
+        });
+        continue;
+      }
+
+      validFiles.push({
+        file,
+        preview: URL.createObjectURL(file),
+        id: crypto.randomUUID(),
       });
-      return;
     }
 
-    setSelectedImage(file);
-    
-    // Create preview
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-  };
+    if (validFiles.length > 0) {
+      setSelectedImages(prev => [...prev, ...validFiles]);
+    }
 
-  const removeImage = () => {
-    setSelectedImage(null);
-    setImagePreview(null);
+    // Reset input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
-  const uploadImage = async (salonId: string): Promise<string | null> => {
-    if (!selectedImage) return null;
+  const removeImage = (id: string) => {
+    setSelectedImages(prev => {
+      const imageToRemove = prev.find(img => img.id === id);
+      if (imageToRemove) {
+        URL.revokeObjectURL(imageToRemove.preview);
+      }
+      return prev.filter(img => img.id !== id);
+    });
+  };
+
+  const uploadImages = async (salonId: string): Promise<string | null> => {
+    if (selectedImages.length === 0) return null;
     
     setIsUploadingImage(true);
+    setUploadProgress(0);
     
+    let mainImageUrl: string | null = null;
+
     try {
-      const fileExt = selectedImage.name.split('.').pop();
-      const fileName = `${salonId}/main.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('salon-images')
-        .upload(fileName, selectedImage, {
-          cacheControl: '3600',
-          upsert: true,
-        });
+      for (let i = 0; i < selectedImages.length; i++) {
+        const image = selectedImages[i];
+        const fileExt = image.file.name.split('.').pop();
+        const fileName = i === 0 
+          ? `${salonId}/main.${fileExt}`
+          : `${salonId}/gallery-${i}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('salon-images')
+          .upload(fileName, image.file, {
+            cacheControl: '3600',
+            upsert: true,
+          });
 
-      if (uploadError) throw uploadError;
+        if (uploadError) throw uploadError;
 
-      const { data: publicUrlData } = supabase.storage
-        .from('salon-images')
-        .getPublicUrl(fileName);
+        // Get main image URL
+        if (i === 0) {
+          const { data: publicUrlData } = supabase.storage
+            .from('salon-images')
+            .getPublicUrl(fileName);
+          mainImageUrl = publicUrlData.publicUrl;
+        }
 
-      return publicUrlData.publicUrl;
+        setUploadProgress(Math.round(((i + 1) / selectedImages.length) * 100));
+      }
+
+      return mainImageUrl;
     } catch (error: any) {
       console.error('Image upload error:', error);
       toast({
         title: 'Image upload failed',
-        description: 'Salon registered but image upload failed. You can add it later.',
+        description: 'Some images could not be uploaded. You can add them later.',
         variant: 'destructive',
       });
-      return null;
+      return mainImageUrl;
     } finally {
       setIsUploadingImage(false);
     }
@@ -195,9 +239,9 @@ const SalonRegistration = () => {
 
       if (salonError) throw salonError;
 
-      // Upload image if selected
-      if (selectedImage) {
-        const imageUrl = await uploadImage(salonData.id);
+      // Upload images if selected
+      if (selectedImages.length > 0) {
+        const imageUrl = await uploadImages(salonData.id);
         if (imageUrl) {
           await supabase
             .from('salons')
@@ -302,62 +346,67 @@ const SalonRegistration = () => {
             {/* Form */}
             <div className="space-y-5">
               {/* Salon Image Upload */}
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <Label className="flex items-center gap-2">
                   <Camera className="w-4 h-4" />
-                  Salon Photo
+                  Salon Photos
+                  <span className="text-xs text-muted-foreground font-normal">
+                    ({selectedImages.length}/{MAX_IMAGES})
+                  </span>
                 </Label>
-                <div className="flex items-start gap-4">
-                  {imagePreview ? (
-                    <div className="relative">
+                
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                  {/* Selected images */}
+                  {selectedImages.map((image, index) => (
+                    <motion.div
+                      key={image.id}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="relative aspect-square"
+                    >
                       <img
-                        src={imagePreview}
-                        alt="Salon preview"
-                        className="w-32 h-32 object-cover rounded-xl border border-border"
+                        src={image.preview}
+                        alt={`Salon preview ${index + 1}`}
+                        className="w-full h-full object-cover rounded-xl border border-border"
                       />
+                      {index === 0 && (
+                        <span className="absolute bottom-1 left-1 text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded font-medium">
+                          Main
+                        </span>
+                      )}
                       <button
                         type="button"
-                        onClick={removeImage}
+                        onClick={() => removeImage(image.id)}
                         className="absolute -top-2 -right-2 w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center shadow-md hover:bg-destructive/90 transition-colors"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
-                    </div>
-                  ) : (
+                    </motion.div>
+                  ))}
+                  
+                  {/* Add more button */}
+                  {selectedImages.length < MAX_IMAGES && (
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="w-32 h-32 border-2 border-dashed border-border rounded-xl flex flex-col items-center justify-center gap-2 hover:border-primary/50 hover:bg-primary/5 transition-colors"
+                      className="aspect-square border-2 border-dashed border-border rounded-xl flex flex-col items-center justify-center gap-1 hover:border-primary/50 hover:bg-primary/5 transition-colors"
                     >
-                      <Upload className="w-6 h-6 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">Upload</span>
+                      <Upload className="w-5 h-5 text-muted-foreground" />
+                      <span className="text-[10px] text-muted-foreground">Add</span>
                     </button>
                   )}
-                  <div className="flex-1 pt-2">
-                    <p className="text-sm text-muted-foreground">
-                      Add a photo of your salon to attract more customers
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      JPEG, PNG or WebP • Max 5MB
-                    </p>
-                    {imagePreview && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="mt-3"
-                      >
-                        Change Photo
-                      </Button>
-                    )}
-                  </div>
                 </div>
+                
+                <p className="text-xs text-muted-foreground">
+                  Add up to {MAX_IMAGES} photos • JPEG, PNG or WebP • Max 5MB each
+                </p>
+                
                 <input
                   ref={fileInputRef}
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
                   onChange={handleImageSelect}
+                  multiple
                   className="hidden"
                 />
               </div>
@@ -510,7 +559,9 @@ const SalonRegistration = () => {
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    {isUploadingImage ? 'Uploading image...' : 'Registering...'}
+                    {isUploadingImage 
+                      ? `Uploading photos... ${uploadProgress}%` 
+                      : 'Registering...'}
                   </>
                 ) : (
                   'Register Salon'
