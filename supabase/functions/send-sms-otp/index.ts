@@ -22,6 +22,10 @@ const MAX_SEND_ATTEMPTS = 3;
 // Whitelisted test phone numbers with custom OTPs
 const TEST_PHONE_NUMBERS: Record<string, string> = {
   '+919693507281': '112233',
+  '+919534310739': '223344',
+  '+919876543210': '334455',
+  '+919123456789': '445566',
+  '+918888888888': '556677',
 };
 
 // Default test OTP for any additional whitelisted numbers
