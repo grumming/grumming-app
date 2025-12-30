@@ -5,7 +5,7 @@ import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 
 export const usePendingProfile = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isCheckingOwnerStatus, setIsCheckingOwnerStatus] = useState(() => {
@@ -122,6 +122,9 @@ export const usePendingProfile = () => {
     };
 
     const handleSalonOwnerRedirect = async () => {
+      // Avoid dropping the blocker while auth is still initializing (prevents UI flash)
+      if (loading) return;
+
       if (!user) {
         setIsCheckingOwnerStatus(false);
         return;
@@ -184,7 +187,7 @@ export const usePendingProfile = () => {
     updatePendingProfile();
     applyPendingReferral();
     handleSalonOwnerRedirect();
-  }, [user, toast, navigate]);
+  }, [user, loading, toast, navigate]);
 
   return { isCheckingOwnerStatus };
 };
