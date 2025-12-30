@@ -26,6 +26,7 @@ const TEST_PHONE_NUMBERS: Record<string, string> = {
   '+917004414512': '111456',
   '+919534310739': '111456',
   '+919135812785': '111456',
+  '+917870137024': '787013',
 };
 
 // Generate a 6-digit OTP
