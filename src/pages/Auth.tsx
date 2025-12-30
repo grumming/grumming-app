@@ -654,24 +654,23 @@ const Auth = () => {
               
               {/* Login / Sign Up Toggle */}
               <div className="mb-8">
-                <div className="flex p-1 bg-muted rounded-xl mb-4 relative">
+                <div className="flex bg-muted/60 rounded-full p-1 mb-4 relative border border-border/40">
                   {/* Animated background indicator */}
                   <motion.div
-                    className="absolute top-1 bottom-1 rounded-lg bg-background shadow-sm"
+                    className="absolute top-1 bottom-1 rounded-full bg-background shadow-md"
                     initial={false}
                     animate={{
-                      left: isSignUp ? '50%' : '4px',
-                      right: isSignUp ? '4px' : '50%',
+                      left: isSignUp ? 'calc(50% + 2px)' : '4px',
+                      right: isSignUp ? '4px' : 'calc(50% + 2px)',
                     }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 35 }}
                   />
                   <motion.button
                     type="button"
                     onClick={() => setIsSignUp(false)}
-                    whileTap={{ scale: 0.95 }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-                    className={`relative z-10 flex-1 py-3 text-sm font-semibold rounded-lg transition-colors ${
-                      !isSignUp ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+                    whileTap={{ scale: 0.98 }}
+                    className={`relative z-10 flex-1 py-2.5 text-sm font-semibold rounded-full transition-colors ${
+                      !isSignUp ? 'text-primary' : 'text-muted-foreground'
                     }`}
                   >
                     Login
@@ -679,10 +678,9 @@ const Auth = () => {
                   <motion.button
                     type="button"
                     onClick={() => setIsSignUp(true)}
-                    whileTap={{ scale: 0.95 }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-                    className={`relative z-10 flex-1 py-3 text-sm font-semibold rounded-lg transition-colors ${
-                      isSignUp ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+                    whileTap={{ scale: 0.98 }}
+                    className={`relative z-10 flex-1 py-2.5 text-sm font-semibold rounded-full transition-colors ${
+                      isSignUp ? 'text-foreground' : 'text-muted-foreground'
                     }`}
                   >
                     Sign Up
