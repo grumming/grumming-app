@@ -25,6 +25,7 @@ const TEST_PHONE_NUMBERS = [
   '+917004414512',
   '+919534310739',
   '+919135812785',
+  '+919693507281',
 ];
 
 // Fixed test OTP for whitelisted numbers
