@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Store, MapPin, Phone, Mail, Clock, CheckCircle, XCircle, 
-  Loader2, User, AlertTriangle, Eye, Calendar
+  Loader2, User, AlertTriangle, Eye, Calendar, Filter, X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -16,9 +16,12 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
 } from '@/components/ui/alert-dialog';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { format } from 'date-fns';
+import { format, subDays, isBefore, startOfDay } from 'date-fns';
 
 interface PendingSalon {
   id: string;
@@ -50,6 +53,53 @@ export const PendingSalonApprovals = () => {
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Filter states
+  const [cityFilter, setCityFilter] = useState<string>('all');
+  const [dateFilter, setDateFilter] = useState<string>('all');
+
+  // Get unique cities from pending salons
+  const uniqueCities = useMemo(() => {
+    const cities = [...new Set(pendingSalons.map(s => s.city))].sort();
+    return cities;
+  }, [pendingSalons]);
+
+  // Filter pending salons
+  const filteredSalons = useMemo(() => {
+    return pendingSalons.filter(salon => {
+      // City filter
+      if (cityFilter !== 'all' && salon.city !== cityFilter) {
+        return false;
+      }
+      
+      // Date filter
+      if (dateFilter !== 'all') {
+        const salonDate = new Date(salon.created_at);
+        const today = startOfDay(new Date());
+        
+        switch (dateFilter) {
+          case 'today':
+            if (isBefore(salonDate, today)) return false;
+            break;
+          case 'week':
+            if (isBefore(salonDate, subDays(today, 7))) return false;
+            break;
+          case 'month':
+            if (isBefore(salonDate, subDays(today, 30))) return false;
+            break;
+        }
+      }
+      
+      return true;
+    });
+  }, [pendingSalons, cityFilter, dateFilter]);
+
+  const hasActiveFilters = cityFilter !== 'all' || dateFilter !== 'all';
+
+  const clearFilters = () => {
+    setCityFilter('all');
+    setDateFilter('all');
+  };
 
   const fetchPendingSalons = async () => {
     setIsLoading(true);
@@ -239,22 +289,79 @@ export const PendingSalonApprovals = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold">Pending Approvals</h3>
           <p className="text-sm text-muted-foreground">
-            {pendingSalons.length} salon{pendingSalons.length !== 1 ? 's' : ''} awaiting review
+            {filteredSalons.length} of {pendingSalons.length} salon{pendingSalons.length !== 1 ? 's' : ''} shown
           </p>
         </div>
-        <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/30">
+        <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/30 w-fit">
           <AlertTriangle className="w-3 h-3 mr-1" />
           {pendingSalons.length} Pending
         </Badge>
       </div>
 
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3 p-3 bg-muted/50 rounded-lg">
+        <Filter className="w-4 h-4 text-muted-foreground" />
+        
+        <Select value={cityFilter} onValueChange={setCityFilter}>
+          <SelectTrigger className="w-[160px] h-9">
+            <SelectValue placeholder="All Cities" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Cities</SelectItem>
+            {uniqueCities.map(city => (
+              <SelectItem key={city} value={city}>{city}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={dateFilter} onValueChange={setDateFilter}>
+          <SelectTrigger className="w-[160px] h-9">
+            <SelectValue placeholder="Any Date" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Any Date</SelectItem>
+            <SelectItem value="today">Today</SelectItem>
+            <SelectItem value="week">Last 7 Days</SelectItem>
+            <SelectItem value="month">Last 30 Days</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {hasActiveFilters && (
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={clearFilters}
+            className="h-9 px-2 text-muted-foreground hover:text-foreground"
+          >
+            <X className="w-4 h-4 mr-1" />
+            Clear
+          </Button>
+        )}
+      </div>
+
+      {/* No results after filtering */}
+      {filteredSalons.length === 0 && (
+        <Card>
+          <CardContent className="py-8 text-center">
+            <Filter className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+            <h3 className="font-medium mb-1">No matching salons</h3>
+            <p className="text-sm text-muted-foreground mb-3">
+              No pending salons match your current filters.
+            </p>
+            <Button variant="outline" size="sm" onClick={clearFilters}>
+              Clear Filters
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="space-y-3">
         <AnimatePresence>
-          {pendingSalons.map((salon, index) => (
+          {filteredSalons.map((salon, index) => (
             <motion.div
               key={salon.id}
               initial={{ opacity: 0, y: 10 }}
