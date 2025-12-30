@@ -5,7 +5,7 @@ import {
   ArrowLeft, Store, Calendar, Clock, Star, Users, TrendingUp,
   Package, MessageSquare, Settings, Bell, Loader2, AlertTriangle,
   CheckCircle, XCircle, Eye, Edit2, ChevronRight, IndianRupee,
-  Send, Reply, Plus, Trash2, LogOut, User, HelpCircle, Shield
+  Send, Reply, Plus, Trash2, LogOut
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -22,9 +22,6 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
 } from '@/components/ui/dialog';
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useSalonOwner } from '@/hooks/useSalonOwner';
@@ -518,71 +515,21 @@ const SalonDashboard = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              {/* Salon Selector */}
-              {ownedSalons.length > 1 && (
-                <Select value={selectedSalonId || ''} onValueChange={setSelectedSalonId}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Select salon" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ownedSalons.map(salon => (
-                      <SelectItem key={salon.id} value={salon.id}>
-                        {salon.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-
-              {/* Profile Menu */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="w-10 h-10 rounded-full bg-primary/10 border-2 border-primary flex items-center justify-center hover:bg-primary/20 transition-colors">
-                    <User className="w-5 h-5 text-primary" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <div className="px-3 py-2 border-b">
-                    <p className="text-sm font-medium">Account</p>
-                    <p className="text-xs text-muted-foreground truncate">{user?.phone || user?.email}</p>
-                  </div>
-                  <DropdownMenuItem onClick={() => navigate('/profile')}>
-                    <User className="w-4 h-4 mr-2" />
-                    My Profile
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/settings')}>
-                    <Settings className="w-4 h-4 mr-2" />
-                    Account Settings
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/notification-settings')}>
-                    <Bell className="w-4 h-4 mr-2" />
-                    Notifications
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => navigate('/privacy-security')}>
-                    <Shield className="w-4 h-4 mr-2" />
-                    Privacy & Security
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <HelpCircle className="w-4 h-4 mr-2" />
-                    Help & Support
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    className="text-destructive focus:text-destructive"
-                    onClick={async () => {
-                      await signOut();
-                      navigate('/');
-                      toast({ title: 'Signed out', description: 'You have been logged out successfully' });
-                    }}
-                  >
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Sign Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+            {/* Salon Selector */}
+            {ownedSalons.length > 1 && (
+              <Select value={selectedSalonId || ''} onValueChange={setSelectedSalonId}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Select salon" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ownedSalons.map(salon => (
+                    <SelectItem key={salon.id} value={salon.id}>
+                      {salon.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </div>
       </header>
