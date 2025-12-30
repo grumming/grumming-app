@@ -134,13 +134,23 @@ const SalonDashboard = () => {
   const [isEditingHours, setIsEditingHours] = useState(false);
   const [isSavingHours, setIsSavingHours] = useState(false);
 
-  // Select first salon by default
+  // Select first salon by default and show welcome toast
   useEffect(() => {
     if (ownedSalons.length > 0 && !selectedSalonId) {
       const primarySalon = ownedSalons.find(s => s.is_primary) || ownedSalons[0];
       setSelectedSalonId(primarySalon.id);
+      
+      // Check for welcome back toast
+      const welcomeSalonName = localStorage.getItem('welcomeBackSalon');
+      if (welcomeSalonName) {
+        localStorage.removeItem('welcomeBackSalon');
+        toast({
+          title: `Welcome back, ${welcomeSalonName}! 👋`,
+          description: "Your dashboard is ready.",
+        });
+      }
     }
-  }, [ownedSalons, selectedSalonId]);
+  }, [ownedSalons, selectedSalonId, toast]);
 
   // Fetch salon details and data
   useEffect(() => {
