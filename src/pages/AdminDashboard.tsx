@@ -28,6 +28,7 @@ import AdminBookingListener from '@/components/AdminBookingListener';
 import LiveActivityFeed from '@/components/LiveActivityFeed';
 import RevenueAnalytics from '@/components/RevenueAnalytics';
 import SalonManagement from '@/components/admin/SalonManagement';
+import SalonOwnerManagement from '@/components/admin/SalonOwnerManagement';
 
 interface UserProfile {
   id: string;
@@ -519,40 +520,47 @@ const AdminDashboard = () => {
             </TabsContent>
 
             {/* Tools Tab */}
-            <TabsContent value="tools" className="space-y-4">
-              <div className="grid gap-4">
-                <Card 
-                  className="cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => navigate('/admin/promo-codes')}
-                >
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Tag className="w-6 h-6 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold">Promo Codes</h3>
-                        <p className="text-sm text-muted-foreground">Create and manage discount codes</p>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                  </CardContent>
-                </Card>
+            <TabsContent value="tools" className="space-y-6">
+              {/* Salon Owners Section */}
+              <SalonOwnerManagement />
 
-                <Card className="opacity-60">
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-                        <BarChart3 className="w-6 h-6 text-muted-foreground" />
+              {/* Other Tools */}
+              <div className="border-t pt-6">
+                <h3 className="font-semibold mb-4">Other Tools</h3>
+                <div className="grid gap-4">
+                  <Card 
+                    className="cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => navigate('/admin/promo-codes')}
+                  >
+                    <CardContent className="p-4 flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Tag className="w-6 h-6 text-primary" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold">Promo Codes</h3>
+                          <p className="text-sm text-muted-foreground">Create and manage discount codes</p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="font-semibold">Advanced Analytics</h3>
-                        <p className="text-sm text-muted-foreground">Coming soon</p>
+                      <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                    </CardContent>
+                  </Card>
+
+                  <Card className="opacity-60">
+                    <CardContent className="p-4 flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                          <BarChart3 className="w-6 h-6 text-muted-foreground" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold">Advanced Analytics</h3>
+                          <p className="text-sm text-muted-foreground">Coming soon</p>
+                        </div>
                       </div>
-                    </div>
-                    <Badge variant="secondary">Soon</Badge>
-                  </CardContent>
-                </Card>
+                      <Badge variant="secondary">Soon</Badge>
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
             </TabsContent>
           </Tabs>
