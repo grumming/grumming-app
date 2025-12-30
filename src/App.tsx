@@ -36,6 +36,7 @@ import Privacy from "./pages/Privacy";
 import Chat from "./pages/Chat";
 import SalonDashboard from "./pages/SalonDashboard";
 import SalonRegistration from "./pages/SalonRegistration";
+import SalonOwnerAuth from "./pages/SalonOwnerAuth";
 import NotFound from "./pages/NotFound";
 
 const App = () => {
@@ -133,6 +134,7 @@ const App = () => {
                   <Route path="/admin/promo-codes" element={<AdminPromoCodes />} />
                   <Route path="/salon-dashboard" element={<SalonDashboard />} />
                   <Route path="/salon-registration" element={<SalonRegistration />} />
+                  <Route path="/salon-owner-auth" element={<SalonOwnerAuth />} />
                   <Route path="/terms" element={<Terms />} />
                   <Route path="/privacy" element={<Privacy />} />
                   <Route path="/chat" element={<Chat />} />
