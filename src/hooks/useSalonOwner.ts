@@ -10,6 +10,7 @@ interface OwnedSalon {
   image_url: string | null;
   is_active: boolean;
   is_primary: boolean;
+  status: 'pending' | 'approved' | 'rejected';
 }
 
 export const useSalonOwner = () => {
@@ -39,7 +40,8 @@ export const useSalonOwner = () => {
               location,
               city,
               image_url,
-              is_active
+              is_active,
+              status
             )
           `)
           .eq('user_id', user.id);

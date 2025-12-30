@@ -1,32 +1,72 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Clock, CheckCircle, Store, ArrowRight } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, Store, ArrowRight, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useSalonOwner } from '@/hooks/useSalonOwner';
 import { useAuth } from '@/hooks/useAuth';
 
 const SalonApprovalBanner = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { isSalonOwner, ownedSalons, isLoading } = useSalonOwner();
 
   if (!user || isLoading || !isSalonOwner || ownedSalons.length === 0) {
     return null;
   }
 
-  const pendingSalons = ownedSalons.filter(s => !s.is_active);
-  const approvedSalons = ownedSalons.filter(s => s.is_active);
+  const pendingSalons = ownedSalons.filter(s => s.status === 'pending');
+  const approvedSalons = ownedSalons.filter(s => s.status === 'approved');
+  const rejectedSalons = ownedSalons.filter(s => s.status === 'rejected');
 
-  // Don't show if no pending salons
-  if (pendingSalons.length === 0 && approvedSalons.length === 0) {
+  // Don't show if no salons in any status
+  if (pendingSalons.length === 0 && approvedSalons.length === 0 && rejectedSalons.length === 0) {
     return null;
   }
 
+  const handleReapply = (salonId: string) => {
+    navigate(`/salon-registration?edit=${salonId}`);
+  };
+
   return (
-    <div className="px-4 py-3">
+    <div className="px-4 py-3 space-y-3">
+      {/* Rejected salons with re-apply option */}
+      {rejectedSalons.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl p-4"
+        >
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/50 flex items-center justify-center flex-shrink-0">
+              <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-red-900 dark:text-red-100 text-sm">
+                Registration Not Approved
+              </h3>
+              <p className="text-xs text-red-700 dark:text-red-300 mt-0.5 mb-3">
+                {rejectedSalons.map(s => s.name).join(', ')} was not approved. You can edit and resubmit.
+              </p>
+              <Button 
+                size="sm" 
+                variant="outline"
+                className="border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/50"
+                onClick={() => handleReapply(rejectedSalons[0].id)}
+              >
+                <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                Re-apply
+              </Button>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Pending salons */}
       {pendingSalons.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4 mb-3"
+          className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4"
         >
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center flex-shrink-0">
@@ -44,6 +84,7 @@ const SalonApprovalBanner = () => {
         </motion.div>
       )}
 
+      {/* Approved salons */}
       {approvedSalons.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
