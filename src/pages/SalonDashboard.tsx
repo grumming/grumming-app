@@ -154,10 +154,12 @@ const SalonDashboard = () => {
         const totalRevenue = completedBookings.reduce((sum, b) => sum + (b.service_price || 0), 0);
 
         // Fetch reviews with user profiles
+        // Note: reviews.salon_id stores slug-style IDs, so we also check by salon name
+        const salonSlug = salonData?.name?.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') || '';
         const { data: reviewsData } = await supabase
           .from('reviews')
           .select('*')
-          .eq('salon_id', selectedSalonId)
+          .or(`salon_id.eq.${selectedSalonId},salon_id.ilike.${salonSlug}%`)
           .order('created_at', { ascending: false });
 
         // Fetch profiles for reviewers
