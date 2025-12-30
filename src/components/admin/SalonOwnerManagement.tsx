@@ -425,7 +425,7 @@ export const SalonOwnerManagement = () => {
                 <SelectTrigger>
                   <SelectValue placeholder="Choose a salon" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[9999] bg-background border shadow-lg" position="popper">
                   {salons.map((salon) => (
                     <SelectItem key={salon.id} value={salon.id}>
                       <div className="flex items-center gap-2">
