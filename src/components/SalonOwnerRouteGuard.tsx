@@ -37,14 +37,6 @@ export const SalonOwnerRouteGuard = ({ children }: SalonOwnerRouteGuardProps) =>
       const postLoginMode = localStorage.getItem('postLoginMode');
       const isSalonOwnerLogin = pendingSalonOwnerRegistration === 'true' || postLoginMode === 'salon_owner';
 
-      // Clear the flags after reading
-      if (pendingSalonOwnerRegistration) {
-        localStorage.removeItem('pendingSalonOwnerRegistration');
-      }
-      if (postLoginMode) {
-        localStorage.removeItem('postLoginMode');
-      }
-
       // If user didn't log in via salon owner flow, allow customer pages
       if (!isSalonOwnerLogin) {
         setIsChecking(false);
@@ -62,6 +54,10 @@ export const SalonOwnerRouteGuard = ({ children }: SalonOwnerRouteGuardProps) =>
 
         if (!ownerErr && ownerData && ownerData.length > 0) {
           // User owns a salon - redirect to dashboard
+          // Clear flags ONLY after successful check and before redirect
+          localStorage.removeItem('pendingSalonOwnerRegistration');
+          localStorage.removeItem('postLoginMode');
+          
           const salonName = (ownerData[0] as any)?.salons?.name;
           if (salonName) {
             localStorage.setItem('welcomeBackSalon', salonName);
@@ -82,17 +78,29 @@ export const SalonOwnerRouteGuard = ({ children }: SalonOwnerRouteGuardProps) =>
 
         if (roleData) {
           // Has role but no salon - redirect to registration
+          // Clear flags ONLY after successful check and before redirect
+          localStorage.removeItem('pendingSalonOwnerRegistration');
+          localStorage.removeItem('postLoginMode');
+          
           setShouldRedirect(true);
           setIsChecking(false);
           navigate('/salon-registration', { replace: true });
           return;
         }
 
-        // Not a salon owner - allow customer pages
-        setShouldRedirect(false);
+        // User is not a salon owner yet - redirect to registration for new salon owners
+        // Clear flags and redirect to registration
+        localStorage.removeItem('pendingSalonOwnerRegistration');
+        localStorage.removeItem('postLoginMode');
+        
+        setShouldRedirect(true);
         setIsChecking(false);
+        navigate('/salon-registration', { replace: true });
       } catch (err) {
         console.error('Error checking salon owner status:', err);
+        // On error, clear flags and allow access
+        localStorage.removeItem('pendingSalonOwnerRegistration');
+        localStorage.removeItem('postLoginMode');
         setShouldRedirect(false);
         setIsChecking(false);
       }
