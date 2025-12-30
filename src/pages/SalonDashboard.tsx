@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   ArrowLeft, Store, Calendar, Clock, Star, Users, TrendingUp,
   Package, MessageSquare, Settings, Bell, Loader2, AlertTriangle,
   CheckCircle, XCircle, Eye, Edit2, ChevronRight, IndianRupee,
-  Send, Reply, Plus, Trash2, LogOut, User, HelpCircle
+  Send, Reply, Plus, Trash2, LogOut, User, HelpCircle, RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -134,6 +134,14 @@ const SalonDashboard = () => {
   const [isEditingHours, setIsEditingHours] = useState(false);
   const [isSavingHours, setIsSavingHours] = useState(false);
 
+  // Pull-to-refresh state
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [pullDistance, setPullDistance] = useState(0);
+  const [isPulling, setIsPulling] = useState(false);
+  const pullStartY = useRef(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const PULL_THRESHOLD = 80;
+
   // Select first salon by default and show welcome toast
   useEffect(() => {
     if (ownedSalons.length > 0 && !selectedSalonId) {
@@ -153,97 +161,135 @@ const SalonDashboard = () => {
   }, [ownedSalons, selectedSalonId, toast]);
 
   // Fetch salon details and data
-  useEffect(() => {
-    const fetchSalonData = async () => {
-      if (!selectedSalonId) return;
+  const fetchSalonData = useCallback(async (showLoadingSpinner = true) => {
+    if (!selectedSalonId) return;
 
-      setIsLoading(true);
+    if (showLoadingSpinner) setIsLoading(true);
 
-      try {
-        // Fetch salon details
-        const { data: salonData } = await supabase
-          .from('salons')
-          .select('*')
-          .eq('id', selectedSalonId)
-          .single();
+    try {
+      // Fetch salon details
+      const { data: salonData } = await supabase
+        .from('salons')
+        .select('*')
+        .eq('id', selectedSalonId)
+        .single();
 
-        if (salonData) {
-          setSelectedSalon(salonData);
-          setSalonDescription(salonData.description || '');
-        }
-
-        // Fetch services
-        const { data: servicesData } = await supabase
-          .from('salon_services')
-          .select('*')
-          .eq('salon_id', selectedSalonId)
-          .order('category');
-
-        setServices(servicesData || []);
-
-        // Fetch bookings for this salon
-        const { data: bookingsData } = await supabase
-          .from('bookings')
-          .select('*')
-          .eq('salon_name', salonData?.name)
-          .order('booking_date', { ascending: false })
-          .order('booking_time', { ascending: false });
-
-        setBookings(bookingsData || []);
-
-        // Calculate stats
-        const today = format(new Date(), 'yyyy-MM-dd');
-        const todayBookings = (bookingsData || []).filter(b => b.booking_date === today);
-        const upcomingBookings = (bookingsData || []).filter(b => b.status === 'upcoming');
-        const completedBookings = (bookingsData || []).filter(b => b.status === 'completed');
-        const totalRevenue = completedBookings.reduce((sum, b) => sum + (b.service_price || 0), 0);
-
-        // Fetch reviews with user profiles
-        // Note: reviews.salon_id stores slug-style IDs, so we also check by salon name
-        const salonSlug = salonData?.name?.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') || '';
-        const { data: reviewsData } = await supabase
-          .from('reviews')
-          .select('*')
-          .or(`salon_id.eq.${selectedSalonId},salon_id.ilike.${salonSlug}%`)
-          .order('created_at', { ascending: false });
-
-        // Fetch profiles for reviewers
-        const reviewerIds = reviewsData?.map(r => r.user_id) || [];
-        const { data: reviewerProfiles } = await supabase
-          .from('profiles')
-          .select('user_id, full_name, avatar_url')
-          .in('user_id', reviewerIds);
-
-        const reviewsWithProfiles = reviewsData?.map(review => ({
-          ...review,
-          profile: reviewerProfiles?.find(p => p.user_id === review.user_id)
-        })) || [];
-
-        setReviews(reviewsWithProfiles);
-
-        const avgRating = reviewsData && reviewsData.length > 0
-          ? reviewsData.reduce((sum, r) => sum + r.rating, 0) / reviewsData.length
-          : salonData?.rating || 4.5;
-
-        setStats({
-          todayBookings: todayBookings.length,
-          upcomingBookings: upcomingBookings.length,
-          completedBookings: completedBookings.length,
-          totalRevenue,
-          avgRating: Math.round(avgRating * 10) / 10,
-          totalReviews: reviewsData?.length || 0
-        });
-
-      } catch (err) {
-        console.error('Error fetching salon data:', err);
-        toast({ title: 'Error', description: 'Failed to load salon data', variant: 'destructive' });
+      if (salonData) {
+        setSelectedSalon(salonData);
+        setSalonDescription(salonData.description || '');
       }
 
-      setIsLoading(false);
-    };
+      // Fetch services
+      const { data: servicesData } = await supabase
+        .from('salon_services')
+        .select('*')
+        .eq('salon_id', selectedSalonId)
+        .order('category');
 
+      setServices(servicesData || []);
+
+      // Fetch bookings for this salon
+      const { data: bookingsData } = await supabase
+        .from('bookings')
+        .select('*')
+        .eq('salon_name', salonData?.name)
+        .order('booking_date', { ascending: false })
+        .order('booking_time', { ascending: false });
+
+      setBookings(bookingsData || []);
+
+      // Calculate stats
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const todayBookings = (bookingsData || []).filter(b => b.booking_date === today);
+      const upcomingBookings = (bookingsData || []).filter(b => b.status === 'upcoming');
+      const completedBookings = (bookingsData || []).filter(b => b.status === 'completed');
+      const totalRevenue = completedBookings.reduce((sum, b) => sum + (b.service_price || 0), 0);
+
+      // Fetch reviews with user profiles
+      // Note: reviews.salon_id stores slug-style IDs, so we also check by salon name
+      const salonSlug = salonData?.name?.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') || '';
+      const { data: reviewsData } = await supabase
+        .from('reviews')
+        .select('*')
+        .or(`salon_id.eq.${selectedSalonId},salon_id.ilike.${salonSlug}%`)
+        .order('created_at', { ascending: false });
+
+      // Fetch profiles for reviewers
+      const reviewerIds = reviewsData?.map(r => r.user_id) || [];
+      const { data: reviewerProfiles } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, avatar_url')
+        .in('user_id', reviewerIds);
+
+      const reviewsWithProfiles = reviewsData?.map(review => ({
+        ...review,
+        profile: reviewerProfiles?.find(p => p.user_id === review.user_id)
+      })) || [];
+
+      setReviews(reviewsWithProfiles);
+
+      const avgRating = reviewsData && reviewsData.length > 0
+        ? reviewsData.reduce((sum, r) => sum + r.rating, 0) / reviewsData.length
+        : salonData?.rating || 4.5;
+
+      setStats({
+        todayBookings: todayBookings.length,
+        upcomingBookings: upcomingBookings.length,
+        completedBookings: completedBookings.length,
+        totalRevenue,
+        avgRating: Math.round(avgRating * 10) / 10,
+        totalReviews: reviewsData?.length || 0
+      });
+
+    } catch (err) {
+      console.error('Error fetching salon data:', err);
+      toast({ title: 'Error', description: 'Failed to load salon data', variant: 'destructive' });
+    }
+
+    if (showLoadingSpinner) setIsLoading(false);
+  }, [selectedSalonId, toast]);
+
+  useEffect(() => {
     fetchSalonData();
-  }, [selectedSalonId]);
+  }, [fetchSalonData]);
+
+  // Pull-to-refresh handler
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await fetchSalonData(false);
+    setIsRefreshing(false);
+    toast({
+      title: "Refreshed",
+      description: "Dashboard data updated",
+    });
+  }, [fetchSalonData, toast]);
+
+  // Touch event handlers for pull-to-refresh
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (containerRef.current && containerRef.current.scrollTop === 0) {
+      pullStartY.current = e.touches[0].clientY;
+      setIsPulling(true);
+    }
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isPulling || isRefreshing) return;
+    
+    const currentY = e.touches[0].clientY;
+    const distance = Math.max(0, currentY - pullStartY.current);
+    
+    // Apply resistance to the pull
+    const resistedDistance = Math.min(distance * 0.5, PULL_THRESHOLD * 1.5);
+    setPullDistance(resistedDistance);
+  }, [isPulling, isRefreshing]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (pullDistance >= PULL_THRESHOLD && !isRefreshing) {
+      handleRefresh();
+    }
+    setPullDistance(0);
+    setIsPulling(false);
+  }, [pullDistance, isRefreshing, handleRefresh]);
 
   // Function to refresh salon data after settings update
   const handleSalonUpdated = async () => {
@@ -628,7 +674,32 @@ const SalonDashboard = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6 pb-24">
+      <main 
+        ref={containerRef}
+        className="container mx-auto px-4 py-6 pb-24 overflow-auto relative"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        style={{ transform: `translateY(${pullDistance}px)`, transition: isPulling ? 'none' : 'transform 0.3s ease-out' }}
+      >
+        {/* Pull-to-refresh indicator */}
+        <motion.div 
+          className="absolute left-0 right-0 flex justify-center pointer-events-none z-10"
+          style={{ 
+            top: `${-40 + pullDistance * 0.5}px`,
+            opacity: Math.min(pullDistance / PULL_THRESHOLD, 1)
+          }}
+        >
+          <div className={`flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 backdrop-blur-sm ${isRefreshing ? 'animate-pulse' : ''}`}>
+            <RefreshCw className={`w-4 h-4 text-primary ${isRefreshing ? 'animate-spin' : ''}`} 
+              style={{ transform: `rotate(${pullDistance * 3}deg)` }}
+            />
+            <span className="text-xs font-medium text-primary">
+              {isRefreshing ? 'Refreshing...' : pullDistance >= PULL_THRESHOLD ? 'Release to refresh' : 'Pull to refresh'}
+            </span>
+          </div>
+        </motion.div>
+
         {/* Pending Approval Banner */}
         {selectedSalon && !selectedSalon.is_active && (
           <motion.div
