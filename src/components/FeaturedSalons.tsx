@@ -34,15 +34,18 @@ const FeaturedSalons = () => {
   const { salons, isLoading, error } = useSalons();
   const [distanceFilter, setDistanceFilter] = useState<string>("all");
 
-  // Filter salons by selected city
+  // Filter salons by selected city, but show all if no matches found
   const filteredSalons = useMemo(() => {
     if (!selectedCity) return salons;
     
     const cityName = selectedCity.split(',')[0].trim().toLowerCase();
-    return salons.filter(salon => 
+    const cityMatches = salons.filter(salon => 
       salon.city.toLowerCase().includes(cityName) ||
       cityName.includes(salon.city.toLowerCase())
     );
+    
+    // If no salons match the city, show all salons instead of empty
+    return cityMatches.length > 0 ? cityMatches : salons;
   }, [salons, selectedCity]);
 
   const handleSalonClick = (id: string) => {
