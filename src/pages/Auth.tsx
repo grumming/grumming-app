@@ -654,17 +654,8 @@ const Auth = () => {
               
               {/* Login / Sign Up Toggle */}
               <div className="mb-8">
-                {isSalonOwnerMode ? (
-                  // Single merged tab for salon owner mode
-                  <div className="flex justify-center mb-4">
-                    <div className="inline-flex items-center gap-1.5 px-6 py-2.5 bg-muted/60 rounded-full border border-border/40">
-                      <span className="text-sm font-semibold text-foreground">Login/Signup</span>
-                    </div>
-                  </div>
-                ) : (
-                  // Separate tabs for customer mode
+                {!isSalonOwnerMode && (
                   <div className="flex bg-muted/60 rounded-full p-1 mb-4 relative border border-border/40">
-                    {/* Animated background indicator */}
                     <motion.div
                       className="absolute top-1 bottom-1 rounded-full bg-background shadow-md"
                       initial={false}
