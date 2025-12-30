@@ -564,10 +564,6 @@ const SalonDashboard = () => {
                     Notifications
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => navigate('/profile')}>
-                    <User className="mr-2 h-4 w-4" />
-                    Personal Account
-                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate('/help')}>
                     <HelpCircle className="mr-2 h-4 w-4" />
                     Help & Support
