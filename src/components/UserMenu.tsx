@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
+import { getDisplayContact } from '@/utils/displayUtils';
 
 const UserMenu = () => {
   const navigate = useNavigate();
@@ -93,9 +94,11 @@ const UserMenu = () => {
             {displayName && (
               <p className="font-medium">{displayName}</p>
             )}
+            {getDisplayContact(user.phone, user.email) && (
             <p className="text-xs text-muted-foreground truncate max-w-[150px]">
-              {user.email || user.phone}
+              {getDisplayContact(user.phone, user.email)}
             </p>
+            )}
           </div>
         </div>
         <DropdownMenuSeparator />
