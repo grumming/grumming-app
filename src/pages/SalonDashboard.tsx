@@ -533,18 +533,24 @@ const SalonDashboard = () => {
     );
   }
 
-  // Not a salon owner
+  // Not a salon owner - show option to register
   if (!isSalonOwner || ownedSalons.length === 0) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="max-w-md w-full">
           <CardContent className="pt-6 text-center">
-            <Store className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">No Salon Access</h2>
+            <Store className="w-12 h-12 text-primary mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">No Salon Registered</h2>
             <p className="text-muted-foreground mb-4">
-              You don't have any salons linked to your account. Contact support if you believe this is an error.
+              You haven't registered a salon yet. List your salon to start receiving bookings.
             </p>
-            <Button onClick={() => navigate('/')}>Go Home</Button>
+            <div className="flex flex-col gap-2">
+              <Button onClick={() => navigate('/salon-registration')}>
+                <Store className="w-4 h-4 mr-2" />
+                Register Your Salon
+              </Button>
+              <Button variant="outline" onClick={() => navigate('/')}>Go Home</Button>
+            </div>
           </CardContent>
         </Card>
       </div>

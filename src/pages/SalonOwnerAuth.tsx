@@ -256,9 +256,9 @@ const SalonOwnerAuth = () => {
           {step === 'phone' ? (
             <>
               <div className="text-center space-y-2">
-                <h1 className="text-2xl font-bold">List Your Salon</h1>
+                <h1 className="text-2xl font-bold">Salon Owner Login</h1>
                 <p className="text-muted-foreground text-sm">
-                  Enter your phone number to get started
+                  Enter your phone number to access your salon dashboard or register a new salon
                 </p>
               </div>
 
