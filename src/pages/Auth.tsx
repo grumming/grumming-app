@@ -403,6 +403,46 @@ const Auth = () => {
         setStep('profile');
       } else {
         // Existing user - complete login immediately
+        // If salon owner mode, check if user has an approved salon
+        if (isSalonOwnerMode && data.userId) {
+          const { data: ownerData, error: ownerError } = await supabase
+            .from('salon_owners')
+            .select(`
+              salon_id,
+              salons!inner (
+                id,
+                is_active
+              )
+            `)
+            .eq('user_id', data.userId);
+          
+          if (ownerError || !ownerData || ownerData.length === 0) {
+            triggerHaptic('error');
+            toast({
+              title: 'No Salon Found',
+              description: 'You don\'t have any registered salon. Please list your salon first.',
+              variant: 'destructive',
+            });
+            setIsLoading(false);
+            navigate('/salon-registration');
+            return;
+          }
+          
+          // Check if at least one salon is approved (is_active = true)
+          const hasApprovedSalon = ownerData.some((o: any) => o.salons?.is_active === true);
+          
+          if (!hasApprovedSalon) {
+            triggerHaptic('error');
+            toast({
+              title: 'Salon Pending Approval',
+              description: 'Your salon is pending admin approval. You\'ll be notified once approved.',
+              variant: 'destructive',
+            });
+            setIsLoading(false);
+            return;
+          }
+        }
+        
         if (data.verificationUrl) {
           window.location.href = data.verificationUrl;
           return;
@@ -422,7 +462,7 @@ const Auth = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [phone, navigate, toast, stopSmsListener]);
+  }, [phone, navigate, toast, stopSmsListener, isSalonOwnerMode]);
 
   // Keep verifyOtpRef updated with the latest handleVerifyOTP
   useEffect(() => {
@@ -566,7 +606,7 @@ const Auth = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-64 p-1.5">
               <DropdownMenuItem 
-                onClick={() => setIsSalonOwnerMode(false)}
+                onClick={() => navigate('/salon-registration')}
                 className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-primary/5 focus:bg-primary/5 transition-colors"
               >
                 <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center">
