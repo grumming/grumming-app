@@ -75,6 +75,7 @@ const AdminDashboard = () => {
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [userBookings, setUserBookings] = useState<any[]>([]);
   const [isLoadingUserDetails, setIsLoadingUserDetails] = useState(false);
+  const [pendingSalonCount, setPendingSalonCount] = useState(0);
 
   // Fetch dashboard data
   const fetchDashboardData = async () => {
@@ -137,6 +138,14 @@ const AdminDashboard = () => {
           totalSpent: walletsData.reduce((sum, w) => sum + (w.total_spent || 0), 0)
         });
       }
+
+      // Fetch pending salon count
+      const { count: pendingCount } = await supabase
+        .from('salons')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_active', false);
+      
+      setPendingSalonCount(pendingCount || 0);
 
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
@@ -290,7 +299,17 @@ const AdminDashboard = () => {
           <Tabs defaultValue="overview" className="space-y-6">
             <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="salons">Salons</TabsTrigger>
+              <TabsTrigger value="salons" className="relative">
+                Salons
+                {pendingSalonCount > 0 && (
+                  <Badge 
+                    variant="destructive" 
+                    className="absolute -top-1 -right-1 h-5 min-w-5 px-1 text-[10px] flex items-center justify-center"
+                  >
+                    {pendingSalonCount}
+                  </Badge>
+                )}
+              </TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
               <TabsTrigger value="users">Users</TabsTrigger>
               <TabsTrigger value="tools">Tools</TabsTrigger>
