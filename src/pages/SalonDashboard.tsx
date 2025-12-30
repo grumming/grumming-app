@@ -540,7 +540,7 @@ const SalonDashboard = () => {
                   <Button 
                     variant="ghost" 
                     size="icon"
-                    className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all shadow-sm"
+                    className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all shadow-sm ring-2 ring-transparent hover:ring-primary/30 hover:ring-offset-2 hover:ring-offset-background"
                   >
                     <User className="h-5 w-5 text-primary-foreground" />
                   </Button>
