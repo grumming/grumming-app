@@ -1,0 +1,597 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { 
+  ArrowLeft, Store, Calendar, Clock, Star, Users, TrendingUp,
+  Package, MessageSquare, Settings, Bell, Loader2, AlertTriangle,
+  CheckCircle, XCircle, Eye, Edit2, ChevronRight, IndianRupee
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { useSalonOwner } from '@/hooks/useSalonOwner';
+import { supabase } from '@/integrations/supabase/client';
+import { format, subDays, isToday, isTomorrow, parseISO } from 'date-fns';
+
+interface Booking {
+  id: string;
+  user_id: string;
+  salon_name: string;
+  service_name: string;
+  service_price: number;
+  booking_date: string;
+  booking_time: string;
+  status: string;
+  created_at: string;
+}
+
+interface SalonService {
+  id: string;
+  name: string;
+  price: number;
+  duration: string;
+  category: string;
+  is_active: boolean;
+}
+
+interface DashboardStats {
+  todayBookings: number;
+  upcomingBookings: number;
+  completedBookings: number;
+  totalRevenue: number;
+  avgRating: number;
+  totalReviews: number;
+}
+
+const SalonDashboard = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const { isSalonOwner, ownedSalons, isLoading: isOwnerLoading } = useSalonOwner();
+
+  const [selectedSalonId, setSelectedSalonId] = useState<string | null>(null);
+  const [selectedSalon, setSelectedSalon] = useState<any>(null);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [services, setServices] = useState<SalonService[]>([]);
+  const [stats, setStats] = useState<DashboardStats>({
+    todayBookings: 0,
+    upcomingBookings: 0,
+    completedBookings: 0,
+    totalRevenue: 0,
+    avgRating: 4.5,
+    totalReviews: 0
+  });
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Select first salon by default
+  useEffect(() => {
+    if (ownedSalons.length > 0 && !selectedSalonId) {
+      const primarySalon = ownedSalons.find(s => s.is_primary) || ownedSalons[0];
+      setSelectedSalonId(primarySalon.id);
+    }
+  }, [ownedSalons, selectedSalonId]);
+
+  // Fetch salon details and data
+  useEffect(() => {
+    const fetchSalonData = async () => {
+      if (!selectedSalonId) return;
+
+      setIsLoading(true);
+
+      try {
+        // Fetch salon details
+        const { data: salonData } = await supabase
+          .from('salons')
+          .select('*')
+          .eq('id', selectedSalonId)
+          .single();
+
+        if (salonData) {
+          setSelectedSalon(salonData);
+        }
+
+        // Fetch services
+        const { data: servicesData } = await supabase
+          .from('salon_services')
+          .select('*')
+          .eq('salon_id', selectedSalonId)
+          .order('category');
+
+        setServices(servicesData || []);
+
+        // Fetch bookings for this salon
+        const { data: bookingsData } = await supabase
+          .from('bookings')
+          .select('*')
+          .eq('salon_name', salonData?.name)
+          .order('booking_date', { ascending: false })
+          .order('booking_time', { ascending: false });
+
+        setBookings(bookingsData || []);
+
+        // Calculate stats
+        const today = format(new Date(), 'yyyy-MM-dd');
+        const todayBookings = (bookingsData || []).filter(b => b.booking_date === today);
+        const upcomingBookings = (bookingsData || []).filter(b => b.status === 'upcoming');
+        const completedBookings = (bookingsData || []).filter(b => b.status === 'completed');
+        const totalRevenue = completedBookings.reduce((sum, b) => sum + (b.service_price || 0), 0);
+
+        // Fetch reviews
+        const { data: reviewsData } = await supabase
+          .from('reviews')
+          .select('rating')
+          .eq('salon_id', selectedSalonId);
+
+        const avgRating = reviewsData && reviewsData.length > 0
+          ? reviewsData.reduce((sum, r) => sum + r.rating, 0) / reviewsData.length
+          : salonData?.rating || 4.5;
+
+        setStats({
+          todayBookings: todayBookings.length,
+          upcomingBookings: upcomingBookings.length,
+          completedBookings: completedBookings.length,
+          totalRevenue,
+          avgRating: Math.round(avgRating * 10) / 10,
+          totalReviews: reviewsData?.length || 0
+        });
+
+      } catch (err) {
+        console.error('Error fetching salon data:', err);
+        toast({ title: 'Error', description: 'Failed to load salon data', variant: 'destructive' });
+      }
+
+      setIsLoading(false);
+    };
+
+    fetchSalonData();
+  }, [selectedSalonId]);
+
+  const handleUpdateBookingStatus = async (bookingId: string, newStatus: string) => {
+    const { error } = await supabase
+      .from('bookings')
+      .update({ status: newStatus })
+      .eq('id', bookingId);
+
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Success', description: `Booking ${newStatus}` });
+      // Refresh bookings
+      const { data } = await supabase
+        .from('bookings')
+        .select('*')
+        .eq('salon_name', selectedSalon?.name)
+        .order('booking_date', { ascending: false });
+      setBookings(data || []);
+    }
+  };
+
+  const handleToggleService = async (serviceId: string, isActive: boolean) => {
+    const { error } = await supabase
+      .from('salon_services')
+      .update({ is_active: !isActive })
+      .eq('id', serviceId);
+
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } else {
+      setServices(services.map(s => 
+        s.id === serviceId ? { ...s, is_active: !isActive } : s
+      ));
+    }
+  };
+
+  const getBookingDateLabel = (dateStr: string) => {
+    const date = parseISO(dateStr);
+    if (isToday(date)) return 'Today';
+    if (isTomorrow(date)) return 'Tomorrow';
+    return format(date, 'MMM d, yyyy');
+  };
+
+  // Loading state
+  if (isOwnerLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Not logged in
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="pt-6 text-center">
+            <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Login Required</h2>
+            <p className="text-muted-foreground mb-4">Please log in to access the salon dashboard.</p>
+            <Button onClick={() => navigate('/auth')}>Go to Login</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Not a salon owner
+  if (!isSalonOwner || ownedSalons.length === 0) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="pt-6 text-center">
+            <Store className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">No Salon Access</h2>
+            <p className="text-muted-foreground mb-4">
+              You don't have any salons linked to your account. Contact support if you believe this is an error.
+            </p>
+            <Button onClick={() => navigate('/')}>Go Home</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate('/')}
+                className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <div>
+                <h1 className="font-display text-xl font-bold">Salon Dashboard</h1>
+                <p className="text-xs text-muted-foreground">Manage your salon</p>
+              </div>
+            </div>
+
+            {/* Salon Selector */}
+            {ownedSalons.length > 1 && (
+              <Select value={selectedSalonId || ''} onValueChange={setSelectedSalonId}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Select salon" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ownedSalons.map(salon => (
+                    <SelectItem key={salon.id} value={salon.id}>
+                      {salon.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <main className="container mx-auto px-4 py-6 pb-24">
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <Tabs defaultValue="overview" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="bookings">Bookings</TabsTrigger>
+              <TabsTrigger value="services">Services</TabsTrigger>
+              <TabsTrigger value="settings">Settings</TabsTrigger>
+            </TabsList>
+
+            {/* Overview Tab */}
+            <TabsContent value="overview" className="space-y-6">
+              {/* Salon Header Card */}
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-start gap-4">
+                    <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                      {selectedSalon?.image_url ? (
+                        <img src={selectedSalon.image_url} alt={selectedSalon.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Store className="w-6 h-6 text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-lg font-semibold">{selectedSalon?.name}</h2>
+                        <Badge variant={selectedSalon?.is_active ? 'default' : 'secondary'}>
+                          {selectedSalon?.is_active ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedSalon?.location}, {selectedSalon?.city}
+                      </p>
+                      <div className="flex items-center gap-4 mt-2 text-sm">
+                        <span className="flex items-center gap-1">
+                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                          {stats.avgRating} ({stats.totalReviews} reviews)
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-4 h-4 text-muted-foreground" />
+                          {selectedSalon?.opening_time?.slice(0, 5)} - {selectedSalon?.closing_time?.slice(0, 5)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Quick Stats */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Calendar className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold">{stats.todayBookings}</p>
+                        <p className="text-xs text-muted-foreground">Today</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-yellow-500/10 flex items-center justify-center">
+                        <Clock className="w-5 h-5 text-yellow-600" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold">{stats.upcomingBookings}</p>
+                        <p className="text-xs text-muted-foreground">Upcoming</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold">{stats.completedBookings}</p>
+                        <p className="text-xs text-muted-foreground">Completed</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                        <IndianRupee className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold">₹{stats.totalRevenue.toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground">Revenue</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Today's Bookings */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="text-lg">Today's Bookings</CardTitle>
+                  <Button variant="ghost" size="sm" onClick={() => document.querySelector<HTMLButtonElement>('[data-value="bookings"]')?.click()}>
+                    View All <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  {bookings.filter(b => b.booking_date === format(new Date(), 'yyyy-MM-dd')).length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">No bookings today</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {bookings
+                        .filter(b => b.booking_date === format(new Date(), 'yyyy-MM-dd'))
+                        .slice(0, 5)
+                        .map(booking => (
+                          <div key={booking.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                            <div>
+                              <p className="font-medium">{booking.service_name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {booking.booking_time} • ₹{booking.service_price}
+                              </p>
+                            </div>
+                            <Badge variant={
+                              booking.status === 'completed' ? 'default' :
+                              booking.status === 'cancelled' ? 'destructive' : 'secondary'
+                            }>
+                              {booking.status}
+                            </Badge>
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Bookings Tab */}
+            <TabsContent value="bookings" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>All Bookings</CardTitle>
+                  <CardDescription>Manage your salon bookings</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {bookings.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">No bookings yet</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {bookings.map(booking => (
+                        <motion.div
+                          key={booking.id}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="flex items-center justify-between p-4 border rounded-lg"
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium">{booking.service_name}</p>
+                              <Badge variant={
+                                booking.status === 'completed' ? 'default' :
+                                booking.status === 'cancelled' ? 'destructive' : 'secondary'
+                              }>
+                                {booking.status}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {getBookingDateLabel(booking.booking_date)} at {booking.booking_time}
+                            </p>
+                            <p className="text-sm font-medium mt-1">₹{booking.service_price}</p>
+                          </div>
+                          
+                          {booking.status === 'upcoming' && (
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => handleUpdateBookingStatus(booking.id, 'completed')}
+                              >
+                                <CheckCircle className="w-4 h-4 mr-1" />
+                                Complete
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                className="text-destructive"
+                                onClick={() => handleUpdateBookingStatus(booking.id, 'cancelled')}
+                              >
+                                <XCircle className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Services Tab */}
+            <TabsContent value="services" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Services</CardTitle>
+                  <CardDescription>Manage your salon services</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {services.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">No services added yet</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {services.map(service => (
+                        <div key={service.id} className="flex items-center justify-between p-4 border rounded-lg">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium">{service.name}</p>
+                              <Badge variant="outline">{service.category}</Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              ₹{service.price} • {service.duration}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2">
+                              <Switch
+                                checked={service.is_active}
+                                onCheckedChange={() => handleToggleService(service.id, service.is_active)}
+                              />
+                              <Label className="text-sm">
+                                {service.is_active ? 'Active' : 'Hidden'}
+                              </Label>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Settings Tab */}
+            <TabsContent value="settings" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Salon Settings</CardTitle>
+                  <CardDescription>Manage your salon information</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                      <p className="font-medium">Salon Status</p>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedSalon?.is_active 
+                          ? 'Your salon is visible to customers' 
+                          : 'Your salon is hidden from customers'}
+                      </p>
+                    </div>
+                    <Badge variant={selectedSalon?.is_active ? 'default' : 'secondary'}>
+                      {selectedSalon?.is_active ? 'Active' : 'Inactive'}
+                    </Badge>
+                  </div>
+
+                  <div className="p-4 border rounded-lg space-y-3">
+                    <p className="font-medium">Contact Information</p>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Phone</p>
+                        <p>{selectedSalon?.phone || 'Not set'}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Email</p>
+                        <p>{selectedSalon?.email || 'Not set'}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 border rounded-lg space-y-3">
+                    <p className="font-medium">Business Hours</p>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Opens</p>
+                        <p>{selectedSalon?.opening_time?.slice(0, 5) || '09:00'}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Closes</p>
+                        <p>{selectedSalon?.closing_time?.slice(0, 5) || '21:00'}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-sm text-muted-foreground text-center pt-4">
+                    Contact the admin to update your salon details
+                  </p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        )}
+      </main>
+    </div>
+  );
+};
+
+export default SalonDashboard;

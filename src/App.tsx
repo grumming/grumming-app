@@ -34,6 +34,7 @@ import PaymentHistory from "./pages/PaymentHistory";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Chat from "./pages/Chat";
+import SalonDashboard from "./pages/SalonDashboard";
 import NotFound from "./pages/NotFound";
 
 const App = () => {
@@ -129,6 +130,7 @@ const App = () => {
                   <Route path="/payment-history" element={<PaymentHistory />} />
                   <Route path="/admin" element={<AdminDashboard />} />
                   <Route path="/admin/promo-codes" element={<AdminPromoCodes />} />
+                  <Route path="/salon-dashboard" element={<SalonDashboard />} />
                   <Route path="/terms" element={<Terms />} />
                   <Route path="/privacy" element={<Privacy />} />
                   <Route path="/chat" element={<Chat />} />
