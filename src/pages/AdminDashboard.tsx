@@ -24,6 +24,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useAdmin } from '@/hooks/useAdmin';
 import { supabase } from '@/integrations/supabase/client';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
+import AdminBookingListener from '@/components/AdminBookingListener';
 
 interface UserProfile {
   id: string;
@@ -251,6 +252,8 @@ const AdminDashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Real-time booking notifications */}
+      <AdminBookingListener />
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
