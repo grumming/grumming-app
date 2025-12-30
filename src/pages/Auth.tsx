@@ -128,6 +128,14 @@ const Auth = () => {
 
   useEffect(() => {
     if (!loading && user) {
+      // Check for pending salon owner registration
+      const pendingSalonOwner = localStorage.getItem('pendingSalonOwnerRegistration');
+      if (pendingSalonOwner) {
+        localStorage.removeItem('pendingSalonOwnerRegistration');
+        navigate('/salon-registration');
+        return;
+      }
+      
       // Check for referral code from state or localStorage
       const storedReferralCode = localStorage.getItem('pendingReferralCode');
       const codeToApply = referralCode || storedReferralCode;
