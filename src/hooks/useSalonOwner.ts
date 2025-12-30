@@ -16,6 +16,7 @@ export const useSalonOwner = () => {
   const { user } = useAuth();
   const [isSalonOwner, setIsSalonOwner] = useState(false);
   const [ownedSalons, setOwnedSalons] = useState<OwnedSalon[]>([]);
+  const [hasOwnership, setHasOwnership] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -23,27 +24,15 @@ export const useSalonOwner = () => {
       if (!user) {
         setIsSalonOwner(false);
         setOwnedSalons([]);
+        setHasOwnership(false);
         setIsLoading(false);
         return;
       }
 
+      setIsLoading(true);
+
       try {
-        // Check if user has salon_owner role
-        const { data: roleData } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id)
-          .eq('role', 'salon_owner')
-          .maybeSingle();
-
-        if (!roleData) {
-          setIsSalonOwner(false);
-          setOwnedSalons([]);
-          setIsLoading(false);
-          return;
-        }
-
-        // Fetch salon IDs from salon_owners first
+        // 1) Most reliable: direct ownership records (supports legacy accounts without role rows)
         const { data: ownershipData, error: ownershipError } = await supabase
           .from('salon_owners')
           .select('salon_id, is_primary')
@@ -53,56 +42,70 @@ export const useSalonOwner = () => {
           console.error('Error fetching salon ownership:', ownershipError);
           setIsSalonOwner(false);
           setOwnedSalons([]);
-          setIsLoading(false);
+          setHasOwnership(false);
           return;
         }
 
-        if (!ownershipData || ownershipData.length === 0) {
-          setIsSalonOwner(false);
-          setOwnedSalons([]);
-          setIsLoading(false);
-          return;
-        }
-
-        // Now fetch salon details - the owner RLS policy will allow viewing
-        const salonIds = ownershipData.map(o => o.salon_id);
-        const { data: salonsData, error: salonsError } = await supabase
-          .from('salons')
-          .select('id, name, location, city, image_url, is_active, status')
-          .in('id', salonIds);
-
-        if (salonsError) {
-          console.error('Error fetching salons:', salonsError);
-          setIsSalonOwner(false);
-          setOwnedSalons([]);
-        } else if (salonsData && salonsData.length > 0) {
+        if (ownershipData && ownershipData.length > 0) {
           setIsSalonOwner(true);
-          const salons = salonsData.map(salon => {
-            const ownership = ownershipData.find(o => o.salon_id === salon.id);
+          setHasOwnership(true);
+
+          const salonIds = ownershipData.map((o) => o.salon_id);
+          const { data: salonsData, error: salonsError } = await supabase
+            .from('salons')
+            .select('id, name, location, city, image_url, is_active, status')
+            .in('id', salonIds);
+
+          if (salonsError) {
+            console.error('Error fetching salons:', salonsError);
+            setOwnedSalons([]);
+            return;
+          }
+
+          const salons = (salonsData || []).map((salon: any) => {
+            const ownership = ownershipData.find((o) => o.salon_id === salon.id);
             return {
               ...salon,
-              is_primary: ownership?.is_primary || false
+              is_primary: ownership?.is_primary || false,
             };
           });
+
           setOwnedSalons(salons);
-        } else {
-          // User has ownership records but can't see salons - still a salon owner
+          return;
+        }
+
+        // 2) Role-only: allow owner flows even before salon_owners row exists
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .eq('role', 'salon_owner')
+          .maybeSingle();
+
+        if (roleData) {
           setIsSalonOwner(true);
           setOwnedSalons([]);
+          setHasOwnership(false);
+          return;
         }
+
+        setIsSalonOwner(false);
+        setOwnedSalons([]);
+        setHasOwnership(false);
       } catch (err) {
         console.error('Error checking salon ownership:', err);
         setIsSalonOwner(false);
         setOwnedSalons([]);
+        setHasOwnership(false);
+      } finally {
+        setIsLoading(false);
       }
-
-      setIsLoading(false);
     };
 
     checkSalonOwnership();
   }, [user]);
 
-  return { isSalonOwner, ownedSalons, isLoading };
+  return { isSalonOwner, ownedSalons, hasOwnership, isLoading };
 };
 
 export default useSalonOwner;

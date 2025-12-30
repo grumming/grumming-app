@@ -84,7 +84,7 @@ const SalonDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, signOut } = useAuth();
-  const { isSalonOwner, ownedSalons, isLoading: isOwnerLoading } = useSalonOwner();
+  const { isSalonOwner, ownedSalons, hasOwnership, isLoading: isOwnerLoading } = useSalonOwner();
 
   const [selectedSalonId, setSelectedSalonId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
@@ -561,7 +561,7 @@ const SalonDashboard = () => {
   }
 
   // Not a salon owner
-  if (!isSalonOwner || ownedSalons.length === 0) {
+  if (!isSalonOwner) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="max-w-md w-full">
@@ -572,6 +572,50 @@ const SalonDashboard = () => {
               You don't have any salons linked to your account. Contact support if you believe this is an error.
             </p>
             <Button onClick={() => navigate('/')}>Go Home</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Salon partner account, but no salon created yet
+  if (!hasOwnership) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="pt-6 text-center">
+            <Store className="w-12 h-12 text-primary mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Finish setting up your salon</h2>
+            <p className="text-muted-foreground mb-4">
+              You're signed in as a salon partner, but you haven't created a salon yet.
+            </p>
+            <div className="flex flex-col gap-2">
+              <Button onClick={() => navigate('/salon-registration', { replace: true })}>
+                Continue Registration
+              </Button>
+              <Button variant="outline" onClick={() => navigate('/')}>Go Home</Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Ownership exists but salons couldn't be loaded
+  if (ownedSalons.length === 0) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="pt-6 text-center">
+            <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Couldn't load your salon</h2>
+            <p className="text-muted-foreground mb-4">
+              We found your salon ownership, but couldn't load the salon details. Please try again.
+            </p>
+            <div className="flex flex-col gap-2">
+              <Button onClick={() => window.location.reload()}>Retry</Button>
+              <Button variant="outline" onClick={() => navigate('/')}>Go Home</Button>
+            </div>
           </CardContent>
         </Card>
       </div>
