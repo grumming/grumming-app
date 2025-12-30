@@ -1,5 +1,5 @@
 export interface SalonBasic {
-  id: number;
+  id: string | number;
   name: string;
   location: string;
   city: string;
