@@ -29,6 +29,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format, subDays, isToday, isTomorrow, parseISO } from 'date-fns';
 import SalonOwnerBottomNav from '@/components/SalonOwnerBottomNav';
 import BookingManagement from '@/components/owner/BookingManagement';
+import SalonOwnerBookingListener from '@/components/owner/SalonOwnerBookingListener';
 
 interface Booking {
   id: string;
@@ -1383,6 +1384,9 @@ const SalonDashboard = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Real-time Booking Listener */}
+      <SalonOwnerBookingListener />
 
       {/* Salon Owner Bottom Navigation */}
       <SalonOwnerBottomNav />
