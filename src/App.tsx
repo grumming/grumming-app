@@ -43,7 +43,7 @@ const App = () => {
   const [queryClient] = useState(() => new QueryClient());
 
   useEffect(() => {
-    const shouldSuppressWalletExtensionError = (opts: {
+    const shouldSuppressExtensionError = (opts: {
       message?: string;
       stack?: string;
       filename?: string;
@@ -52,10 +52,6 @@ const App = () => {
       const stack = opts.stack ?? "";
       const filename = opts.filename ?? "";
 
-      // Only suppress wallet-related extension errors
-      const isWalletRelated = /metamask|phantom|wallet|ethereum/i.test(message) ||
-        message.includes("Failed to connect to MetaMask");
-
       const isExtensionSource =
         filename.includes("chrome-extension://") ||
         filename.includes("moz-extension://") ||
@@ -63,6 +59,14 @@ const App = () => {
         stack.includes("moz-extension://") ||
         stack.includes("nkbihfbeogaeaoehlefnkodbefgpgknn") ||
         stack.includes("inpage.js");
+
+      // In dev/preview, suppress ALL extension-sourced errors (they can cause false blank screens)
+      if (import.meta.env.DEV && isExtensionSource) return true;
+
+      // In production, only suppress wallet-related extension errors
+      const isWalletRelated =
+        /metamask|phantom|wallet|ethereum/i.test(message) ||
+        message.includes("Failed to connect to MetaMask");
 
       return isWalletRelated && isExtensionSource;
     };
@@ -74,17 +78,19 @@ const App = () => {
       const stack =
         typeof reason === "object" && reason ? (reason?.stack as string | undefined) : undefined;
 
-      if (shouldSuppressWalletExtensionError({ message, stack })) {
+      if (shouldSuppressExtensionError({ message, stack })) {
         event.preventDefault();
       }
     };
 
     const onError = (event: ErrorEvent) => {
-      if (shouldSuppressWalletExtensionError({
-        message: event.message,
-        stack: (event.error as any)?.stack,
-        filename: event.filename,
-      })) {
+      if (
+        shouldSuppressExtensionError({
+          message: event.message,
+          stack: (event.error as any)?.stack,
+          filename: event.filename,
+        })
+      ) {
         event.preventDefault();
       }
     };
