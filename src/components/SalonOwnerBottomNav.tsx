@@ -1,4 +1,4 @@
-import { Home, MessageSquare, Settings, BarChart3 } from "lucide-react";
+import { Home, MessageSquare, BarChart3 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 
@@ -6,7 +6,6 @@ const navItems = [
   { name: "Dashboard", icon: Home, path: "/salon-dashboard" },
   { name: "Messages", icon: MessageSquare, path: "/chat" },
   { name: "Analytics", icon: BarChart3, path: "/salon-dashboard?tab=overview" },
-  { name: "Settings", icon: Settings, path: "/salon-dashboard?tab=settings" },
 ];
 
 const SalonOwnerBottomNav = () => {
