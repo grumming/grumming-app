@@ -589,24 +589,58 @@ const Auth = () => {
               exit={{ opacity: 0, x: -20 }}
               className="w-full max-w-md mx-auto"
             >
-              {/* Salon Owner Mode Badge */}
-              {isSalonOwnerMode && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mb-4 flex items-center justify-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-full"
-                >
-                  <Store className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-medium text-primary">Salon Owner</span>
-                </motion.div>
-              )}
+              {/* Salon Owner Mode - Professional Header */}
+              <AnimatePresence mode="wait">
+                {isSalonOwnerMode ? (
+                  <motion.div
+                    key="salon-owner-header"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="mb-6"
+                  >
+                    <motion.button
+                      type="button"
+                      onClick={() => setIsSalonOwnerMode(false)}
+                      className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground rounded-full shadow-lg shadow-primary/25 font-semibold"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <Store className="w-5 h-5" />
+                      <span>Salon Owner</span>
+                    </motion.button>
+                    <p className="text-xs text-center text-muted-foreground mt-2">
+                      Tap to switch to customer mode
+                    </p>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="customer-header"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="mb-6"
+                  >
+                    <motion.button
+                      type="button"
+                      onClick={() => setIsSalonOwnerMode(true)}
+                      className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-muted/50 border border-border/50 text-foreground rounded-full font-medium hover:bg-muted transition-colors"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <Store className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">Are you a Salon Owner?</span>
+                    </motion.button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
               
               {/* Login / Sign Up Toggle */}
               <div className="mb-8">
-                <div className="flex p-1 bg-muted rounded-lg mb-4 relative">
+                <div className="flex p-1 bg-muted rounded-xl mb-4 relative">
                   {/* Animated background indicator */}
                   <motion.div
-                    className="absolute top-1 bottom-1 rounded-md bg-background shadow-sm"
+                    className="absolute top-1 bottom-1 rounded-lg bg-background shadow-sm"
                     initial={false}
                     animate={{
                       left: isSignUp ? '50%' : '4px',
@@ -619,7 +653,7 @@ const Auth = () => {
                     onClick={() => setIsSignUp(false)}
                     whileTap={{ scale: 0.95 }}
                     transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-                    className={`relative z-10 flex-1 py-2.5 text-sm font-medium rounded-md transition-colors ${
+                    className={`relative z-10 flex-1 py-3 text-sm font-semibold rounded-lg transition-colors ${
                       !isSignUp ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
@@ -630,7 +664,7 @@ const Auth = () => {
                     onClick={() => setIsSignUp(true)}
                     whileTap={{ scale: 0.95 }}
                     transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-                    className={`relative z-10 flex-1 py-2.5 text-sm font-medium rounded-md transition-colors ${
+                    className={`relative z-10 flex-1 py-3 text-sm font-semibold rounded-lg transition-colors ${
                       isSignUp ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
@@ -644,7 +678,7 @@ const Auth = () => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -5 }}
                     transition={{ duration: 0.2 }}
-                    className="text-sm text-muted-foreground"
+                    className="text-sm text-muted-foreground text-center"
                   >
                     {isSalonOwnerMode
                       ? isSignUp
@@ -722,8 +756,8 @@ const Auth = () => {
                   </AnimatePresence>
                 </div>
 
-                {/* Referral Code Field - Collapsible - Only show during signup */}
-                {isSignUp && (
+                {/* Referral Code Field - Collapsible - Only show during signup for customers (not salon owners) */}
+                {isSignUp && !isSalonOwnerMode && (
                 <div className="space-y-2">
                   <button
                     type="button"
