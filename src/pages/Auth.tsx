@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Phone, ArrowLeft, Loader2, Gift, ChevronDown, ClipboardPaste, User, Mail, Smartphone, Check, X, MoreVertical, Store, Calendar, TrendingUp, MessageSquare, Star } from 'lucide-react';
+import { Phone, ArrowLeft, Loader2, Gift, ChevronDown, ChevronRight, ClipboardPaste, User, Mail, Smartphone, Check, X, MoreVertical, Store, Calendar, TrendingUp, MessageSquare, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -602,14 +602,23 @@ const Auth = () => {
                     <motion.button
                       type="button"
                       onClick={() => setIsSalonOwnerMode(false)}
-                      className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground rounded-full shadow-lg shadow-primary/25 font-semibold"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
+                      className="group w-full relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary via-primary/90 to-primary/80 p-[1px] shadow-xl shadow-primary/20"
+                      whileHover={{ scale: 1.01 }}
+                      whileTap={{ scale: 0.99 }}
                     >
-                      <Store className="w-5 h-5" />
-                      <span>Salon Owner</span>
+                      <div className="relative flex items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-primary via-primary/95 to-primary/85 px-6 py-4">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary-foreground/15 backdrop-blur-sm">
+                          <Store className="w-5 h-5 text-primary-foreground" />
+                        </div>
+                        <div className="flex flex-col items-start">
+                          <span className="text-primary-foreground font-bold text-base tracking-tight">Salon Owner Mode</span>
+                          <span className="text-primary-foreground/70 text-xs">Partner Dashboard Access</span>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-primary-foreground/60 ml-auto group-hover:translate-x-0.5 transition-transform" />
+                      </div>
                     </motion.button>
-                    <p className="text-xs text-center text-muted-foreground mt-2">
+                    <p className="text-xs text-center text-muted-foreground mt-3 flex items-center justify-center gap-1.5">
+                      <span className="w-1 h-1 rounded-full bg-primary/60" />
                       Tap to switch to customer mode
                     </p>
                   </motion.div>
@@ -624,12 +633,20 @@ const Auth = () => {
                     <motion.button
                       type="button"
                       onClick={() => setIsSalonOwnerMode(true)}
-                      className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-muted/50 border border-border/50 text-foreground rounded-full font-medium hover:bg-muted transition-colors"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
+                      className="group w-full relative overflow-hidden rounded-2xl bg-gradient-to-br from-muted/80 via-muted/50 to-muted/30 border border-border/60 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300"
+                      whileHover={{ scale: 1.01 }}
+                      whileTap={{ scale: 0.99 }}
                     >
-                      <Store className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">Are you a Salon Owner?</span>
+                      <div className="flex items-center justify-center gap-3 px-5 py-3.5">
+                        <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-primary/10 group-hover:bg-primary/15 transition-colors">
+                          <Store className="w-4 h-4 text-primary" />
+                        </div>
+                        <div className="flex flex-col items-start">
+                          <span className="text-foreground/90 font-semibold text-sm">Are you a Salon Owner?</span>
+                          <span className="text-muted-foreground text-[11px]">Register & grow your business</span>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground ml-auto group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+                      </div>
                     </motion.button>
                   </motion.div>
                 )}
