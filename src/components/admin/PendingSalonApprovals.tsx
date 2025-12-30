@@ -245,10 +245,14 @@ export const PendingSalonApprovals = () => {
     
     setIsProcessing(true);
     try {
-      // Set salon status to rejected (keep the record for re-apply)
+      // Set salon status to rejected and save rejection reason
       const { error: updateError } = await supabase
         .from('salons')
-        .update({ status: 'rejected', is_active: false })
+        .update({ 
+          status: 'rejected', 
+          is_active: false,
+          rejection_reason: rejectionReason.trim() || null
+        })
         .eq('id', selectedSalon.id);
 
       if (updateError) throw updateError;
