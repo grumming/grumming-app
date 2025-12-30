@@ -518,9 +518,14 @@ const SalonRegistration = () => {
         }
       } else {
         // Create new salon
-        const { data: salonData, error: salonError } = await supabase
+        // Important: don't request RETURNING rows here because owners can't SELECT the salon
+        // until the ownership row is created, which can cause an RLS error.
+        salonId = crypto.randomUUID();
+
+        const { error: salonError } = await supabase
           .from('salons')
           .insert({
+            id: salonId,
             name: formData.name.trim(),
             location: formData.location.trim(),
             city: formData.city,
@@ -531,40 +536,35 @@ const SalonRegistration = () => {
             closing_time: formData.closingTime,
             is_active: false,
             status: 'pending',
-          })
-          .select()
-          .single();
+          });
 
         if (salonError) throw salonError;
-        salonId = salonData.id;
 
         // Save services
         if (services.length > 0) {
-          const servicesToInsert = services.map(service => ({
-            salon_id: salonData.id,
+          const servicesToInsert = services.map((service) => ({
+            salon_id: salonId,
             name: service.name,
             category: 'Haircut',
             duration: service.duration,
             price: service.price,
             is_active: true,
           }));
-          
+
           const { error: servicesError } = await supabase
             .from('salon_services')
             .insert(servicesToInsert);
-            
+
           if (servicesError) {
             console.error('Services insert error:', servicesError);
           }
         }
 
-        const { error: ownerError } = await supabase
-          .from('salon_owners')
-          .insert({
-            user_id: user.id,
-            salon_id: salonData.id,
-            is_primary: true,
-          });
+        const { error: ownerError } = await supabase.from('salon_owners').insert({
+          user_id: user.id,
+          salon_id: salonId,
+          is_primary: true,
+        });
 
         if (ownerError) throw ownerError;
 
@@ -576,12 +576,10 @@ const SalonRegistration = () => {
           .maybeSingle();
 
         if (!existingRole) {
-          await supabase
-            .from('user_roles')
-            .insert({
-              user_id: user.id,
-              role: 'salon_owner',
-            });
+          await supabase.from('user_roles').insert({
+            user_id: user.id,
+            role: 'salon_owner',
+          });
         }
       }
 
