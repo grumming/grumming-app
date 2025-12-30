@@ -617,10 +617,6 @@ const Auth = () => {
                         <ChevronRight className="w-5 h-5 text-primary-foreground/60 ml-auto group-hover:translate-x-0.5 transition-transform" />
                       </div>
                     </motion.button>
-                    <p className="text-xs text-center text-muted-foreground mt-3 flex items-center justify-center gap-1.5">
-                      <span className="w-1 h-1 rounded-full bg-primary/60" />
-                      Tap to switch to customer mode
-                    </p>
                   </motion.div>
                 ) : (
                   <motion.div
@@ -687,22 +683,22 @@ const Auth = () => {
                     </motion.button>
                   </div>
                 )}
-                <AnimatePresence mode="wait">
-                  <motion.p
-                    key={`${isSignUp}-${isSalonOwnerMode}`}
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -5 }}
-                    transition={{ duration: 0.2 }}
-                    className="text-sm text-muted-foreground text-center"
-                  >
-                    {isSalonOwnerMode
-                      ? 'Enter your phone to login or register your salon.'
-                      : isSignUp
+                {!isSalonOwnerMode && (
+                  <AnimatePresence mode="wait">
+                    <motion.p
+                      key={`${isSignUp}`}
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -5 }}
+                      transition={{ duration: 0.2 }}
+                      className="text-sm text-muted-foreground text-center"
+                    >
+                      {isSignUp
                         ? 'Create a new account to book appointments and earn rewards.'
                         : 'Welcome back! Enter your phone number to continue.'}
-                  </motion.p>
-                </AnimatePresence>
+                    </motion.p>
+                  </AnimatePresence>
+                )}
               </div>
               
               <div className="space-y-6">
