@@ -52,23 +52,30 @@ const App = () => {
       const stack = opts.stack ?? "";
       const filename = opts.filename ?? "";
 
-      const isExtensionSource =
-        filename.includes("chrome-extension://") ||
-        filename.includes("moz-extension://") ||
+      const isExtensionFilename =
+        filename.includes("chrome-extension://") || filename.includes("moz-extension://");
+
+      const isExtensionStack =
         stack.includes("chrome-extension://") ||
         stack.includes("moz-extension://") ||
         stack.includes("nkbihfbeogaeaoehlefnkodbefgpgknn") ||
         stack.includes("inpage.js");
 
+      const isExtensionSource = isExtensionFilename || isExtensionStack;
+
       // In dev/preview, suppress ALL extension-sourced errors (they can cause false blank screens)
       if (import.meta.env.DEV && isExtensionSource) return true;
 
-      // In production, only suppress wallet-related extension errors
+      // In production, always suppress errors whose *source file* is a browser extension.
+      // These are injected by extensions and are not actionable for our app.
+      if (!import.meta.env.DEV && isExtensionFilename) return true;
+
+      // In production, additionally suppress wallet-related errors when they come from extension scripts.
       const isWalletRelated =
         /metamask|phantom|wallet|ethereum/i.test(message) ||
         message.includes("Failed to connect to MetaMask");
 
-      return isWalletRelated && isExtensionSource;
+      return isWalletRelated && isExtensionStack;
     };
 
     const onUnhandledRejection = (event: PromiseRejectionEvent) => {
