@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Store, MapPin, Clock, Phone, Mail, Image, Loader2, CheckCircle, Camera, X, Upload } from 'lucide-react';
+import { ArrowLeft, Store, MapPin, Clock, Phone, Mail, Image, Loader2, CheckCircle, Camera, X, Upload, Crop } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { indianCities } from '@/data/indianCities';
+import ImageCropDialog from '@/components/ImageCropDialog';
 
 const salonSchema = z.object({
   name: z.string().min(2, 'Salon name must be at least 2 characters').max(100),
@@ -55,6 +56,11 @@ const SalonRegistration = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [selectedImages, setSelectedImages] = useState<ImageFile[]>([]);
   
+  // Crop dialog state
+  const [cropDialogOpen, setCropDialogOpen] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  
   const [formData, setFormData] = useState<SalonFormData>({
     name: '',
     location: '',
@@ -91,8 +97,8 @@ const SalonRegistration = () => {
   };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
 
     const remainingSlots = MAX_IMAGES - selectedImages.length;
     if (remainingSlots <= 0) {
@@ -104,45 +110,66 @@ const SalonRegistration = () => {
       return;
     }
 
-    const filesToAdd = files.slice(0, remainingSlots);
-    const validFiles: ImageFile[] = [];
-
-    for (const file of filesToAdd) {
-      // Validate file type
-      if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-        toast({
-          title: 'Invalid file type',
-          description: `${file.name} is not a valid image type`,
-          variant: 'destructive',
-        });
-        continue;
-      }
-
-      // Validate file size
-      if (file.size > MAX_IMAGE_SIZE) {
-        toast({
-          title: 'File too large',
-          description: `${file.name} exceeds 5MB limit`,
-          variant: 'destructive',
-        });
-        continue;
-      }
-
-      validFiles.push({
-        file,
-        preview: URL.createObjectURL(file),
-        id: crypto.randomUUID(),
+    // Validate file type
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      toast({
+        title: 'Invalid file type',
+        description: 'Please upload a JPEG, PNG, or WebP image',
+        variant: 'destructive',
       });
+      return;
     }
 
-    if (validFiles.length > 0) {
-      setSelectedImages(prev => [...prev, ...validFiles]);
+    // Validate file size
+    if (file.size > MAX_IMAGE_SIZE) {
+      toast({
+        title: 'File too large',
+        description: 'Image must be less than 5MB',
+        variant: 'destructive',
+      });
+      return;
     }
+
+    // Open crop dialog
+    const imageUrl = URL.createObjectURL(file);
+    setImageToCrop(imageUrl);
+    setPendingFile(file);
+    setCropDialogOpen(true);
 
     // Reset input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+  };
+
+  const handleCropComplete = (croppedBlob: Blob) => {
+    const croppedFile = new File([croppedBlob], pendingFile?.name || 'cropped-image.jpg', {
+      type: 'image/jpeg',
+    });
+    
+    const imageFile: ImageFile = {
+      file: croppedFile,
+      preview: URL.createObjectURL(croppedBlob),
+      id: crypto.randomUUID(),
+    };
+    
+    setSelectedImages(prev => [...prev, imageFile]);
+    
+    // Clean up
+    if (imageToCrop) {
+      URL.revokeObjectURL(imageToCrop);
+    }
+    setImageToCrop(null);
+    setPendingFile(null);
+  };
+
+  const handleCropDialogClose = (open: boolean) => {
+    if (!open && imageToCrop) {
+      URL.revokeObjectURL(imageToCrop);
+      setImageToCrop(null);
+      setPendingFile(null);
+    }
+    setCropDialogOpen(open);
   };
 
   const removeImage = (id: string) => {
@@ -311,7 +338,21 @@ const SalonRegistration = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/10">
+    <>
+      {/* Image Crop Dialog */}
+      {imageToCrop && (
+        <ImageCropDialog
+          open={cropDialogOpen}
+          onOpenChange={handleCropDialogClose}
+          imageSrc={imageToCrop}
+          onCropComplete={handleCropComplete}
+          aspectRatio={16 / 9}
+          circularCrop={false}
+          title="Crop Salon Photo"
+        />
+      )}
+      
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/10">
       {/* Header */}
       <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border/50 px-4 py-3">
         <div className="flex items-center gap-3 max-w-2xl mx-auto">
@@ -397,8 +438,9 @@ const SalonRegistration = () => {
                   )}
                 </div>
                 
-                <p className="text-xs text-muted-foreground">
-                  Add up to {MAX_IMAGES} photos • JPEG, PNG or WebP • Max 5MB each
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Crop className="w-3 h-3" />
+                  Add up to {MAX_IMAGES} photos • Images will be cropped to 16:9
                 </p>
                 
                 <input
@@ -406,7 +448,6 @@ const SalonRegistration = () => {
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
                   onChange={handleImageSelect}
-                  multiple
                   className="hidden"
                 />
               </div>
@@ -594,6 +635,7 @@ const SalonRegistration = () => {
         )}
       </main>
     </div>
+    </>
   );
 };
 
