@@ -128,18 +128,10 @@ const Auth = () => {
 
   useEffect(() => {
     if (!loading && user) {
-      // Check for pending salon owner registration
-      const pendingSalonOwner = localStorage.getItem('pendingSalonOwnerRegistration');
-      if (pendingSalonOwner) {
-        localStorage.removeItem('pendingSalonOwnerRegistration');
-        navigate('/salon-registration');
-        return;
-      }
-      
       // Check for referral code from state or localStorage
       const storedReferralCode = localStorage.getItem('pendingReferralCode');
       const codeToApply = referralCode || storedReferralCode;
-      
+
       if (codeToApply) {
         // Clear the stored referral code
         localStorage.removeItem('pendingReferralCode');
@@ -614,7 +606,18 @@ const Auth = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-64 p-1.5">
               <DropdownMenuItem 
-                onClick={() => navigate('/salon-registration')}
+                onClick={() => {
+                  if (user) {
+                    navigate('/salon-registration');
+                    return;
+                  }
+
+                  localStorage.setItem('pendingSalonOwnerRegistration', 'true');
+                  toast({
+                    title: 'Continue login',
+                    description: 'Verify your phone to start salon registration.',
+                  });
+                }}
                 className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-primary/5 focus:bg-primary/5 transition-colors"
               >
                 <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center">
