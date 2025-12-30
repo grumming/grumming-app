@@ -390,6 +390,27 @@ const SalonDashboard = () => {
     setIsSubmittingResponse(false);
   };
 
+  const handleToggleVisibility = async (visible: boolean) => {
+    if (!selectedSalonId) return;
+
+    const { error } = await supabase
+      .from('salons')
+      .update({ is_active: visible })
+      .eq('id', selectedSalonId);
+
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } else {
+      setSelectedSalon((prev: any) => prev ? { ...prev, is_active: visible } : null);
+      toast({ 
+        title: visible ? 'Salon Visible' : 'Salon Hidden', 
+        description: visible 
+          ? 'Your salon is now visible in search results' 
+          : 'Your salon is hidden from customers'
+      });
+    }
+  };
+
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }).map((_, i) => (
       <Star
@@ -914,17 +935,31 @@ const SalonDashboard = () => {
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="flex items-center justify-between p-4 border rounded-lg">
-                        <div>
-                          <p className="font-medium">Salon Status</p>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">Salon Visibility</p>
+                            {selectedSalon?.status === 'pending' && (
+                              <Badge variant="secondary" className="text-xs">Pending Approval</Badge>
+                            )}
+                          </div>
                           <p className="text-sm text-muted-foreground">
-                            {selectedSalon?.is_active 
-                              ? 'Your salon is visible to customers' 
-                              : 'Your salon is hidden from customers'}
+                            {selectedSalon?.status === 'pending' 
+                              ? 'Visibility can be changed after admin approval'
+                              : selectedSalon?.is_active 
+                                ? 'Your salon is visible in search results' 
+                                : 'Your salon is hidden from customers'}
                           </p>
                         </div>
-                        <Badge variant={selectedSalon?.is_active ? 'default' : 'secondary'}>
-                          {selectedSalon?.is_active ? 'Active' : 'Inactive'}
-                        </Badge>
+                        <div className="flex items-center gap-3">
+                          <Switch
+                            checked={selectedSalon?.is_active ?? false}
+                            onCheckedChange={handleToggleVisibility}
+                            disabled={selectedSalon?.status === 'pending'}
+                          />
+                          <Badge variant={selectedSalon?.is_active ? 'default' : 'secondary'}>
+                            {selectedSalon?.is_active ? 'Visible' : 'Hidden'}
+                          </Badge>
+                        </div>
                       </div>
 
                       <div className="p-4 border rounded-lg space-y-3">
