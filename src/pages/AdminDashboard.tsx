@@ -29,6 +29,7 @@ import LiveActivityFeed from '@/components/LiveActivityFeed';
 import RevenueAnalytics from '@/components/RevenueAnalytics';
 import SalonManagement from '@/components/admin/SalonManagement';
 import SalonOwnerManagement from '@/components/admin/SalonOwnerManagement';
+import PendingSalonApprovals from '@/components/admin/PendingSalonApprovals';
 
 interface UserProfile {
   id: string;
@@ -426,7 +427,25 @@ const AdminDashboard = () => {
 
             {/* Salons Tab */}
             <TabsContent value="salons" className="space-y-6">
-              <SalonManagement />
+              <Tabs defaultValue="pending" className="space-y-4">
+                <TabsList>
+                  <TabsTrigger value="pending">Pending Approvals</TabsTrigger>
+                  <TabsTrigger value="all">All Salons</TabsTrigger>
+                  <TabsTrigger value="owners">Salon Owners</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="pending">
+                  <PendingSalonApprovals />
+                </TabsContent>
+
+                <TabsContent value="all">
+                  <SalonManagement />
+                </TabsContent>
+
+                <TabsContent value="owners">
+                  <SalonOwnerManagement />
+                </TabsContent>
+              </Tabs>
             </TabsContent>
 
             {/* Analytics Tab */}
