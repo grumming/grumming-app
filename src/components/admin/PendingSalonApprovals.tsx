@@ -2,8 +2,9 @@ import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Store, MapPin, Phone, Mail, Clock, CheckCircle, XCircle, 
-  Loader2, User, AlertTriangle, Eye, Calendar, Filter, X
+  Loader2, User, AlertTriangle, Eye, Calendar, Filter, X, Search
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -57,6 +58,7 @@ export const PendingSalonApprovals = () => {
   // Filter states
   const [cityFilter, setCityFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Get unique cities from pending salons
   const uniqueCities = useMemo(() => {
@@ -67,6 +69,19 @@ export const PendingSalonApprovals = () => {
   // Filter pending salons
   const filteredSalons = useMemo(() => {
     return pendingSalons.filter(salon => {
+      // Search filter
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const matchesSalonName = salon.name.toLowerCase().includes(query);
+        const matchesOwnerName = salon.owner?.full_name?.toLowerCase().includes(query);
+        const matchesOwnerPhone = salon.owner?.phone?.includes(query);
+        const matchesOwnerEmail = salon.owner?.email?.toLowerCase().includes(query);
+        
+        if (!matchesSalonName && !matchesOwnerName && !matchesOwnerPhone && !matchesOwnerEmail) {
+          return false;
+        }
+      }
+      
       // City filter
       if (cityFilter !== 'all' && salon.city !== cityFilter) {
         return false;
@@ -92,13 +107,14 @@ export const PendingSalonApprovals = () => {
       
       return true;
     });
-  }, [pendingSalons, cityFilter, dateFilter]);
+  }, [pendingSalons, cityFilter, dateFilter, searchQuery]);
 
-  const hasActiveFilters = cityFilter !== 'all' || dateFilter !== 'all';
+  const hasActiveFilters = cityFilter !== 'all' || dateFilter !== 'all' || searchQuery.trim() !== '';
 
   const clearFilters = () => {
     setCityFilter('all');
     setDateFilter('all');
+    setSearchQuery('');
   };
 
   const fetchPendingSalons = async () => {
@@ -304,7 +320,15 @@ export const PendingSalonApprovals = () => {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3 p-3 bg-muted/50 rounded-lg">
-        <Filter className="w-4 h-4 text-muted-foreground" />
+        <div className="relative flex-1 min-w-[200px] max-w-[300px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search salon or owner..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 h-9"
+          />
+        </div>
         
         <Select value={cityFilter} onValueChange={setCityFilter}>
           <SelectTrigger className="w-[160px] h-9">
