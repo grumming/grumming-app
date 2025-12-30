@@ -563,17 +563,9 @@ const SalonDashboard = () => {
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => navigate('/')}
-                className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </button>
-              <div>
-                <h1 className="font-display text-xl font-bold">Salon Dashboard</h1>
-                <p className="text-xs text-muted-foreground">Manage your salon</p>
-              </div>
+            <div>
+              <h1 className="font-display text-xl font-bold">Salon Dashboard</h1>
+              <p className="text-xs text-muted-foreground">Manage your salon</p>
             </div>
 
             {/* Salon Selector */}
