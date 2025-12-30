@@ -115,32 +115,17 @@ export const usePendingProfile = () => {
       }
     };
 
-    const handleSalonOwnerRedirect = async () => {
+    const handleSalonOwnerRedirect = () => {
       if (!user) return;
-
+      
       const pendingSalonOwner = localStorage.getItem('pendingSalonOwnerRegistration');
       if (!pendingSalonOwner) return;
-
+      
       // Clear the flag
       localStorage.removeItem('pendingSalonOwnerRegistration');
-
-      try {
-        const { data: ownershipData, error } = await supabase
-          .from('salon_owners')
-          .select('id')
-          .eq('user_id', user.id)
-          .limit(1);
-
-        if (!error && ownershipData && ownershipData.length > 0) {
-          // Owner has an application (approved/pending/rejected) — show status in dashboard
-          navigate('/salon-dashboard');
-        } else {
-          // New owner — continue registration
-          navigate('/salon-registration');
-        }
-      } catch {
-        navigate('/salon-registration');
-      }
+      
+      // Redirect to salon registration
+      navigate('/salon-registration');
     };
 
     updatePendingProfile();

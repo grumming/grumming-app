@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
-  Store, Calendar, Clock, Star, Users, TrendingUp,
+  ArrowLeft, Store, Calendar, Clock, Star, Users, TrendingUp,
   Package, MessageSquare, Settings, Bell, Loader2, AlertTriangle,
   CheckCircle, XCircle, Eye, Edit2, ChevronRight, IndianRupee,
-  Send, Reply, Plus, Trash2, LogOut, User, HelpCircle, MoreVertical
+  Send, Reply, Plus, Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -22,17 +22,12 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
 } from '@/components/ui/dialog';
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useSalonOwner } from '@/hooks/useSalonOwner';
 import { supabase } from '@/integrations/supabase/client';
 import { format, subDays, isToday, isTomorrow, parseISO } from 'date-fns';
 import SalonOwnerBottomNav from '@/components/SalonOwnerBottomNav';
-import BookingManagement from '@/components/owner/BookingManagement';
-import SalonOwnerBookingListener from '@/components/owner/SalonOwnerBookingListener';
 
 interface Booking {
   id: string;
@@ -118,20 +113,6 @@ const SalonDashboard = () => {
   });
   const [isSubmittingService, setIsSubmittingService] = useState(false);
   const [deleteServiceId, setDeleteServiceId] = useState<string | null>(null);
-
-  // Salon edit state
-  const [isEditSalonDialogOpen, setIsEditSalonDialogOpen] = useState(false);
-  const [isSubmittingSalon, setIsSubmittingSalon] = useState(false);
-  const [salonForm, setSalonForm] = useState({
-    name: '',
-    description: '',
-    location: '',
-    city: '',
-    phone: '',
-    email: '',
-    opening_time: '09:00',
-    closing_time: '21:00'
-  });
 
   // Select first salon by default
   useEffect(() => {
@@ -409,99 +390,6 @@ const SalonDashboard = () => {
     setIsSubmittingResponse(false);
   };
 
-  // Salon edit handlers
-  const handleOpenEditSalon = () => {
-    if (!selectedSalon) return;
-    setSalonForm({
-      name: selectedSalon.name || '',
-      description: selectedSalon.description || '',
-      location: selectedSalon.location || '',
-      city: selectedSalon.city || '',
-      phone: selectedSalon.phone || '',
-      email: selectedSalon.email || '',
-      opening_time: selectedSalon.opening_time?.slice(0, 5) || '09:00',
-      closing_time: selectedSalon.closing_time?.slice(0, 5) || '21:00'
-    });
-    setIsEditSalonDialogOpen(true);
-  };
-
-  const handleSaveSalon = async () => {
-    if (!selectedSalonId || !salonForm.name.trim() || !salonForm.location.trim() || !salonForm.city.trim()) {
-      toast({ title: 'Error', description: 'Name, location, and city are required', variant: 'destructive' });
-      return;
-    }
-
-    setIsSubmittingSalon(true);
-
-    try {
-      const { error } = await supabase
-        .from('salons')
-        .update({
-          name: salonForm.name.trim(),
-          description: salonForm.description.trim() || null,
-          location: salonForm.location.trim(),
-          city: salonForm.city.trim(),
-          phone: salonForm.phone.trim() || null,
-          email: salonForm.email.trim() || null,
-          opening_time: salonForm.opening_time,
-          closing_time: salonForm.closing_time
-        })
-        .eq('id', selectedSalonId);
-
-      if (error) throw error;
-
-      // Update local state
-      setSelectedSalon({
-        ...selectedSalon,
-        name: salonForm.name.trim(),
-        description: salonForm.description.trim() || null,
-        location: salonForm.location.trim(),
-        city: salonForm.city.trim(),
-        phone: salonForm.phone.trim() || null,
-        email: salonForm.email.trim() || null,
-        opening_time: salonForm.opening_time,
-        closing_time: salonForm.closing_time
-      });
-
-      toast({ title: 'Success', description: 'Salon details updated successfully' });
-      setIsEditSalonDialogOpen(false);
-    } catch (err: any) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
-    }
-
-    setIsSubmittingSalon(false);
-  };
-
-  const [isTogglingVisibility, setIsTogglingVisibility] = useState(false);
-
-  const handleToggleVisibility = async () => {
-    if (!selectedSalonId || !selectedSalon) return;
-
-    setIsTogglingVisibility(true);
-
-    try {
-      const newStatus = !selectedSalon.is_active;
-      const { error } = await supabase
-        .from('salons')
-        .update({ is_active: newStatus })
-        .eq('id', selectedSalonId);
-
-      if (error) throw error;
-
-      setSelectedSalon({ ...selectedSalon, is_active: newStatus });
-      toast({ 
-        title: newStatus ? 'Salon Visible' : 'Salon Hidden', 
-        description: newStatus 
-          ? 'Your salon is now visible to customers' 
-          : 'Your salon is now hidden from customers'
-      });
-    } catch (err: any) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
-    }
-
-    setIsTogglingVisibility(false);
-  };
-
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }).map((_, i) => (
       <Star
@@ -536,35 +424,23 @@ const SalonDashboard = () => {
     );
   }
 
-  // Not a salon owner - show option to register
+  // Not a salon owner
   if (!isSalonOwner || ownedSalons.length === 0) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="max-w-md w-full">
           <CardContent className="pt-6 text-center">
-            <Store className="w-12 h-12 text-primary mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">No Salon Registered</h2>
+            <Store className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">No Salon Access</h2>
             <p className="text-muted-foreground mb-4">
-              You haven't registered a salon yet. List your salon to start receiving bookings.
+              You don't have any salons linked to your account. Contact support if you believe this is an error.
             </p>
-            <div className="flex flex-col gap-2">
-              <Button onClick={() => navigate('/salon-registration')}>
-                <Store className="w-4 h-4 mr-2" />
-                Register Your Salon
-              </Button>
-              <Button variant="outline" onClick={() => navigate('/')}>Go Home</Button>
-            </div>
+            <Button onClick={() => navigate('/')}>Go Home</Button>
           </CardContent>
         </Card>
       </div>
     );
   }
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate('/');
-    toast({ title: 'Logged out', description: 'You have been signed out successfully' });
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -572,107 +448,41 @@ const SalonDashboard = () => {
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="font-display text-xl font-bold text-foreground">Salon Dashboard</h1>
-              <p className="text-xs text-muted-foreground">Manage your salon</p>
-            </div>
-
             <div className="flex items-center gap-3">
-              {/* Salon Selector */}
-              {ownedSalons.length > 1 && (
-                <Select value={selectedSalonId || ''} onValueChange={setSelectedSalonId}>
-                  <SelectTrigger className="w-[160px]">
-                    <SelectValue placeholder="Select salon" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ownedSalons.map(salon => (
-                      <SelectItem key={salon.id} value={salon.id}>
-                        {salon.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-
-              {/* Settings & Menu */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full bg-muted hover:bg-muted/80">
-                    <MoreVertical className="w-5 h-5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer">
-                    <User className="w-4 h-4 mr-3" />
-                    My Profile
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/settings')} className="cursor-pointer">
-                    <Settings className="w-4 h-4 mr-3" />
-                    Account Settings
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/notification-settings')} className="cursor-pointer">
-                    <Bell className="w-4 h-4 mr-3" />
-                    Notifications
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => navigate('/privacy')} className="cursor-pointer">
-                    <HelpCircle className="w-4 h-4 mr-3" />
-                    Help & Support
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive focus:text-destructive">
-                    <LogOut className="w-4 h-4 mr-3" />
-                    Logout
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <button
+                onClick={() => navigate('/')}
+                className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <div>
+                <h1 className="font-display text-xl font-bold">Salon Dashboard</h1>
+                <p className="text-xs text-muted-foreground">Manage your salon</p>
+              </div>
             </div>
+
+            {/* Salon Selector */}
+            {ownedSalons.length > 1 && (
+              <Select value={selectedSalonId || ''} onValueChange={setSelectedSalonId}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Select salon" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ownedSalons.map(salon => (
+                    <SelectItem key={salon.id} value={salon.id}>
+                      {salon.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-6 pb-24">
-        {/* Rejected Banner with Re-apply */}
-        {selectedSalon && selectedSalon.status === 'rejected' && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-6"
-          >
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/50 flex items-center justify-center flex-shrink-0">
-                <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-red-900 dark:text-red-100 text-sm">
-                  Registration Not Approved
-                </h3>
-                <p className="text-xs text-red-700 dark:text-red-300 mt-0.5">
-                  Your salon registration was not approved.
-                </p>
-                {selectedSalon.rejection_reason && (
-                  <div className="mt-2 p-2 bg-red-100/50 dark:bg-red-900/30 rounded-md">
-                    <p className="text-xs text-red-800 dark:text-red-200">
-                      <span className="font-medium">Reason:</span> {selectedSalon.rejection_reason}
-                    </p>
-                  </div>
-                )}
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  className="mt-3 border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/50"
-                  onClick={() => navigate(`/salon-registration?edit=${selectedSalon.id}`)}
-                >
-                  <Edit2 className="w-3.5 h-3.5 mr-1.5" />
-                  Edit & Resubmit
-                </Button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-
         {/* Pending Approval Banner */}
-        {selectedSalon && selectedSalon.status === 'pending' && (
+        {selectedSalon && !selectedSalon.is_active && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -844,12 +654,65 @@ const SalonDashboard = () => {
 
             {/* Bookings Tab */}
             <TabsContent value="bookings" className="space-y-4">
-              {selectedSalonId && selectedSalon && (
-                <BookingManagement 
-                  salonId={selectedSalonId} 
-                  salonName={selectedSalon.name} 
-                />
-              )}
+              <Card>
+                <CardHeader>
+                  <CardTitle>All Bookings</CardTitle>
+                  <CardDescription>Manage your salon bookings</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {bookings.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">No bookings yet</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {bookings.map(booking => (
+                        <motion.div
+                          key={booking.id}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="flex items-center justify-between p-4 border rounded-lg"
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium">{booking.service_name}</p>
+                              <Badge variant={
+                                booking.status === 'completed' ? 'default' :
+                                booking.status === 'cancelled' ? 'destructive' : 'secondary'
+                              }>
+                                {booking.status}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {getBookingDateLabel(booking.booking_date)} at {booking.booking_time}
+                            </p>
+                            <p className="text-sm font-medium mt-1">₹{booking.service_price}</p>
+                          </div>
+                          
+                          {booking.status === 'upcoming' && (
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => handleUpdateBookingStatus(booking.id, 'completed')}
+                              >
+                                <CheckCircle className="w-4 h-4 mr-1" />
+                                Complete
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                className="text-destructive"
+                                onClick={() => handleUpdateBookingStatus(booking.id, 'cancelled')}
+                              >
+                                <XCircle className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </TabsContent>
 
             {/* Services Tab */}
@@ -1039,66 +902,22 @@ const SalonDashboard = () => {
             <TabsContent value="settings" className="space-y-4">
               <Card>
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>Salon Settings</CardTitle>
-                      <CardDescription>Manage your salon information</CardDescription>
-                    </div>
-                    <Button onClick={handleOpenEditSalon}>
-                      <Edit2 className="w-4 h-4 mr-2" />
-                      Edit Details
-                    </Button>
-                  </div>
+                  <CardTitle>Salon Settings</CardTitle>
+                  <CardDescription>Manage your salon information</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium">Salon Visibility</p>
-                        <Badge variant={selectedSalon?.is_active ? 'default' : 'secondary'}>
-                          {selectedSalon?.is_active ? 'Visible' : 'Hidden'}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">
+                    <div>
+                      <p className="font-medium">Salon Status</p>
+                      <p className="text-sm text-muted-foreground">
                         {selectedSalon?.is_active 
-                          ? 'Your salon is visible to customers and can receive bookings' 
-                          : 'Your salon is hidden from search results and listings'}
+                          ? 'Your salon is visible to customers' 
+                          : 'Your salon is hidden from customers'}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {isTogglingVisibility && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
-                      <Switch
-                        checked={selectedSalon?.is_active || false}
-                        onCheckedChange={handleToggleVisibility}
-                        disabled={isTogglingVisibility || selectedSalon?.status !== 'approved'}
-                      />
-                    </div>
-                  </div>
-                  
-                  {selectedSalon?.status !== 'approved' && (
-                    <p className="text-xs text-amber-600 dark:text-amber-400 px-4">
-                      Note: Visibility can only be toggled after your salon is approved by an admin.
-                    </p>
-                  )}
-
-                  <div className="p-4 border rounded-lg space-y-3">
-                    <p className="font-medium">Salon Details</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <p className="text-muted-foreground">Name</p>
-                        <p>{selectedSalon?.name || 'Not set'}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Location</p>
-                        <p>{selectedSalon?.location}, {selectedSalon?.city}</p>
-                      </div>
-                      {selectedSalon?.description && (
-                        <div className="col-span-full">
-                          <p className="text-muted-foreground">Description</p>
-                          <p>{selectedSalon.description}</p>
-                        </div>
-                      )}
-                    </div>
+                    <Badge variant={selectedSalon?.is_active ? 'default' : 'secondary'}>
+                      {selectedSalon?.is_active ? 'Active' : 'Inactive'}
+                    </Badge>
                   </div>
 
                   <div className="p-4 border rounded-lg space-y-3">
@@ -1128,6 +947,10 @@ const SalonDashboard = () => {
                       </div>
                     </div>
                   </div>
+
+                  <p className="text-sm text-muted-foreground text-center pt-4">
+                    Contact the admin to update your salon details
+                  </p>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -1302,133 +1125,6 @@ const SalonDashboard = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Edit Salon Dialog */}
-      <Dialog open={isEditSalonDialogOpen} onOpenChange={setIsEditSalonDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Salon Details</DialogTitle>
-            <DialogDescription>
-              Update your salon information
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Salon Name *</Label>
-              <Input
-                value={salonForm.name}
-                onChange={(e) => setSalonForm({ ...salonForm, name: e.target.value })}
-                placeholder="e.g., Premium Cuts"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Description</Label>
-              <Textarea
-                value={salonForm.description}
-                onChange={(e) => setSalonForm({ ...salonForm, description: e.target.value })}
-                placeholder="Tell customers about your salon..."
-                rows={3}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Location/Address *</Label>
-                <Input
-                  value={salonForm.location}
-                  onChange={(e) => setSalonForm({ ...salonForm, location: e.target.value })}
-                  placeholder="e.g., 123 Main Street"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>City *</Label>
-                <Input
-                  value={salonForm.city}
-                  onChange={(e) => setSalonForm({ ...salonForm, city: e.target.value })}
-                  placeholder="e.g., Mumbai"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Phone Number</Label>
-                <Input
-                  value={salonForm.phone}
-                  onChange={(e) => setSalonForm({ ...salonForm, phone: e.target.value })}
-                  placeholder="e.g., +91 98765 43210"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Email</Label>
-                <Input
-                  type="email"
-                  value={salonForm.email}
-                  onChange={(e) => setSalonForm({ ...salonForm, email: e.target.value })}
-                  placeholder="e.g., salon@example.com"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Opening Time</Label>
-                <Select 
-                  value={salonForm.opening_time} 
-                  onValueChange={(v) => setSalonForm({ ...salonForm, opening_time: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 13 }, (_, i) => i + 6).map(hour => (
-                      <SelectItem key={hour} value={`${hour.toString().padStart(2, '0')}:00`}>
-                        {hour.toString().padStart(2, '0')}:00
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Closing Time</Label>
-                <Select 
-                  value={salonForm.closing_time} 
-                  onValueChange={(v) => setSalonForm({ ...salonForm, closing_time: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 13 }, (_, i) => i + 12).map(hour => (
-                      <SelectItem key={hour} value={`${hour.toString().padStart(2, '0')}:00`}>
-                        {hour.toString().padStart(2, '0')}:00
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditSalonDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleSaveSalon} 
-              disabled={isSubmittingSalon || !salonForm.name.trim() || !salonForm.location.trim() || !salonForm.city.trim()}
-            >
-              {isSubmittingSalon && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Save Changes
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Real-time Booking Listener */}
-      <SalonOwnerBookingListener />
 
       {/* Salon Owner Bottom Navigation */}
       <SalonOwnerBottomNav />

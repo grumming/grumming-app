@@ -184,10 +184,10 @@ export const PendingSalonApprovals = () => {
     
     setIsProcessing(true);
     try {
-      // Activate the salon and set status to approved
+      // Activate the salon
       const { error: updateError } = await supabase
         .from('salons')
-        .update({ is_active: true, status: 'approved' })
+        .update({ is_active: true })
         .eq('id', selectedSalon.id);
 
       if (updateError) throw updateError;
@@ -245,17 +245,19 @@ export const PendingSalonApprovals = () => {
     
     setIsProcessing(true);
     try {
-      // Set salon status to rejected and save rejection reason
-      const { error: updateError } = await supabase
+      // Delete the salon_owners entry first
+      await supabase
+        .from('salon_owners')
+        .delete()
+        .eq('salon_id', selectedSalon.id);
+
+      // Delete the salon
+      const { error: deleteError } = await supabase
         .from('salons')
-        .update({ 
-          status: 'rejected', 
-          is_active: false,
-          rejection_reason: rejectionReason.trim() || null
-        })
+        .delete()
         .eq('id', selectedSalon.id);
 
-      if (updateError) throw updateError;
+      if (deleteError) throw deleteError;
 
       // Send notification to owner if exists
       if (selectedSalon.owner) {
