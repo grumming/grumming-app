@@ -9,28 +9,15 @@ import SalonApprovalBanner from "@/components/SalonApprovalBanner";
 import Footer from "@/components/Footer";
 import BackToTop from "@/components/BackToTop";
 import { usePendingProfile } from "@/hooks/usePendingProfile";
-import { Loader2 } from "lucide-react";
 
 const Index = () => {
-  // Handle pending profile updates after signup
-  const { isCheckingOwnerStatus } = usePendingProfile();
+  // Handle pending profile updates after signup (referrals, profile data)
+  usePendingProfile();
 
   // Smooth scroll to top when returning to homepage
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
-
-  // Show loading screen while checking salon owner status
-  if (isCheckingOwnerStatus) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Loading your dashboard...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
