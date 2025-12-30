@@ -283,7 +283,7 @@ const SalonOwnerAuth = () => {
                     <p className="text-xs text-destructive">{errors.phone}</p>
                   )}
                   {isTestNumber && (
-                    <p className="text-xs text-muted-foreground">🧪 Test Mode</p>
+                    <p className="text-xs text-muted-foreground">🧪 Test Mode - Use OTP: 111456</p>
                   )}
                 </div>
 
@@ -304,6 +304,9 @@ const SalonOwnerAuth = () => {
                 <p className="text-muted-foreground text-sm">
                   Enter the 6-digit code sent to +91 {phone}
                 </p>
+                {isTestNumber && (
+                  <p className="text-xs text-primary font-medium">🧪 Test Mode - Use OTP: 111456</p>
+                )}
               </div>
 
               <div className="space-y-4">
