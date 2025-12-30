@@ -91,9 +91,10 @@ const Profile = () => {
     navigate('/');
   };
 
+  // Use filtered email for initials fallback (avoid showing auto-generated email initial)
   const initials = fullName
     ? fullName.split(' ').map(n => n[0]).join('').toUpperCase()
-    : user?.email?.charAt(0).toUpperCase() || 'U';
+    : email ? email.charAt(0).toUpperCase() : 'U';
 
   if (authLoading || isLoading) {
     return (
