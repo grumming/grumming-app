@@ -21,6 +21,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { getDisplayContact } from '@/utils/displayUtils';
 
 interface UserProfile {
   id: string;
@@ -333,7 +334,7 @@ export const SalonOwnerManagement = () => {
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground truncate">
-                          {owner.profile?.email || owner.profile?.phone}
+                          {getDisplayContact(owner.profile?.phone, owner.profile?.email)}
                         </p>
                         <div className="flex items-center gap-1 mt-1 text-xs">
                           <Store className="w-3 h-3 text-primary" />
@@ -402,7 +403,7 @@ export const SalonOwnerManagement = () => {
                         {user.full_name || 'Unnamed'}
                       </p>
                       <p className="text-xs text-muted-foreground truncate">
-                        {user.email || user.phone}
+                        {getDisplayContact(user.phone, user.email)}
                       </p>
                     </div>
                     {selectedUserId === user.user_id && (

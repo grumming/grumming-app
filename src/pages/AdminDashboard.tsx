@@ -30,6 +30,7 @@ import RevenueAnalytics from '@/components/RevenueAnalytics';
 import SalonManagement from '@/components/admin/SalonManagement';
 import SalonOwnerManagement from '@/components/admin/SalonOwnerManagement';
 import PendingSalonApprovals from '@/components/admin/PendingSalonApprovals';
+import { getDisplayContact } from '@/utils/displayUtils';
 
 interface UserProfile {
   id: string;
@@ -471,7 +472,7 @@ const AdminDashboard = () => {
                             </Avatar>
                             <div>
                               <p className="font-medium text-sm">{u.full_name || 'Unnamed User'}</p>
-                              <p className="text-xs text-muted-foreground">{u.phone || u.email}</p>
+                              <p className="text-xs text-muted-foreground">{getDisplayContact(u.phone, u.email) || 'No contact'}</p>
                             </div>
                           </div>
                           <p className="text-xs text-muted-foreground">

@@ -23,6 +23,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { format, subDays, isBefore, startOfDay } from 'date-fns';
+import { getDisplayContact } from '@/utils/displayUtils';
 
 interface PendingSalon {
   id: string;
@@ -466,7 +467,7 @@ export const PendingSalonApprovals = () => {
                               {salon.owner.full_name || 'Unknown Owner'}
                             </p>
                             <p className="text-xs text-muted-foreground truncate">
-                              {salon.owner.phone || salon.owner.email}
+                              {getDisplayContact(salon.owner.phone, salon.owner.email)}
                             </p>
                           </div>
                         </div>
@@ -603,7 +604,7 @@ export const PendingSalonApprovals = () => {
                           <AvatarFallback>{selectedSalon.owner.full_name?.charAt(0) || 'O'}</AvatarFallback>
                         </Avatar>
                         <span className="text-sm text-muted-foreground">
-                          {selectedSalon.owner.full_name || 'Unknown'} • {selectedSalon.owner.phone || selectedSalon.owner.email}
+                          {selectedSalon.owner.full_name || 'Unknown'} • {getDisplayContact(selectedSalon.owner.phone, selectedSalon.owner.email)}
                         </span>
                       </div>
                     </div>
