@@ -25,6 +25,7 @@ import { useAdmin } from '@/hooks/useAdmin';
 import { supabase } from '@/integrations/supabase/client';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import AdminBookingListener from '@/components/AdminBookingListener';
+import LiveActivityFeed from '@/components/LiveActivityFeed';
 
 interface UserProfile {
   id: string;
@@ -374,42 +375,48 @@ const AdminDashboard = () => {
                 </CardContent>
               </Card>
 
-              {/* Recent Users */}
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="text-lg">Recent Users</CardTitle>
-                  <TabsTrigger value="users" className="text-xs">
-                    View All <ChevronRight className="w-4 h-4 ml-1" />
-                  </TabsTrigger>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {users.slice(0, 5).map((u) => (
-                      <div 
-                        key={u.id} 
-                        className="flex items-center justify-between p-3 bg-muted/30 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
-                        onClick={() => handleViewUser(u)}
-                      >
-                        <div className="flex items-center gap-3">
-                          <Avatar className="w-10 h-10">
-                            <AvatarImage src={u.avatar_url || ''} />
-                            <AvatarFallback>
-                              {u.full_name?.charAt(0) || u.phone?.charAt(0) || 'U'}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium text-sm">{u.full_name || 'Unnamed User'}</p>
-                            <p className="text-xs text-muted-foreground">{u.phone || u.email}</p>
+              {/* Live Activity Feed and Recent Users Grid */}
+              <div className="grid lg:grid-cols-2 gap-6">
+                {/* Live Activity Feed */}
+                <LiveActivityFeed />
+
+                {/* Recent Users */}
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="text-lg">Recent Users</CardTitle>
+                    <TabsTrigger value="users" className="text-xs">
+                      View All <ChevronRight className="w-4 h-4 ml-1" />
+                    </TabsTrigger>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {users.slice(0, 5).map((u) => (
+                        <div 
+                          key={u.id} 
+                          className="flex items-center justify-between p-3 bg-muted/30 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                          onClick={() => handleViewUser(u)}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Avatar className="w-10 h-10">
+                              <AvatarImage src={u.avatar_url || ''} />
+                              <AvatarFallback>
+                                {u.full_name?.charAt(0) || u.phone?.charAt(0) || 'U'}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium text-sm">{u.full_name || 'Unnamed User'}</p>
+                              <p className="text-xs text-muted-foreground">{u.phone || u.email}</p>
+                            </div>
                           </div>
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(u.created_at), 'MMM d')}
+                          </p>
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          {format(new Date(u.created_at), 'MMM d')}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
 
             {/* Users Tab */}
