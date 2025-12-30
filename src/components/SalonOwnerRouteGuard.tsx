@@ -31,8 +31,28 @@ export const SalonOwnerRouteGuard = ({ children }: SalonOwnerRouteGuardProps) =>
         return;
       }
 
+      // Ensure we never render customer pages while we re-check
+      setIsChecking(true);
+
       try {
-        // Check if user has salon_owner role
+        // First: if they already own a salon, always route them to the dashboard.
+        // (This also supports legacy data where role rows might be missing.)
+        const { data: ownerData, error: ownerErr } = await supabase
+          .from('salon_owners')
+          .select('salon_id, salons(name)')
+          .eq('user_id', user.id);
+
+        if (!ownerErr && ownerData && ownerData.length > 0) {
+          const salonName = (ownerData[0] as any)?.salons?.name;
+          if (salonName) {
+            localStorage.setItem('welcomeBackSalon', salonName);
+          }
+          setIsSalonOwner(true);
+          navigate('/salon-dashboard', { replace: true });
+          return;
+        }
+
+        // Second: if they have the salon_owner role but no salon yet, route to registration.
         const { data: roleData } = await supabase
           .from('user_roles')
           .select('role')
@@ -41,25 +61,12 @@ export const SalonOwnerRouteGuard = ({ children }: SalonOwnerRouteGuardProps) =>
           .maybeSingle();
 
         if (roleData) {
-          // User is a salon owner - check if they have any salons
-          const { data: ownerData } = await supabase
-            .from('salon_owners')
-            .select('salon_id, salons(name)')
-            .eq('user_id', user.id);
-
-          if (ownerData && ownerData.length > 0) {
-            // Store salon name for welcome toast if needed
-            const salonName = (ownerData[0] as any)?.salons?.name;
-            if (salonName) {
-              localStorage.setItem('welcomeBackSalon', salonName);
-            }
-            setIsSalonOwner(true);
-            navigate('/salon-dashboard', { replace: true });
-            return;
-          }
+          setIsSalonOwner(true);
+          navigate('/salon-registration', { replace: true });
+          return;
         }
 
-        // Not a salon owner or no salons - allow access to customer pages
+        // Otherwise allow customer pages
         setIsSalonOwner(false);
       } catch (err) {
         console.error('Error checking salon owner status:', err);

@@ -127,7 +127,7 @@ const App = () => {
                 
                 <Routes>
                   <Route path="/" element={<SalonOwnerRouteGuard><Index /></SalonOwnerRouteGuard>} />
-                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/auth" element={<SalonOwnerRouteGuard><Auth /></SalonOwnerRouteGuard>} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/edit-profile" element={<EditProfile />} />
                   <Route path="/settings" element={<Settings />} />
