@@ -1081,37 +1081,6 @@ const SalonDashboard = () => {
                       </p>
                     </CardContent>
                   </Card>
-
-                  {/* Logout Section */}
-                  <Card className="border-destructive/20">
-                    <CardContent className="pt-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center">
-                            <LogOut className="w-5 h-5 text-destructive" />
-                          </div>
-                          <div>
-                            <p className="font-medium">Sign Out</p>
-                            <p className="text-sm text-muted-foreground">
-                              Log out of your account
-                            </p>
-                          </div>
-                        </div>
-                        <Button 
-                          variant="outline" 
-                          className="border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                          onClick={async () => {
-                            await signOut();
-                            navigate('/');
-                            toast({ title: 'Signed out', description: 'You have been logged out successfully' });
-                          }}
-                        >
-                          <LogOut className="w-4 h-4 mr-2" />
-                          Logout
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
                 </TabsContent>
               </Tabs>
             </TabsContent>
