@@ -131,7 +131,7 @@ const Auth = () => {
       // Check for referral code from state or localStorage
       const storedReferralCode = localStorage.getItem('pendingReferralCode');
       const codeToApply = referralCode || storedReferralCode;
-      
+
       if (codeToApply) {
         // Clear the stored referral code
         localStorage.removeItem('pendingReferralCode');
@@ -403,6 +403,46 @@ const Auth = () => {
         setStep('profile');
       } else {
         // Existing user - complete login immediately
+        // If salon owner mode, check if user has an approved salon
+        if (isSalonOwnerMode && data.userId) {
+          const { data: ownerData, error: ownerError } = await supabase
+            .from('salon_owners')
+            .select(`
+              salon_id,
+              salons!inner (
+                id,
+                is_active
+              )
+            `)
+            .eq('user_id', data.userId);
+          
+          if (ownerError || !ownerData || ownerData.length === 0) {
+            triggerHaptic('error');
+            toast({
+              title: 'No Salon Found',
+              description: 'You don\'t have any registered salon. Please list your salon first.',
+              variant: 'destructive',
+            });
+            setIsLoading(false);
+            navigate('/salon-registration');
+            return;
+          }
+          
+          // Check if at least one salon is approved (is_active = true)
+          const hasApprovedSalon = ownerData.some((o: any) => o.salons?.is_active === true);
+          
+          if (!hasApprovedSalon) {
+            triggerHaptic('error');
+            toast({
+              title: 'Salon Pending Approval',
+              description: 'Your salon is pending admin approval. You\'ll be notified once approved.',
+              variant: 'destructive',
+            });
+            setIsLoading(false);
+            return;
+          }
+        }
+        
         if (data.verificationUrl) {
           window.location.href = data.verificationUrl;
           return;
@@ -422,7 +462,7 @@ const Auth = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [phone, navigate, toast, stopSmsListener]);
+  }, [phone, navigate, toast, stopSmsListener, isSalonOwnerMode]);
 
   // Keep verifyOtpRef updated with the latest handleVerifyOTP
   useEffect(() => {
@@ -566,7 +606,7 @@ const Auth = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-64 p-1.5">
               <DropdownMenuItem 
-                onClick={() => setIsSalonOwnerMode(false)}
+                onClick={() => navigate('/salon-owner-auth')}
                 className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-primary/5 focus:bg-primary/5 transition-colors"
               >
                 <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center">
@@ -636,24 +676,19 @@ const Auth = () => {
                     <motion.button
                       type="button"
                       onClick={() => setIsSalonOwnerMode(true)}
-                      className="group w-full relative overflow-hidden rounded-2xl bg-gradient-to-br from-background to-muted/30 border border-border/60 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10 transition-all duration-300"
+                      className="group w-full relative overflow-hidden rounded-2xl bg-gradient-to-br from-muted/80 via-muted/50 to-muted/30 border border-border/60 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300"
                       whileHover={{ scale: 1.01 }}
                       whileTap={{ scale: 0.99 }}
                     >
-                      {/* Subtle gradient overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                      
-                      <div className="relative flex items-center gap-4 px-5 py-4">
-                        <div className="flex items-center justify-center w-11 h-11 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/20 group-hover:scale-110 transition-transform duration-300">
-                          <Store className="w-5 h-5 text-primary" />
+                      <div className="flex items-center justify-center gap-3 px-5 py-3.5">
+                        <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-primary/10 group-hover:bg-primary/15 transition-colors">
+                          <Store className="w-4 h-4 text-primary" />
                         </div>
-                        <div className="flex flex-col items-start flex-1">
-                          <span className="text-foreground font-bold text-sm">List your Salon</span>
-                          <span className="text-muted-foreground text-xs">Register & grow your business</span>
+                        <div className="flex flex-col items-start">
+                          <span className="text-foreground/90 font-semibold text-sm">Are you a Salon Owner?</span>
+                          <span className="text-muted-foreground text-[11px]">Register & grow your business</span>
                         </div>
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                          <ChevronRight className="w-4 h-4 text-primary group-hover:translate-x-0.5 transition-transform" />
-                        </div>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground ml-auto group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
                       </div>
                     </motion.button>
                   </motion.div>
