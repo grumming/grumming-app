@@ -560,17 +560,23 @@ const Auth = () => {
         {isSalonOwnerMode && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="p-2 rounded-full hover:bg-muted transition-colors">
+              <button className="p-2 rounded-full hover:bg-muted/80 transition-colors">
                 <MoreVertical className="w-5 h-5 text-muted-foreground" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuContent align="end" className="w-64 p-1.5">
               <DropdownMenuItem 
                 onClick={() => setIsSalonOwnerMode(false)}
-                className="flex items-center gap-3 cursor-pointer"
+                className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-primary/5 focus:bg-primary/5 transition-colors"
               >
-                <Store className="w-4 h-4" />
-                <span>Switch to Customer</span>
+                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center">
+                  <Store className="w-4 h-4 text-primary" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-semibold text-sm text-foreground">List your Salon</span>
+                  <span className="text-[11px] text-muted-foreground">Register & grow your business</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground ml-auto" />
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
