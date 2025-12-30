@@ -951,35 +951,71 @@ const Auth = () => {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="space-y-3"
+                    className="space-y-4 pt-2"
                   >
-                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center">
-                      Why join Grumming?
-                    </p>
-                    <div className="grid grid-cols-2 gap-2">
+                    {/* Section Header */}
+                    <div className="text-center space-y-1">
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="h-px w-8 bg-gradient-to-r from-transparent to-primary/30" />
+                        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">
+                          Partner Benefits
+                        </p>
+                        <div className="h-px w-8 bg-gradient-to-l from-transparent to-primary/30" />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Join 1000+ salon owners growing with Grumming
+                      </p>
+                    </div>
+
+                    {/* Benefits Grid */}
+                    <div className="grid grid-cols-2 gap-3">
                       {[
-                        { icon: Calendar, title: 'Easy Bookings', desc: 'Manage all appointments' },
-                        { icon: TrendingUp, title: 'Grow Revenue', desc: 'Attract new customers' },
-                        { icon: MessageSquare, title: 'Chat Support', desc: 'Connect with clients' },
-                        { icon: Star, title: 'Build Reputation', desc: 'Collect reviews' },
+                        { icon: Calendar, title: 'Smart Scheduling', desc: 'Automated booking & reminders', color: 'from-blue-500/20 to-blue-600/10' },
+                        { icon: TrendingUp, title: 'Revenue Growth', desc: 'Up to 40% more customers', color: 'from-emerald-500/20 to-emerald-600/10' },
+                        { icon: MessageSquare, title: 'Direct Chat', desc: 'Real-time client messaging', color: 'from-violet-500/20 to-violet-600/10' },
+                        { icon: Star, title: '5-Star Reviews', desc: 'Build trust & visibility', color: 'from-amber-500/20 to-amber-600/10' },
                       ].map((benefit, index) => (
                         <motion.div
                           key={benefit.title}
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: 0.15 + index * 0.05 }}
-                          className="flex items-start gap-2.5 p-3 rounded-xl bg-primary/5 border border-primary/10"
+                          initial={{ opacity: 0, y: 15 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.2 + index * 0.08, type: 'spring', stiffness: 300 }}
+                          className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-background to-muted/50 border border-border/50 p-3.5 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300"
                         >
-                          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                            <benefit.icon className="w-4 h-4 text-primary" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-xs font-semibold text-foreground truncate">{benefit.title}</p>
-                            <p className="text-[10px] text-muted-foreground leading-tight">{benefit.desc}</p>
+                          {/* Gradient Background */}
+                          <div className={`absolute inset-0 bg-gradient-to-br ${benefit.color} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+                          
+                          <div className="relative flex flex-col gap-2.5">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                              <benefit.icon className="w-5 h-5 text-primary" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold text-foreground">{benefit.title}</p>
+                              <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">{benefit.desc}</p>
+                            </div>
                           </div>
                         </motion.div>
                       ))}
                     </div>
+
+                    {/* Trust Badge */}
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.6 }}
+                      className="flex items-center justify-center gap-2 py-2"
+                    >
+                      <div className="flex -space-x-2">
+                        {[1, 2, 3].map((i) => (
+                          <div key={i} className="w-6 h-6 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 border-2 border-background flex items-center justify-center">
+                            <Store className="w-3 h-3 text-primary" />
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">
+                        <span className="font-semibold text-foreground">Free</span> to register • No hidden fees
+                      </p>
+                    </motion.div>
                   </motion.div>
                 )}
 
