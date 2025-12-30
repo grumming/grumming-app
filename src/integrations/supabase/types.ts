@@ -598,6 +598,8 @@ export type Database = {
           booking_id: string | null
           created_at: string
           id: string
+          owner_response: string | null
+          owner_response_at: string | null
           rating: number
           review_text: string | null
           salon_id: string
@@ -608,6 +610,8 @@ export type Database = {
           booking_id?: string | null
           created_at?: string
           id?: string
+          owner_response?: string | null
+          owner_response_at?: string | null
           rating: number
           review_text?: string | null
           salon_id: string
@@ -618,6 +622,8 @@ export type Database = {
           booking_id?: string | null
           created_at?: string
           id?: string
+          owner_response?: string | null
+          owner_response_at?: string | null
           rating?: number
           review_text?: string | null
           salon_id?: string
