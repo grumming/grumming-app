@@ -43,37 +43,51 @@ export const useSalonOwner = () => {
           return;
         }
 
-        // Fetch owned salons
-        const { data: ownershipData, error } = await supabase
+        // Fetch salon IDs from salon_owners first
+        const { data: ownershipData, error: ownershipError } = await supabase
           .from('salon_owners')
-          .select(`
-            is_primary,
-            salons (
-              id,
-              name,
-              location,
-              city,
-              image_url,
-              is_active
-            )
-          `)
+          .select('salon_id, is_primary')
           .eq('user_id', user.id);
 
-        if (error) {
-          console.error('Error fetching owned salons:', error);
+        if (ownershipError) {
+          console.error('Error fetching salon ownership:', ownershipError);
           setIsSalonOwner(false);
           setOwnedSalons([]);
-        } else if (ownershipData && ownershipData.length > 0) {
+          setIsLoading(false);
+          return;
+        }
+
+        if (!ownershipData || ownershipData.length === 0) {
+          setIsSalonOwner(false);
+          setOwnedSalons([]);
+          setIsLoading(false);
+          return;
+        }
+
+        // Now fetch salon details - the owner RLS policy will allow viewing
+        const salonIds = ownershipData.map(o => o.salon_id);
+        const { data: salonsData, error: salonsError } = await supabase
+          .from('salons')
+          .select('id, name, location, city, image_url, is_active, status')
+          .in('id', salonIds);
+
+        if (salonsError) {
+          console.error('Error fetching salons:', salonsError);
+          setIsSalonOwner(false);
+          setOwnedSalons([]);
+        } else if (salonsData && salonsData.length > 0) {
           setIsSalonOwner(true);
-          const salons = ownershipData
-            .filter((o: any) => o.salons)
-            .map((o: any) => ({
-              ...o.salons,
-              is_primary: o.is_primary
-            }));
+          const salons = salonsData.map(salon => {
+            const ownership = ownershipData.find(o => o.salon_id === salon.id);
+            return {
+              ...salon,
+              is_primary: ownership?.is_primary || false
+            };
+          });
           setOwnedSalons(salons);
         } else {
-          setIsSalonOwner(false);
+          // User has ownership records but can't see salons - still a salon owner
+          setIsSalonOwner(true);
           setOwnedSalons([]);
         }
       } catch (err) {
