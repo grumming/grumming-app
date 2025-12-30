@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Phone, ArrowLeft, Loader2, Gift, ChevronDown, ChevronRight, ClipboardPaste, User, Mail, Smartphone, Check, X, MoreVertical, Store, Calendar, TrendingUp, MessageSquare, Star } from 'lucide-react';
+import { Phone, ArrowLeft, ArrowRight, Loader2, Gift, ChevronDown, ChevronRight, ClipboardPaste, User, Mail, Smartphone, Check, X, MoreVertical, Store, Calendar, TrendingUp, MessageSquare, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -766,6 +766,27 @@ const Auth = () => {
                   </AnimatePresence>
                 </div>
 
+                {/* Continue Button - Positioned right after phone input for salon owners */}
+                {isSalonOwnerMode && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                  >
+                    <Button
+                      className="w-full h-14 text-base font-semibold bg-gradient-to-r from-primary via-primary to-primary/90 hover:from-primary/90 hover:via-primary hover:to-primary shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all duration-300"
+                      onClick={handlePhoneOTP}
+                      disabled={isLoading || phone.length < 10}
+                    >
+                      {isLoading && (
+                        <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                      )}
+                      Continue
+                      <ArrowRight className="w-5 h-5 ml-2" />
+                    </Button>
+                  </motion.div>
+                )}
+
                 {/* Referral Code Field - Collapsible - Only show during signup for customers (not salon owners) */}
                 {isSignUp && !isSalonOwnerMode && (
                 <div className="space-y-2">
@@ -1029,16 +1050,18 @@ const Auth = () => {
                   </motion.div>
                 )}
 
-                <Button
-                  className="w-full h-14 text-base font-semibold"
-                  onClick={handlePhoneOTP}
-                  disabled={isLoading || phone.length < 10}
-                >
-                  {isLoading && (
-                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                  )}
-                  Continue
-                </Button>
+                {!isSalonOwnerMode && (
+                  <Button
+                    className="w-full h-14 text-base font-semibold"
+                    onClick={handlePhoneOTP}
+                    disabled={isLoading || phone.length < 10}
+                  >
+                    {isLoading && (
+                      <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                    )}
+                    Continue
+                  </Button>
+                )}
 
                 <p className="text-xs text-center text-muted-foreground leading-relaxed">
                   By clicking on Continue, I accept the{' '}
