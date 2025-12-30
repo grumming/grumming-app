@@ -467,6 +467,36 @@ const SalonDashboard = () => {
     setIsSubmittingSalon(false);
   };
 
+  const [isTogglingVisibility, setIsTogglingVisibility] = useState(false);
+
+  const handleToggleVisibility = async () => {
+    if (!selectedSalonId || !selectedSalon) return;
+
+    setIsTogglingVisibility(true);
+
+    try {
+      const newStatus = !selectedSalon.is_active;
+      const { error } = await supabase
+        .from('salons')
+        .update({ is_active: newStatus })
+        .eq('id', selectedSalonId);
+
+      if (error) throw error;
+
+      setSelectedSalon({ ...selectedSalon, is_active: newStatus });
+      toast({ 
+        title: newStatus ? 'Salon Visible' : 'Salon Hidden', 
+        description: newStatus 
+          ? 'Your salon is now visible to customers' 
+          : 'Your salon is now hidden from customers'
+      });
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    }
+
+    setIsTogglingVisibility(false);
+  };
+
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }).map((_, i) => (
       <Star
@@ -1031,18 +1061,34 @@ const SalonDashboard = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <p className="font-medium">Salon Status</p>
-                      <p className="text-sm text-muted-foreground">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">Salon Visibility</p>
+                        <Badge variant={selectedSalon?.is_active ? 'default' : 'secondary'}>
+                          {selectedSalon?.is_active ? 'Visible' : 'Hidden'}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
                         {selectedSalon?.is_active 
-                          ? 'Your salon is visible to customers' 
-                          : 'Your salon is hidden from customers'}
+                          ? 'Your salon is visible to customers and can receive bookings' 
+                          : 'Your salon is hidden from search results and listings'}
                       </p>
                     </div>
-                    <Badge variant={selectedSalon?.is_active ? 'default' : 'secondary'}>
-                      {selectedSalon?.is_active ? 'Active' : 'Inactive'}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      {isTogglingVisibility && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
+                      <Switch
+                        checked={selectedSalon?.is_active || false}
+                        onCheckedChange={handleToggleVisibility}
+                        disabled={isTogglingVisibility || selectedSalon?.status !== 'approved'}
+                      />
+                    </div>
                   </div>
+                  
+                  {selectedSalon?.status !== 'approved' && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400 px-4">
+                      Note: Visibility can only be toggled after your salon is approved by an admin.
+                    </p>
+                  )}
 
                   <div className="p-4 border rounded-lg space-y-3">
                     <p className="font-medium">Salon Details</p>
