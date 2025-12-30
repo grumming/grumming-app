@@ -556,24 +556,25 @@ const Auth = () => {
           <ArrowLeft className="w-6 h-6 text-foreground" />
         </button>
         
-        {/* 3-dot menu for Salon Owner mode */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="p-2 rounded-full hover:bg-muted transition-colors">
-              <MoreVertical className="w-5 h-5 text-muted-foreground" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuItem 
-              onClick={() => setIsSalonOwnerMode(!isSalonOwnerMode)}
-              className="flex items-center gap-3 cursor-pointer"
-            >
-              <Store className="w-4 h-4" />
-              <span>{isSalonOwnerMode ? 'Switch to Customer' : 'Salon Owner Login'}</span>
-              {isSalonOwnerMode && <Check className="w-4 h-4 ml-auto text-primary" />}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {/* 3-dot menu - Only in Salon Owner mode */}
+        {isSalonOwnerMode && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="p-2 rounded-full hover:bg-muted transition-colors">
+                <MoreVertical className="w-5 h-5 text-muted-foreground" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem 
+                onClick={() => setIsSalonOwnerMode(false)}
+                className="flex items-center gap-3 cursor-pointer"
+              >
+                <Store className="w-4 h-4" />
+                <span>Switch to Customer</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </header>
 
       <div className="flex-1 flex flex-col">
