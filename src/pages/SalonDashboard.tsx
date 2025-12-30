@@ -27,6 +27,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSalonOwner } from '@/hooks/useSalonOwner';
 import { supabase } from '@/integrations/supabase/client';
 import { format, subDays, isToday, isTomorrow, parseISO } from 'date-fns';
+import SalonOwnerBottomNav from '@/components/SalonOwnerBottomNav';
 
 interface Booking {
   id: string;
@@ -1124,6 +1125,9 @@ const SalonDashboard = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Salon Owner Bottom Navigation */}
+      <SalonOwnerBottomNav />
     </div>
   );
 };

@@ -30,11 +30,34 @@ const SalonOwnerAuth = () => {
   const [resendCooldown, setResendCooldown] = useState(0);
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Redirect if already logged in
+  // Redirect if already logged in - check if salon owner first
   useEffect(() => {
-    if (!loading && user) {
-      navigate('/salon-registration');
-    }
+    const checkAndRedirect = async () => {
+      if (!loading && user) {
+        // Check if user is already a salon owner with approved salons
+        const { data: ownershipData } = await supabase
+          .from('salon_owners')
+          .select(`
+            salons (
+              id,
+              is_active
+            )
+          `)
+          .eq('user_id', user.id);
+
+        if (ownershipData && ownershipData.length > 0) {
+          const hasActiveSalon = ownershipData.some((o: any) => o.salons?.is_active);
+          if (hasActiveSalon) {
+            navigate('/salon-dashboard');
+          } else {
+            navigate('/salon-registration');
+          }
+        } else {
+          navigate('/salon-registration');
+        }
+      }
+    };
+    checkAndRedirect();
   }, [user, loading, navigate]);
 
   // Resend cooldown timer
@@ -139,14 +162,30 @@ const SalonOwnerAuth = () => {
 
       toast({
         title: 'Verified!',
-        description: 'Redirecting to salon registration...',
+        description: 'Redirecting...',
       });
 
       if (data.verificationUrl) {
         localStorage.setItem('pendingSalonOwnerRegistration', 'true');
         window.location.href = data.verificationUrl;
       } else {
-        navigate('/salon-registration');
+        // Check if user already has salons
+        const { data: ownershipData } = await supabase
+          .from('salon_owners')
+          .select(`
+            salons (
+              id,
+              is_active
+            )
+          `)
+          .eq('user_id', data.user?.id);
+
+        if (ownershipData && ownershipData.length > 0) {
+          const hasActiveSalon = ownershipData.some((o: any) => o.salons?.is_active);
+          navigate(hasActiveSalon ? '/salon-dashboard' : '/salon-registration');
+        } else {
+          navigate('/salon-registration');
+        }
       }
     } catch (error: any) {
       setOtpDigits(['', '', '', '', '', '']);
