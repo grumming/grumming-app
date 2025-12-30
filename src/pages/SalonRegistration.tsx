@@ -18,7 +18,9 @@ import {
   FileText,
   Sparkles,
   Building,
-  Check
+  Check,
+  Eye,
+  Edit2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -77,13 +79,14 @@ interface ImageFile {
   id: string;
 }
 
-type WizardStep = 1 | 2 | 3 | 4;
+type WizardStep = 1 | 2 | 3 | 4 | 5;
 
 const STEPS = [
   { id: 1, title: 'Basic Info', icon: Store, description: 'Name & about your salon' },
   { id: 2, title: 'Location', icon: MapPin, description: 'Where is your salon' },
   { id: 3, title: 'Contact', icon: Phone, description: 'Hours & contact details' },
   { id: 4, title: 'Photos', icon: Camera, description: 'Add salon photos' },
+  { id: 5, title: 'Review', icon: Eye, description: 'Review & submit' },
 ];
 
 const SalonRegistration = () => {
@@ -165,7 +168,7 @@ const SalonRegistration = () => {
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
-      if (currentStep < 4) {
+      if (currentStep < 5) {
         setCurrentStep((prev) => (prev + 1) as WizardStep);
       } else {
         handleSubmit();
@@ -463,7 +466,7 @@ const SalonRegistration = () => {
             </button>
             <div className="flex-1">
               <h1 className="text-lg font-semibold">List Your Salon</h1>
-              <p className="text-xs text-muted-foreground">Step {currentStep} of 4</p>
+              <p className="text-xs text-muted-foreground">Step {currentStep} of 5</p>
             </div>
           </div>
         </header>
@@ -790,6 +793,166 @@ const SalonRegistration = () => {
                   </div>
                 </div>
               )}
+
+              {/* Step 5: Review */}
+              {currentStep === 5 && (
+                <div className="space-y-6">
+                  <div className="text-center mb-6">
+                    <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <Eye className="w-7 h-7 text-primary" />
+                    </div>
+                    <h2 className="text-xl font-semibold">Review Your Details</h2>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Make sure everything looks good before submitting
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    {/* Basic Info Review */}
+                    <div className="p-4 bg-muted/30 rounded-xl border border-border/50">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <Store className="w-4 h-4 text-primary" />
+                          <h3 className="font-medium">Basic Info</h3>
+                        </div>
+                        <button
+                          onClick={() => setCurrentStep(1)}
+                          className="text-xs text-primary flex items-center gap-1 hover:underline"
+                        >
+                          <Edit2 className="w-3 h-3" />
+                          Edit
+                        </button>
+                      </div>
+                      <div className="space-y-2 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Salon Name:</span>
+                          <span className="ml-2 font-medium">{formData.name}</span>
+                        </div>
+                        {formData.description && (
+                          <div>
+                            <span className="text-muted-foreground">Description:</span>
+                            <p className="mt-1 text-muted-foreground/80 text-xs">{formData.description}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Location Review */}
+                    <div className="p-4 bg-muted/30 rounded-xl border border-border/50">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4 text-primary" />
+                          <h3 className="font-medium">Location</h3>
+                        </div>
+                        <button
+                          onClick={() => setCurrentStep(2)}
+                          className="text-xs text-primary flex items-center gap-1 hover:underline"
+                        >
+                          <Edit2 className="w-3 h-3" />
+                          Edit
+                        </button>
+                      </div>
+                      <div className="space-y-2 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">City:</span>
+                          <span className="ml-2 font-medium">{formData.city}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Address:</span>
+                          <p className="mt-1 text-muted-foreground/80 text-xs">{formData.location}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Contact & Hours Review */}
+                    <div className="p-4 bg-muted/30 rounded-xl border border-border/50">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <Phone className="w-4 h-4 text-primary" />
+                          <h3 className="font-medium">Contact & Hours</h3>
+                        </div>
+                        <button
+                          onClick={() => setCurrentStep(3)}
+                          className="text-xs text-primary flex items-center gap-1 hover:underline"
+                        >
+                          <Edit2 className="w-3 h-3" />
+                          Edit
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Hours:</span>
+                          <span className="ml-2 font-medium">{formData.openingTime} - {formData.closingTime}</span>
+                        </div>
+                        {formData.phone && (
+                          <div>
+                            <span className="text-muted-foreground">Phone:</span>
+                            <span className="ml-2 font-medium">{formData.phone}</span>
+                          </div>
+                        )}
+                        {formData.email && (
+                          <div className="col-span-2">
+                            <span className="text-muted-foreground">Email:</span>
+                            <span className="ml-2 font-medium">{formData.email}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Photos Review */}
+                    <div className="p-4 bg-muted/30 rounded-xl border border-border/50">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <Camera className="w-4 h-4 text-primary" />
+                          <h3 className="font-medium">Photos</h3>
+                        </div>
+                        <button
+                          onClick={() => setCurrentStep(4)}
+                          className="text-xs text-primary flex items-center gap-1 hover:underline"
+                        >
+                          <Edit2 className="w-3 h-3" />
+                          Edit
+                        </button>
+                      </div>
+                      {selectedImages.length > 0 ? (
+                        <div className="grid grid-cols-4 gap-2">
+                          {selectedImages.map((image, index) => (
+                            <div key={image.id} className="relative aspect-square">
+                              <img
+                                src={image.preview}
+                                alt={`Salon ${index + 1}`}
+                                className="w-full h-full object-cover rounded-lg"
+                              />
+                              {index === 0 && (
+                                <span className="absolute bottom-0.5 left-0.5 text-[8px] bg-primary text-primary-foreground px-1 py-0.5 rounded">
+                                  Main
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No photos added</p>
+                      )}
+                    </div>
+
+                    {/* Note */}
+                    <div className="p-4 bg-green-50 dark:bg-green-950/30 rounded-xl border border-green-200 dark:border-green-900/50">
+                      <div className="flex items-start gap-3">
+                        <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5 shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                            Ready to submit!
+                          </p>
+                          <p className="text-xs text-green-700 dark:text-green-300 mt-1">
+                            Your salon will be reviewed by our team within 24-48 hours. You'll receive a notification once approved.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </motion.div>
           </AnimatePresence>
 
@@ -819,7 +982,7 @@ const SalonRegistration = () => {
                     ? `Uploading... ${uploadProgress}%` 
                     : 'Submitting...'}
                 </>
-              ) : currentStep === 4 ? (
+              ) : currentStep === 5 ? (
                 <>
                   Submit for Review
                   <CheckCircle className="w-4 h-4 ml-2" />
