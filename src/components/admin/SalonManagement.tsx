@@ -427,7 +427,7 @@ export const SalonManagement = () => {
           <SelectTrigger id="salon-city">
             <SelectValue placeholder="Select city" />
           </SelectTrigger>
-          <SelectContent className="max-h-[200px]">
+          <SelectContent className="max-h-[200px] z-[9999]" position="popper" sideOffset={5}>
             {INDIAN_CITIES.map(city => (
               <SelectItem key={city} value={city}>{city}</SelectItem>
             ))}
