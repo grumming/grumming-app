@@ -545,16 +545,26 @@ const SalonDashboard = () => {
                     <User className="h-5 w-5 text-primary-foreground" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 shadow-lg border-border/50">
+                <DropdownMenuContent align="end" className="w-64 shadow-lg border-border/50">
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
-                        <User className="h-4 w-4 text-primary-foreground" />
-                      </div>
+                      {selectedSalon?.image_url ? (
+                        <img 
+                          src={selectedSalon.image_url} 
+                          alt={selectedSalon.name} 
+                          className="h-10 w-10 rounded-full object-cover ring-2 ring-primary/20"
+                        />
+                      ) : (
+                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center ring-2 ring-primary/20">
+                          <Store className="h-5 w-5 text-primary-foreground" />
+                        </div>
+                      )}
                       <div className="flex flex-col space-y-0.5">
-                        <p className="text-sm font-semibold leading-none">Owner Account</p>
-                        <p className="text-xs leading-none text-muted-foreground truncate max-w-[160px]">
-                          {user?.email}
+                        <p className="text-sm font-semibold leading-none truncate max-w-[170px]">
+                          {selectedSalon?.name || 'My Salon'}
+                        </p>
+                        <p className="text-xs leading-none text-muted-foreground truncate max-w-[170px]">
+                          {selectedSalon?.location}, {selectedSalon?.city?.split(',')[0]}
                         </p>
                       </div>
                     </div>
