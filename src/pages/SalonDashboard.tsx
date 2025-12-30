@@ -481,8 +481,40 @@ const SalonDashboard = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6 pb-24">
+        {/* Rejected Banner with Re-apply */}
+        {selectedSalon && selectedSalon.status === 'rejected' && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-6"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/50 flex items-center justify-center flex-shrink-0">
+                <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-red-900 dark:text-red-100 text-sm">
+                  Registration Not Approved
+                </h3>
+                <p className="text-xs text-red-700 dark:text-red-300 mt-0.5 mb-3">
+                  Your salon registration was not approved. You can edit your details and resubmit for review.
+                </p>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  className="border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/50"
+                  onClick={() => navigate(`/salon-registration?edit=${selectedSalon.id}`)}
+                >
+                  <Edit2 className="w-3.5 h-3.5 mr-1.5" />
+                  Edit & Resubmit
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {/* Pending Approval Banner */}
-        {selectedSalon && !selectedSalon.is_active && (
+        {selectedSalon && selectedSalon.status === 'pending' && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, 
@@ -111,12 +111,15 @@ const DURATION_OPTIONS = ['15 min', '30 min', '45 min', '60 min'];
 
 const SalonRegistration = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editSalonId = searchParams.get('edit');
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [currentStep, setCurrentStep] = useState<WizardStep>(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingExisting, setIsLoadingExisting] = useState(!!editSalonId);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
@@ -124,6 +127,7 @@ const SalonRegistration = () => {
   const [selectedImages, setSelectedImages] = useState<ImageFile[]>([]);
   const [services, setServices] = useState<ServiceItem[]>(DEFAULT_SERVICES);
   const [newService, setNewService] = useState({ name: '', duration: '30 min', price: 49 });
+  const [isEditMode, setIsEditMode] = useState(false);
   
   // Crop dialog state
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
@@ -140,6 +144,87 @@ const SalonRegistration = () => {
     openingTime: '09:00',
     closingTime: '21:00',
   });
+
+  // Load existing salon data for re-apply/edit mode
+  useEffect(() => {
+    const loadExistingSalon = async () => {
+      if (!editSalonId || !user) return;
+      
+      setIsLoadingExisting(true);
+      try {
+        // Verify ownership
+        const { data: ownership } = await supabase
+          .from('salon_owners')
+          .select('salon_id')
+          .eq('user_id', user.id)
+          .eq('salon_id', editSalonId)
+          .maybeSingle();
+        
+        if (!ownership) {
+          toast({
+            title: 'Access denied',
+            description: 'You do not own this salon',
+            variant: 'destructive',
+          });
+          navigate('/');
+          return;
+        }
+
+        // Load salon data
+        const { data: salon, error } = await supabase
+          .from('salons')
+          .select('*')
+          .eq('id', editSalonId)
+          .single();
+        
+        if (error || !salon) {
+          toast({
+            title: 'Salon not found',
+            description: 'Could not load salon data',
+            variant: 'destructive',
+          });
+          navigate('/');
+          return;
+        }
+
+        // Load existing services
+        const { data: existingServices } = await supabase
+          .from('salon_services')
+          .select('*')
+          .eq('salon_id', editSalonId);
+
+        setFormData({
+          name: salon.name || '',
+          description: salon.description || '',
+          location: salon.location || '',
+          city: salon.city || '',
+          phone: salon.phone || '',
+          email: salon.email || '',
+          openingTime: salon.opening_time?.slice(0, 5) || '09:00',
+          closingTime: salon.closing_time?.slice(0, 5) || '21:00',
+        });
+
+        if (existingServices && existingServices.length > 0) {
+          setServices(existingServices.map(s => ({
+            id: s.id,
+            name: s.name,
+            duration: s.duration,
+            price: s.price,
+          })));
+        }
+
+        setIsEditMode(true);
+      } catch (err) {
+        console.error('Error loading salon:', err);
+      } finally {
+        setIsLoadingExisting(false);
+      }
+    };
+
+    if (user) {
+      loadExistingSalon();
+    }
+  }, [editSalonId, user, navigate, toast]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -388,85 +473,133 @@ const SalonRegistration = () => {
     setIsLoading(true);
 
     try {
-      const { data: salonData, error: salonError } = await supabase
-        .from('salons')
-        .insert({
-          name: formData.name.trim(),
-          location: formData.location.trim(),
-          city: formData.city,
-          description: formData.description?.trim() || null,
-          phone: formData.phone || null,
-          email: formData.email || null,
-          opening_time: formData.openingTime,
-          closing_time: formData.closingTime,
-          is_active: false,
-        })
-        .select()
-        .single();
+      let salonId: string;
 
-      if (salonError) throw salonError;
+      if (isEditMode && editSalonId) {
+        // Update existing salon and reset status to pending
+        const { error: updateError } = await supabase
+          .from('salons')
+          .update({
+            name: formData.name.trim(),
+            location: formData.location.trim(),
+            city: formData.city,
+            description: formData.description?.trim() || null,
+            phone: formData.phone || null,
+            email: formData.email || null,
+            opening_time: formData.openingTime,
+            closing_time: formData.closingTime,
+            status: 'pending',
+            is_active: false,
+          })
+          .eq('id', editSalonId);
 
+        if (updateError) throw updateError;
+        salonId = editSalonId;
+
+        // Update services - delete old and insert new
+        await supabase
+          .from('salon_services')
+          .delete()
+          .eq('salon_id', editSalonId);
+
+        if (services.length > 0) {
+          const servicesToInsert = services.map(service => ({
+            salon_id: editSalonId,
+            name: service.name,
+            category: 'Haircut',
+            duration: service.duration,
+            price: service.price,
+            is_active: true,
+          }));
+          
+          await supabase
+            .from('salon_services')
+            .insert(servicesToInsert);
+        }
+      } else {
+        // Create new salon
+        const { data: salonData, error: salonError } = await supabase
+          .from('salons')
+          .insert({
+            name: formData.name.trim(),
+            location: formData.location.trim(),
+            city: formData.city,
+            description: formData.description?.trim() || null,
+            phone: formData.phone || null,
+            email: formData.email || null,
+            opening_time: formData.openingTime,
+            closing_time: formData.closingTime,
+            is_active: false,
+            status: 'pending',
+          })
+          .select()
+          .single();
+
+        if (salonError) throw salonError;
+        salonId = salonData.id;
+
+        // Save services
+        if (services.length > 0) {
+          const servicesToInsert = services.map(service => ({
+            salon_id: salonData.id,
+            name: service.name,
+            category: 'Haircut',
+            duration: service.duration,
+            price: service.price,
+            is_active: true,
+          }));
+          
+          const { error: servicesError } = await supabase
+            .from('salon_services')
+            .insert(servicesToInsert);
+            
+          if (servicesError) {
+            console.error('Services insert error:', servicesError);
+          }
+        }
+
+        const { error: ownerError } = await supabase
+          .from('salon_owners')
+          .insert({
+            user_id: user.id,
+            salon_id: salonData.id,
+            is_primary: true,
+          });
+
+        if (ownerError) throw ownerError;
+
+        const { data: existingRole } = await supabase
+          .from('user_roles')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('role', 'salon_owner')
+          .maybeSingle();
+
+        if (!existingRole) {
+          await supabase
+            .from('user_roles')
+            .insert({
+              user_id: user.id,
+              role: 'salon_owner',
+            });
+        }
+      }
+
+      // Upload images if any
       if (selectedImages.length > 0) {
-        const imageUrl = await uploadImages(salonData.id);
+        const imageUrl = await uploadImages(salonId);
         if (imageUrl) {
           await supabase
             .from('salons')
             .update({ image_url: imageUrl })
-            .eq('id', salonData.id);
+            .eq('id', salonId);
         }
-      }
-
-      // Save services
-      if (services.length > 0) {
-        const servicesToInsert = services.map(service => ({
-          salon_id: salonData.id,
-          name: service.name,
-          category: 'Haircut',
-          duration: service.duration,
-          price: service.price,
-          is_active: true,
-        }));
-        
-        const { error: servicesError } = await supabase
-          .from('salon_services')
-          .insert(servicesToInsert);
-          
-        if (servicesError) {
-          console.error('Services insert error:', servicesError);
-          // Don't throw - services can be added later
-        }
-      }
-
-      const { error: ownerError } = await supabase
-        .from('salon_owners')
-        .insert({
-          user_id: user.id,
-          salon_id: salonData.id,
-          is_primary: true,
-        });
-
-      if (ownerError) throw ownerError;
-
-      const { data: existingRole } = await supabase
-        .from('user_roles')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('role', 'salon_owner')
-        .maybeSingle();
-
-      if (!existingRole) {
-        await supabase
-          .from('user_roles')
-          .insert({
-            user_id: user.id,
-            role: 'salon_owner',
-          });
       }
 
       setIsComplete(true);
       
       toast({
-        title: 'Salon Registered!',
+        title: isEditMode ? 'Salon Resubmitted!' : 'Salon Registered!',
         description: 'Your salon has been submitted for review.',
       });
 
@@ -482,7 +615,7 @@ const SalonRegistration = () => {
     }
   };
 
-  if (authLoading || !user) {
+  if (authLoading || !user || isLoadingExisting) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -506,9 +639,9 @@ const SalonRegistration = () => {
           >
             <CheckCircle className="w-12 h-12 text-green-600 dark:text-green-400" />
           </motion.div>
-          <h2 className="text-2xl font-bold mb-3">Registration Submitted!</h2>
+          <h2 className="text-2xl font-bold mb-3">{isEditMode ? 'Resubmission Complete!' : 'Registration Submitted!'}</h2>
           <p className="text-muted-foreground mb-8">
-            Your salon has been submitted for review. Our team will verify your details and activate your salon within 24-48 hours.
+            Your salon has been {isEditMode ? 'resubmitted' : 'submitted'} for review. Our team will verify your details and activate your salon within 24-48 hours.
           </p>
           <div className="space-y-3">
             <Button onClick={() => navigate('/salon-dashboard')} className="w-full">
@@ -548,7 +681,7 @@ const SalonRegistration = () => {
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div className="flex-1">
-              <h1 className="text-lg font-semibold">List Your Salon</h1>
+              <h1 className="text-lg font-semibold">{isEditMode ? 'Edit & Resubmit Salon' : 'List Your Salon'}</h1>
               <p className="text-xs text-muted-foreground">Step {currentStep} of 6</p>
             </div>
           </div>
