@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Phone, ArrowLeft, Loader2, Gift, ChevronDown, ClipboardPaste, User, Mail, Smartphone, Check, X, MoreVertical, Store } from 'lucide-react';
+import { Phone, ArrowLeft, Loader2, Gift, ChevronDown, ClipboardPaste, User, Mail, Smartphone, Check, X, MoreVertical, Store, Calendar, TrendingUp, MessageSquare, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -943,6 +943,44 @@ const Auth = () => {
                     )}
                   </AnimatePresence>
                 </div>
+                )}
+
+                {/* Salon Owner Benefits Showcase - Only in Salon Owner Mode */}
+                {isSalonOwnerMode && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="space-y-3"
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center">
+                      Why join Grumming?
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { icon: Calendar, title: 'Easy Bookings', desc: 'Manage all appointments' },
+                        { icon: TrendingUp, title: 'Grow Revenue', desc: 'Attract new customers' },
+                        { icon: MessageSquare, title: 'Chat Support', desc: 'Connect with clients' },
+                        { icon: Star, title: 'Build Reputation', desc: 'Collect reviews' },
+                      ].map((benefit, index) => (
+                        <motion.div
+                          key={benefit.title}
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: 0.15 + index * 0.05 }}
+                          className="flex items-start gap-2.5 p-3 rounded-xl bg-primary/5 border border-primary/10"
+                        >
+                          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <benefit.icon className="w-4 h-4 text-primary" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-foreground truncate">{benefit.title}</p>
+                            <p className="text-[10px] text-muted-foreground leading-tight">{benefit.desc}</p>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </motion.div>
                 )}
 
                 <Button
