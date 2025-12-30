@@ -5,7 +5,7 @@ import {
   ArrowLeft, Store, Calendar, Clock, Star, Users, TrendingUp,
   Package, MessageSquare, Settings, Bell, Loader2, AlertTriangle,
   CheckCircle, XCircle, Eye, Edit2, ChevronRight, IndianRupee,
-  Send, Reply, Plus, Trash2
+  Send, Reply, Plus, Trash2, LogOut
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -78,7 +78,7 @@ interface DashboardStats {
 const SalonDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { isSalonOwner, ownedSalons, isLoading: isOwnerLoading } = useSalonOwner();
 
   const [selectedSalonId, setSelectedSalonId] = useState<string | null>(null);
@@ -510,11 +510,9 @@ const SalonDashboard = () => {
           </div>
         ) : (
           <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="bookings">Bookings</TabsTrigger>
-              <TabsTrigger value="reviews">Reviews</TabsTrigger>
-              <TabsTrigger value="services">Services</TabsTrigger>
               <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
 
@@ -715,244 +713,286 @@ const SalonDashboard = () => {
               </Card>
             </TabsContent>
 
-            {/* Services Tab */}
-            <TabsContent value="services" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>Services</CardTitle>
-                      <CardDescription>Manage your salon services</CardDescription>
-                    </div>
-                    <Button onClick={handleOpenAddService}>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Service
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {services.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Package className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
-                      <h3 className="font-medium">No services yet</h3>
-                      <p className="text-sm text-muted-foreground mt-1 mb-4">
-                        Add services to let customers know what you offer
-                      </p>
-                      <Button onClick={handleOpenAddService}>
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add Your First Service
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {services.map(service => (
-                        <motion.div 
-                          key={service.id} 
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                        >
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <p className="font-medium">{service.name}</p>
-                              <Badge variant="outline">{service.category}</Badge>
-                              {!service.is_active && (
-                                <Badge variant="secondary">Hidden</Badge>
-                              )}
-                            </div>
-                            <p className="text-sm text-muted-foreground">
-                              ₹{service.price} • {service.duration}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-2 mr-2">
-                              <Switch
-                                checked={service.is_active}
-                                onCheckedChange={() => handleToggleService(service.id, service.is_active)}
-                              />
-                            </div>
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              onClick={() => handleOpenEditService(service)}
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              className="text-destructive hover:text-destructive"
-                              onClick={() => setDeleteServiceId(service.id)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Reviews Tab */}
-            <TabsContent value="reviews" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>Customer Reviews</CardTitle>
-                      <CardDescription>View and respond to customer feedback</CardDescription>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                      <span className="font-semibold">{stats.avgRating}</span>
-                      <span className="text-muted-foreground">({stats.totalReviews} reviews)</span>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {reviews.length === 0 ? (
-                    <div className="text-center py-12">
-                      <MessageSquare className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
-                      <h3 className="font-medium">No reviews yet</h3>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Reviews from customers will appear here
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {reviews.map(review => (
-                        <motion.div
-                          key={review.id}
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          className="p-4 border rounded-lg space-y-3"
-                        >
-                          {/* Review Header */}
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-center gap-3">
-                              <Avatar className="w-10 h-10">
-                                <AvatarImage src={review.profile?.avatar_url || ''} />
-                                <AvatarFallback className="bg-primary/10 text-primary">
-                                  {review.profile?.full_name?.charAt(0) || 'U'}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <p className="font-medium">
-                                  {review.profile?.full_name || 'Customer'}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  {format(new Date(review.created_at), 'MMM d, yyyy')}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              {renderStars(review.rating)}
-                            </div>
-                          </div>
-
-                          {/* Review Text */}
-                          {review.review_text && (
-                            <p className="text-sm text-muted-foreground">
-                              "{review.review_text}"
-                            </p>
-                          )}
-
-                          {/* Owner Response */}
-                          {review.owner_response ? (
-                            <div className="ml-4 p-3 bg-muted/50 rounded-lg border-l-2 border-primary">
-                              <div className="flex items-center gap-2 mb-1">
-                                <Reply className="w-4 h-4 text-primary" />
-                                <span className="text-xs font-medium">Your Response</span>
-                                <span className="text-xs text-muted-foreground">
-                                  {review.owner_response_at && format(new Date(review.owner_response_at), 'MMM d, yyyy')}
-                                </span>
-                              </div>
-                              <p className="text-sm">{review.owner_response}</p>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="mt-2 h-7 text-xs"
-                                onClick={() => handleOpenResponseDialog(review)}
-                              >
-                                <Edit2 className="w-3 h-3 mr-1" />
-                                Edit Response
-                              </Button>
-                            </div>
-                          ) : (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleOpenResponseDialog(review)}
-                            >
-                              <Reply className="w-4 h-4 mr-2" />
-                              Respond to Review
-                            </Button>
-                          )}
-                        </motion.div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Settings Tab */}
+            {/* Settings Tab - with nested tabs for Reviews, Services, Settings */}
             <TabsContent value="settings" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Salon Settings</CardTitle>
-                  <CardDescription>Manage your salon information</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <p className="font-medium">Salon Status</p>
-                      <p className="text-sm text-muted-foreground">
-                        {selectedSalon?.is_active 
-                          ? 'Your salon is visible to customers' 
-                          : 'Your salon is hidden from customers'}
+              <Tabs defaultValue="reviews" className="space-y-4">
+                <TabsList className="grid w-full grid-cols-3 bg-muted/50">
+                  <TabsTrigger value="reviews" className="text-sm">Reviews</TabsTrigger>
+                  <TabsTrigger value="services" className="text-sm">Services</TabsTrigger>
+                  <TabsTrigger value="salon-settings" className="text-sm">Settings</TabsTrigger>
+                </TabsList>
+
+                {/* Reviews Sub-Tab */}
+                <TabsContent value="reviews" className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle>Customer Reviews</CardTitle>
+                          <CardDescription>View and respond to customer feedback</CardDescription>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                          <span className="font-semibold">{stats.avgRating}</span>
+                          <span className="text-muted-foreground">({stats.totalReviews} reviews)</span>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {reviews.length === 0 ? (
+                        <div className="text-center py-12">
+                          <MessageSquare className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
+                          <h3 className="font-medium">No reviews yet</h3>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Reviews from customers will appear here
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {reviews.map(review => (
+                            <motion.div
+                              key={review.id}
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              className="p-4 border rounded-lg space-y-3"
+                            >
+                              {/* Review Header */}
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-center gap-3">
+                                  <Avatar className="w-10 h-10">
+                                    <AvatarImage src={review.profile?.avatar_url || ''} />
+                                    <AvatarFallback className="bg-primary/10 text-primary">
+                                      {review.profile?.full_name?.charAt(0) || 'U'}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div>
+                                    <p className="font-medium">
+                                      {review.profile?.full_name || 'Customer'}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {format(new Date(review.created_at), 'MMM d, yyyy')}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  {renderStars(review.rating)}
+                                </div>
+                              </div>
+
+                              {/* Review Text */}
+                              {review.review_text && (
+                                <p className="text-sm text-muted-foreground">
+                                  "{review.review_text}"
+                                </p>
+                              )}
+
+                              {/* Owner Response */}
+                              {review.owner_response ? (
+                                <div className="ml-4 p-3 bg-muted/50 rounded-lg border-l-2 border-primary">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <Reply className="w-4 h-4 text-primary" />
+                                    <span className="text-xs font-medium">Your Response</span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {review.owner_response_at && format(new Date(review.owner_response_at), 'MMM d, yyyy')}
+                                    </span>
+                                  </div>
+                                  <p className="text-sm">{review.owner_response}</p>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="mt-2 h-7 text-xs"
+                                    onClick={() => handleOpenResponseDialog(review)}
+                                  >
+                                    <Edit2 className="w-3 h-3 mr-1" />
+                                    Edit Response
+                                  </Button>
+                                </div>
+                              ) : (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleOpenResponseDialog(review)}
+                                >
+                                  <Reply className="w-4 h-4 mr-2" />
+                                  Respond to Review
+                                </Button>
+                              )}
+                            </motion.div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                {/* Services Sub-Tab */}
+                <TabsContent value="services" className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle>Services</CardTitle>
+                          <CardDescription>Manage your salon services</CardDescription>
+                        </div>
+                        <Button onClick={handleOpenAddService}>
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add Service
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {services.length === 0 ? (
+                        <div className="text-center py-12">
+                          <Package className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
+                          <h3 className="font-medium">No services yet</h3>
+                          <p className="text-sm text-muted-foreground mt-1 mb-4">
+                            Add services to let customers know what you offer
+                          </p>
+                          <Button onClick={handleOpenAddService}>
+                            <Plus className="w-4 h-4 mr-2" />
+                            Add Your First Service
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {services.map(service => (
+                            <motion.div 
+                              key={service.id} 
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                            >
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <p className="font-medium">{service.name}</p>
+                                  <Badge variant="outline">{service.category}</Badge>
+                                  {!service.is_active && (
+                                    <Badge variant="secondary">Hidden</Badge>
+                                  )}
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                  ₹{service.price} • {service.duration}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 mr-2">
+                                  <Switch
+                                    checked={service.is_active}
+                                    onCheckedChange={() => handleToggleService(service.id, service.is_active)}
+                                  />
+                                </div>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  onClick={() => handleOpenEditService(service)}
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  className="text-destructive hover:text-destructive"
+                                  onClick={() => setDeleteServiceId(service.id)}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                {/* Salon Settings Sub-Tab */}
+                <TabsContent value="salon-settings" className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Salon Settings</CardTitle>
+                      <CardDescription>Manage your salon information</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div>
+                          <p className="font-medium">Salon Status</p>
+                          <p className="text-sm text-muted-foreground">
+                            {selectedSalon?.is_active 
+                              ? 'Your salon is visible to customers' 
+                              : 'Your salon is hidden from customers'}
+                          </p>
+                        </div>
+                        <Badge variant={selectedSalon?.is_active ? 'default' : 'secondary'}>
+                          {selectedSalon?.is_active ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </div>
+
+                      <div className="p-4 border rounded-lg space-y-3">
+                        <p className="font-medium">Contact Information</p>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <p className="text-muted-foreground">Phone</p>
+                            <p>{selectedSalon?.phone || 'Not set'}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Email</p>
+                            <p>{selectedSalon?.email || 'Not set'}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-4 border rounded-lg space-y-3">
+                        <p className="font-medium">Business Hours</p>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <p className="text-muted-foreground">Opens</p>
+                            <p>{selectedSalon?.opening_time?.slice(0, 5) || '09:00'}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Closes</p>
+                            <p>{selectedSalon?.closing_time?.slice(0, 5) || '21:00'}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <p className="text-sm text-muted-foreground text-center pt-4">
+                        Contact the admin to update your salon details
                       </p>
-                    </div>
-                    <Badge variant={selectedSalon?.is_active ? 'default' : 'secondary'}>
-                      {selectedSalon?.is_active ? 'Active' : 'Inactive'}
-                    </Badge>
-                  </div>
+                    </CardContent>
+                  </Card>
 
-                  <div className="p-4 border rounded-lg space-y-3">
-                    <p className="font-medium">Contact Information</p>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <p className="text-muted-foreground">Phone</p>
-                        <p>{selectedSalon?.phone || 'Not set'}</p>
+                  {/* Logout Section */}
+                  <Card className="border-destructive/20">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center">
+                            <LogOut className="w-5 h-5 text-destructive" />
+                          </div>
+                          <div>
+                            <p className="font-medium">Sign Out</p>
+                            <p className="text-sm text-muted-foreground">
+                              Log out of your account
+                            </p>
+                          </div>
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          className="border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                          onClick={async () => {
+                            await signOut();
+                            navigate('/');
+                            toast({ title: 'Signed out', description: 'You have been logged out successfully' });
+                          }}
+                        >
+                          <LogOut className="w-4 h-4 mr-2" />
+                          Logout
+                        </Button>
                       </div>
-                      <div>
-                        <p className="text-muted-foreground">Email</p>
-                        <p>{selectedSalon?.email || 'Not set'}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="p-4 border rounded-lg space-y-3">
-                    <p className="font-medium">Business Hours</p>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <p className="text-muted-foreground">Opens</p>
-                        <p>{selectedSalon?.opening_time?.slice(0, 5) || '09:00'}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Closes</p>
-                        <p>{selectedSalon?.closing_time?.slice(0, 5) || '21:00'}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <p className="text-sm text-muted-foreground text-center pt-4">
-                    Contact the admin to update your salon details
-                  </p>
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
             </TabsContent>
           </Tabs>
         )}
