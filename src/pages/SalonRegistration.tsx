@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Store, MapPin, Clock, Phone, Mail, Image, Loader2, CheckCircle, Camera, X, Upload, Crop } from 'lucide-react';
@@ -332,9 +332,18 @@ const SalonRegistration = () => {
     );
   }
 
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/auth');
+    }
+  }, [user, authLoading, navigate]);
+
   if (!user) {
-    navigate('/auth');
-    return null;
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
   return (
