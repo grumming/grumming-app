@@ -667,135 +667,136 @@ const SalonDashboard = () => {
             {/* Overview Tab */}
             <TabsContent value="overview" className="space-y-6">
               {/* Salon Header Card */}
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-start gap-4">
-                    <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                      {selectedSalon?.image_url ? (
-                        <img src={selectedSalon.image_url} alt={selectedSalon.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Store className="w-6 h-6 text-muted-foreground" />
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+              >
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-start gap-4">
+                      <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                        {selectedSalon?.image_url ? (
+                          <img src={selectedSalon.image_url} alt={selectedSalon.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Store className="w-6 h-6 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-lg font-semibold">{selectedSalon?.name}</h2>
+                          <Badge variant={selectedSalon?.is_active ? 'default' : 'secondary'}>
+                            {selectedSalon?.is_active ? 'Active' : 'Inactive'}
+                          </Badge>
                         </div>
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-lg font-semibold">{selectedSalon?.name}</h2>
-                        <Badge variant={selectedSalon?.is_active ? 'default' : 'secondary'}>
-                          {selectedSalon?.is_active ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {selectedSalon?.location}, {selectedSalon?.city}
-                      </p>
-                      <div className="flex items-center gap-4 mt-2 text-sm">
-                        <span className="flex items-center gap-1">
-                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                          {stats.avgRating} ({stats.totalReviews} reviews)
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-4 h-4 text-muted-foreground" />
-                          {selectedSalon?.opening_time?.slice(0, 5)} - {selectedSalon?.closing_time?.slice(0, 5)}
-                        </span>
+                        <p className="text-sm text-muted-foreground">
+                          {selectedSalon?.location}, {selectedSalon?.city}
+                        </p>
+                        <div className="flex items-center gap-4 mt-2 text-sm">
+                          <span className="flex items-center gap-1">
+                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                            {stats.avgRating} ({stats.totalReviews} reviews)
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-4 h-4 text-muted-foreground" />
+                            {selectedSalon?.opening_time?.slice(0, 5)} - {selectedSalon?.closing_time?.slice(0, 5)}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </motion.div>
 
               {/* Quick Stats */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card>
-                  <CardContent className="pt-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Calendar className="w-5 h-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold">{stats.todayBookings}</p>
-                        <p className="text-xs text-muted-foreground">Today</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-yellow-500/10 flex items-center justify-center">
-                        <Clock className="w-5 h-5 text-yellow-600" />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold">{stats.upcomingBookings}</p>
-                        <p className="text-xs text-muted-foreground">Upcoming</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold">{stats.completedBookings}</p>
-                        <p className="text-xs text-muted-foreground">Completed</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <IndianRupee className="w-5 h-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold">₹{stats.totalRevenue.toLocaleString()}</p>
-                        <p className="text-xs text-muted-foreground">Revenue</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                {[
+                  { icon: Calendar, color: 'primary', value: stats.todayBookings, label: 'Today' },
+                  { icon: Clock, color: 'yellow', value: stats.upcomingBookings, label: 'Upcoming' },
+                  { icon: CheckCircle, color: 'green', value: stats.completedBookings, label: 'Completed' },
+                  { icon: IndianRupee, color: 'primary', value: `₹${stats.totalRevenue.toLocaleString()}`, label: 'Revenue' },
+                ].map((stat, index) => (
+                  <motion.div
+                    key={stat.label}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.1 + index * 0.08, ease: "easeOut" }}
+                  >
+                    <Card>
+                      <CardContent className="pt-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                            stat.color === 'primary' ? 'bg-primary/10' :
+                            stat.color === 'yellow' ? 'bg-yellow-500/10' :
+                            'bg-green-500/10'
+                          }`}>
+                            <stat.icon className={`w-5 h-5 ${
+                              stat.color === 'primary' ? 'text-primary' :
+                              stat.color === 'yellow' ? 'text-yellow-600' :
+                              'text-green-600'
+                            }`} />
+                          </div>
+                          <div>
+                            <p className="text-2xl font-bold">{stat.value}</p>
+                            <p className="text-xs text-muted-foreground">{stat.label}</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
               </div>
 
               {/* Today's Bookings */}
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="text-lg">Today's Bookings</CardTitle>
-                  <Button variant="ghost" size="sm" onClick={() => document.querySelector<HTMLButtonElement>('[data-value="bookings"]')?.click()}>
-                    View All <ChevronRight className="w-4 h-4 ml-1" />
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  {bookings.filter(b => b.booking_date === format(new Date(), 'yyyy-MM-dd')).length === 0 ? (
-                    <p className="text-center text-muted-foreground py-8">No bookings today</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {bookings
-                        .filter(b => b.booking_date === format(new Date(), 'yyyy-MM-dd'))
-                        .slice(0, 5)
-                        .map(booking => (
-                          <div key={booking.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                            <div>
-                              <p className="font-medium">{booking.service_name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {booking.booking_time} • ₹{booking.service_price}
-                              </p>
-                            </div>
-                            <Badge variant={
-                              booking.status === 'completed' ? 'default' :
-                              booking.status === 'cancelled' ? 'destructive' : 'secondary'
-                            }>
-                              {booking.status}
-                            </Badge>
-                          </div>
-                        ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.5, ease: "easeOut" }}
+              >
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="text-lg">Today's Bookings</CardTitle>
+                    <Button variant="ghost" size="sm" onClick={() => document.querySelector<HTMLButtonElement>('[data-value="bookings"]')?.click()}>
+                      View All <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    {bookings.filter(b => b.booking_date === format(new Date(), 'yyyy-MM-dd')).length === 0 ? (
+                      <p className="text-center text-muted-foreground py-8">No bookings today</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {bookings
+                          .filter(b => b.booking_date === format(new Date(), 'yyyy-MM-dd'))
+                          .slice(0, 5)
+                          .map((booking, idx) => (
+                            <motion.div
+                              key={booking.id}
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ duration: 0.3, delay: 0.6 + idx * 0.05 }}
+                              className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
+                            >
+                              <div>
+                                <p className="font-medium">{booking.service_name}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {booking.booking_time} • ₹{booking.service_price}
+                                </p>
+                              </div>
+                              <Badge variant={
+                                booking.status === 'completed' ? 'default' :
+                                booking.status === 'cancelled' ? 'destructive' : 'secondary'
+                              }>
+                                {booking.status}
+                              </Badge>
+                            </motion.div>
+                          ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
             </TabsContent>
 
             {/* Bookings Tab */}
