@@ -5,7 +5,7 @@ import {
   ArrowLeft, Store, Calendar, Clock, Star, Users, TrendingUp,
   Package, MessageSquare, Settings, Bell, Loader2, AlertTriangle,
   CheckCircle, XCircle, Eye, Edit2, ChevronRight, IndianRupee,
-  Send, Reply, Plus, Trash2
+  Send, Reply
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -15,7 +15,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
@@ -27,7 +26,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSalonOwner } from '@/hooks/useSalonOwner';
 import { supabase } from '@/integrations/supabase/client';
 import { format, subDays, isToday, isTomorrow, parseISO } from 'date-fns';
-import SalonOwnerBottomNav from '@/components/SalonOwnerBottomNav';
 
 interface Booking {
   id: string;
@@ -101,18 +99,6 @@ const SalonDashboard = () => {
   const [selectedReview, setSelectedReview] = useState<Review | null>(null);
   const [responseText, setResponseText] = useState('');
   const [isSubmittingResponse, setIsSubmittingResponse] = useState(false);
-
-  // Service management state
-  const [isServiceDialogOpen, setIsServiceDialogOpen] = useState(false);
-  const [editingService, setEditingService] = useState<SalonService | null>(null);
-  const [serviceForm, setServiceForm] = useState({
-    name: '',
-    price: '49',
-    duration: '30 min',
-    category: 'Haircut'
-  });
-  const [isSubmittingService, setIsSubmittingService] = useState(false);
-  const [deleteServiceId, setDeleteServiceId] = useState<string | null>(null);
 
   // Select first salon by default
   useEffect(() => {
@@ -262,101 +248,6 @@ const SalonDashboard = () => {
     setIsRespondDialogOpen(true);
   };
 
-  // Service management handlers
-  const handleOpenAddService = () => {
-    setEditingService(null);
-    setServiceForm({ name: '', price: '49', duration: '30 min', category: 'Haircut' });
-    setIsServiceDialogOpen(true);
-  };
-
-  const handleOpenEditService = (service: SalonService) => {
-    setEditingService(service);
-    setServiceForm({
-      name: service.name,
-      price: service.price.toString(),
-      duration: service.duration,
-      category: service.category
-    });
-    setIsServiceDialogOpen(true);
-  };
-
-  const handleSaveService = async () => {
-    if (!serviceForm.name.trim() || !selectedSalonId) {
-      toast({ title: 'Error', description: 'Service name is required', variant: 'destructive' });
-      return;
-    }
-
-    setIsSubmittingService(true);
-
-    try {
-      if (editingService) {
-        // Update existing service
-        const { error } = await supabase
-          .from('salon_services')
-          .update({
-            name: serviceForm.name.trim(),
-            price: parseFloat(serviceForm.price) || 49,
-            duration: serviceForm.duration,
-            category: serviceForm.category
-          })
-          .eq('id', editingService.id);
-
-        if (error) throw error;
-
-        setServices(services.map(s => 
-          s.id === editingService.id 
-            ? { ...s, name: serviceForm.name.trim(), price: parseFloat(serviceForm.price) || 49, duration: serviceForm.duration, category: serviceForm.category }
-            : s
-        ));
-        toast({ title: 'Success', description: 'Service updated successfully' });
-      } else {
-        // Add new service
-        const { data, error } = await supabase
-          .from('salon_services')
-          .insert({
-            salon_id: selectedSalonId,
-            name: serviceForm.name.trim(),
-            price: parseFloat(serviceForm.price) || 49,
-            duration: serviceForm.duration,
-            category: serviceForm.category,
-            is_active: true
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        setServices([...services, data]);
-        toast({ title: 'Success', description: 'Service added successfully' });
-      }
-
-      setIsServiceDialogOpen(false);
-      setEditingService(null);
-    } catch (err: any) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
-    }
-
-    setIsSubmittingService(false);
-  };
-
-  const handleDeleteService = async () => {
-    if (!deleteServiceId) return;
-
-    const { error } = await supabase
-      .from('salon_services')
-      .delete()
-      .eq('id', deleteServiceId);
-
-    if (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    } else {
-      setServices(services.filter(s => s.id !== deleteServiceId));
-      toast({ title: 'Success', description: 'Service deleted' });
-    }
-
-    setDeleteServiceId(null);
-  };
-
   const handleSubmitResponse = async () => {
     if (!selectedReview || !responseText.trim()) {
       toast({ title: 'Error', description: 'Please enter a response', variant: 'destructive' });
@@ -481,29 +372,6 @@ const SalonDashboard = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6 pb-24">
-        {/* Pending Approval Banner */}
-        {selectedSalon && !selectedSalon.is_active && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4 mb-6"
-          >
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center flex-shrink-0">
-                <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-amber-900 dark:text-amber-100 text-sm">
-                  Pending Approval
-                </h3>
-                <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
-                  Your salon is under review. You'll be notified once it's approved and visible to customers.
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        )}
-
         {isLoading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -719,75 +587,37 @@ const SalonDashboard = () => {
             <TabsContent value="services" className="space-y-4">
               <Card>
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>Services</CardTitle>
-                      <CardDescription>Manage your salon services</CardDescription>
-                    </div>
-                    <Button onClick={handleOpenAddService}>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Service
-                    </Button>
-                  </div>
+                  <CardTitle>Services</CardTitle>
+                  <CardDescription>Manage your salon services</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {services.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Package className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
-                      <h3 className="font-medium">No services yet</h3>
-                      <p className="text-sm text-muted-foreground mt-1 mb-4">
-                        Add services to let customers know what you offer
-                      </p>
-                      <Button onClick={handleOpenAddService}>
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add Your First Service
-                      </Button>
-                    </div>
+                    <p className="text-center text-muted-foreground py-8">No services added yet</p>
                   ) : (
                     <div className="space-y-3">
                       {services.map(service => (
-                        <motion.div 
-                          key={service.id} 
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                        >
+                        <div key={service.id} className="flex items-center justify-between p-4 border rounded-lg">
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
                               <p className="font-medium">{service.name}</p>
                               <Badge variant="outline">{service.category}</Badge>
-                              {!service.is_active && (
-                                <Badge variant="secondary">Hidden</Badge>
-                              )}
                             </div>
                             <p className="text-sm text-muted-foreground">
                               ₹{service.price} • {service.duration}
                             </p>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-2 mr-2">
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2">
                               <Switch
                                 checked={service.is_active}
                                 onCheckedChange={() => handleToggleService(service.id, service.is_active)}
                               />
+                              <Label className="text-sm">
+                                {service.is_active ? 'Active' : 'Hidden'}
+                              </Label>
                             </div>
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              onClick={() => handleOpenEditService(service)}
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              className="text-destructive hover:text-destructive"
-                              onClick={() => setDeleteServiceId(service.id)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
                           </div>
-                        </motion.div>
+                        </div>
                       ))}
                     </div>
                   )}
@@ -1016,118 +846,6 @@ const SalonDashboard = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Add/Edit Service Dialog */}
-      <Dialog open={isServiceDialogOpen} onOpenChange={setIsServiceDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {editingService ? 'Edit Service' : 'Add New Service'}
-            </DialogTitle>
-            <DialogDescription>
-              {editingService ? 'Update the service details' : 'Add a new service to your salon'}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Service Name</Label>
-              <Input
-                value={serviceForm.name}
-                onChange={(e) => setServiceForm({ ...serviceForm, name: e.target.value })}
-                placeholder="e.g., Men's Haircut"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Price (₹)</Label>
-                <Input
-                  type="number"
-                  value={serviceForm.price}
-                  onChange={(e) => setServiceForm({ ...serviceForm, price: e.target.value })}
-                  min="1"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Duration</Label>
-                <Select 
-                  value={serviceForm.duration} 
-                  onValueChange={(v) => setServiceForm({ ...serviceForm, duration: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="15 min">15 min</SelectItem>
-                    <SelectItem value="30 min">30 min</SelectItem>
-                    <SelectItem value="45 min">45 min</SelectItem>
-                    <SelectItem value="1 hour">1 hour</SelectItem>
-                    <SelectItem value="1.5 hours">1.5 hours</SelectItem>
-                    <SelectItem value="2 hours">2 hours</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Category</Label>
-              <Select 
-                value={serviceForm.category} 
-                onValueChange={(v) => setServiceForm({ ...serviceForm, category: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Haircut">Haircut</SelectItem>
-                  <SelectItem value="Beard">Beard</SelectItem>
-                  <SelectItem value="Shave">Shave</SelectItem>
-                  <SelectItem value="Hair Color">Hair Color</SelectItem>
-                  <SelectItem value="Hair Treatment">Hair Treatment</SelectItem>
-                  <SelectItem value="Facial">Facial</SelectItem>
-                  <SelectItem value="Massage">Massage</SelectItem>
-                  <SelectItem value="Combo">Combo</SelectItem>
-                  <SelectItem value="Other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsServiceDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSaveService} disabled={isSubmittingService || !serviceForm.name.trim()}>
-              {isSubmittingService && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {editingService ? 'Save Changes' : 'Add Service'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Service Confirmation */}
-      <Dialog open={!!deleteServiceId} onOpenChange={() => setDeleteServiceId(null)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Delete Service</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this service? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteServiceId(null)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteService}>
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Salon Owner Bottom Navigation */}
-      <SalonOwnerBottomNav />
     </div>
   );
 };

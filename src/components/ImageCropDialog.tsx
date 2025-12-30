@@ -17,8 +17,6 @@ interface ImageCropDialogProps {
   imageSrc: string;
   onCropComplete: (croppedBlob: Blob) => void;
   aspectRatio?: number;
-  circularCrop?: boolean;
-  title?: string;
 }
 
 function centerAspectCrop(
@@ -91,8 +89,6 @@ const ImageCropDialog = ({
   imageSrc,
   onCropComplete,
   aspectRatio = 1,
-  circularCrop = true,
-  title = 'Crop Image',
 }: ImageCropDialogProps) => {
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
@@ -135,7 +131,7 @@ const ImageCropDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle>Crop Image</DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-col items-center gap-4">
@@ -145,7 +141,7 @@ const ImageCropDialog = ({
               onChange={(_, percentCrop) => setCrop(percentCrop)}
               onComplete={(c) => setCompletedCrop(c)}
               aspect={aspectRatio}
-              circularCrop={circularCrop}
+              circularCrop
             >
               <img
                 ref={imgRef}

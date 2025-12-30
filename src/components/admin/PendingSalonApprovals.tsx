@@ -194,7 +194,6 @@ export const PendingSalonApprovals = () => {
 
       // Send notification to owner if exists
       if (selectedSalon.owner) {
-        // In-app notification
         await supabase
           .from('notifications')
           .insert({
@@ -204,21 +203,6 @@ export const PendingSalonApprovals = () => {
             type: 'salon',
             link: '/salon-dashboard'
           });
-
-        // Push notification
-        try {
-          await supabase.functions.invoke('send-push-notification', {
-            body: {
-              user_id: selectedSalon.owner.user_id,
-              title: '🎉 Salon Approved!',
-              body: `Great news! Your salon "${selectedSalon.name}" has been approved and is now live.`,
-              data: { type: 'salon_approved', link: '/salon-dashboard' }
-            }
-          });
-        } catch (pushError) {
-          console.log('Push notification failed:', pushError);
-          // Don't fail the approval if push fails
-        }
       }
 
       toast({
@@ -261,37 +245,17 @@ export const PendingSalonApprovals = () => {
 
       // Send notification to owner if exists
       if (selectedSalon.owner) {
-        const rejectionMessage = rejectionReason 
-          ? `Your salon "${selectedSalon.name}" registration was not approved. Reason: ${rejectionReason}`
-          : `Your salon "${selectedSalon.name}" registration was not approved. Please contact support for more details.`;
-
-        // In-app notification
         await supabase
           .from('notifications')
           .insert({
             user_id: selectedSalon.owner.user_id,
             title: 'Salon Registration Update',
-            message: rejectionMessage,
+            message: rejectionReason 
+              ? `Your salon "${selectedSalon.name}" registration was not approved. Reason: ${rejectionReason}`
+              : `Your salon "${selectedSalon.name}" registration was not approved. Please contact support for more details.`,
             type: 'salon',
             link: '/salon-registration'
           });
-
-        // Push notification
-        try {
-          await supabase.functions.invoke('send-push-notification', {
-            body: {
-              user_id: selectedSalon.owner.user_id,
-              title: 'Salon Registration Update',
-              body: rejectionReason 
-                ? `Your salon "${selectedSalon.name}" was not approved: ${rejectionReason}`
-                : `Your salon "${selectedSalon.name}" was not approved. Contact support for details.`,
-              data: { type: 'salon_rejected', link: '/salon-registration' }
-            }
-          });
-        } catch (pushError) {
-          console.log('Push notification failed:', pushError);
-          // Don't fail the rejection if push fails
-        }
       }
 
       toast({
