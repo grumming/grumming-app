@@ -719,7 +719,7 @@ const SalonDashboard = () => {
                 <TabsList className="grid w-full grid-cols-3 bg-muted/50">
                   <TabsTrigger value="reviews" className="text-sm">Reviews</TabsTrigger>
                   <TabsTrigger value="services" className="text-sm">Services</TabsTrigger>
-                  <TabsTrigger value="salon-settings" className="text-sm">Settings</TabsTrigger>
+                  <TabsTrigger value="status" className="text-sm">Status</TabsTrigger>
                 </TabsList>
 
                 {/* Reviews Sub-Tab */}
@@ -906,7 +906,7 @@ const SalonDashboard = () => {
                 </TabsContent>
 
                 {/* Salon Settings Sub-Tab */}
-                <TabsContent value="salon-settings" className="space-y-4">
+                <TabsContent value="status" className="space-y-4">
                   <Card>
                     <CardHeader>
                       <CardTitle>Salon Settings</CardTitle>
