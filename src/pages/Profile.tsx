@@ -60,6 +60,12 @@ const Profile = () => {
     return email.includes('@phone.') || email.endsWith('@phone.grumming.app');
   };
 
+  // Helper to check if phone is actually a phone-based email pattern
+  const isPhoneEmail = (phone: string | null | undefined): boolean => {
+    if (!phone) return false;
+    return phone.includes('@phone.') || phone.includes('@phone');
+  };
+
   const fetchProfile = async () => {
     if (!user) return;
     
@@ -164,7 +170,7 @@ const Profile = () => {
                 {email}
               </span>
             )}
-            {phone && (
+            {phone && !isPhoneEmail(phone) && (
               <span className="flex items-center justify-center gap-1.5">
                 <Phone className="w-3.5 h-3.5" />
                 {phone}
