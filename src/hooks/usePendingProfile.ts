@@ -115,17 +115,42 @@ export const usePendingProfile = () => {
       }
     };
 
-    const handleSalonOwnerRedirect = () => {
+    const handleSalonOwnerRedirect = async () => {
       if (!user) return;
       
       const pendingSalonOwner = localStorage.getItem('pendingSalonOwnerRegistration');
-      if (!pendingSalonOwner) return;
+      const postLoginMode = localStorage.getItem('postLoginMode');
       
-      // Clear the flag
+      if (!pendingSalonOwner && postLoginMode !== 'salon_owner') return;
+      
+      // Clear the flags
       localStorage.removeItem('pendingSalonOwnerRegistration');
+      localStorage.removeItem('postLoginMode');
       
-      // Redirect to salon registration
-      navigate('/salon-registration');
+      try {
+        // Check if user has any salon ownership records
+        const { data: ownerData, error } = await supabase
+          .from('salon_owners')
+          .select('salon_id')
+          .eq('user_id', user.id);
+        
+        if (error) {
+          console.error('Error checking salon ownership:', error);
+          navigate('/salon-registration');
+          return;
+        }
+        
+        if (ownerData && ownerData.length > 0) {
+          // User has salon(s), go to dashboard
+          navigate('/salon-dashboard');
+        } else {
+          // No salons yet, go to registration
+          navigate('/salon-registration');
+        }
+      } catch (err) {
+        console.error('Error in salon owner redirect:', err);
+        navigate('/salon-registration');
+      }
     };
 
     updatePendingProfile();
