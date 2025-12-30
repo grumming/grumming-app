@@ -114,6 +114,20 @@ const SalonDashboard = () => {
   const [isSubmittingService, setIsSubmittingService] = useState(false);
   const [deleteServiceId, setDeleteServiceId] = useState<string | null>(null);
 
+  // Salon edit state
+  const [isEditSalonDialogOpen, setIsEditSalonDialogOpen] = useState(false);
+  const [isSubmittingSalon, setIsSubmittingSalon] = useState(false);
+  const [salonForm, setSalonForm] = useState({
+    name: '',
+    description: '',
+    location: '',
+    city: '',
+    phone: '',
+    email: '',
+    opening_time: '09:00',
+    closing_time: '21:00'
+  });
+
   // Select first salon by default
   useEffect(() => {
     if (ownedSalons.length > 0 && !selectedSalonId) {
@@ -388,6 +402,69 @@ const SalonDashboard = () => {
     }
 
     setIsSubmittingResponse(false);
+  };
+
+  // Salon edit handlers
+  const handleOpenEditSalon = () => {
+    if (!selectedSalon) return;
+    setSalonForm({
+      name: selectedSalon.name || '',
+      description: selectedSalon.description || '',
+      location: selectedSalon.location || '',
+      city: selectedSalon.city || '',
+      phone: selectedSalon.phone || '',
+      email: selectedSalon.email || '',
+      opening_time: selectedSalon.opening_time?.slice(0, 5) || '09:00',
+      closing_time: selectedSalon.closing_time?.slice(0, 5) || '21:00'
+    });
+    setIsEditSalonDialogOpen(true);
+  };
+
+  const handleSaveSalon = async () => {
+    if (!selectedSalonId || !salonForm.name.trim() || !salonForm.location.trim() || !salonForm.city.trim()) {
+      toast({ title: 'Error', description: 'Name, location, and city are required', variant: 'destructive' });
+      return;
+    }
+
+    setIsSubmittingSalon(true);
+
+    try {
+      const { error } = await supabase
+        .from('salons')
+        .update({
+          name: salonForm.name.trim(),
+          description: salonForm.description.trim() || null,
+          location: salonForm.location.trim(),
+          city: salonForm.city.trim(),
+          phone: salonForm.phone.trim() || null,
+          email: salonForm.email.trim() || null,
+          opening_time: salonForm.opening_time,
+          closing_time: salonForm.closing_time
+        })
+        .eq('id', selectedSalonId);
+
+      if (error) throw error;
+
+      // Update local state
+      setSelectedSalon({
+        ...selectedSalon,
+        name: salonForm.name.trim(),
+        description: salonForm.description.trim() || null,
+        location: salonForm.location.trim(),
+        city: salonForm.city.trim(),
+        phone: salonForm.phone.trim() || null,
+        email: salonForm.email.trim() || null,
+        opening_time: salonForm.opening_time,
+        closing_time: salonForm.closing_time
+      });
+
+      toast({ title: 'Success', description: 'Salon details updated successfully' });
+      setIsEditSalonDialogOpen(false);
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    }
+
+    setIsSubmittingSalon(false);
   };
 
   const renderStars = (rating: number) => {
@@ -941,8 +1018,16 @@ const SalonDashboard = () => {
             <TabsContent value="settings" className="space-y-4">
               <Card>
                 <CardHeader>
-                  <CardTitle>Salon Settings</CardTitle>
-                  <CardDescription>Manage your salon information</CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Salon Settings</CardTitle>
+                      <CardDescription>Manage your salon information</CardDescription>
+                    </div>
+                    <Button onClick={handleOpenEditSalon}>
+                      <Edit2 className="w-4 h-4 mr-2" />
+                      Edit Details
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between p-4 border rounded-lg">
@@ -957,6 +1042,26 @@ const SalonDashboard = () => {
                     <Badge variant={selectedSalon?.is_active ? 'default' : 'secondary'}>
                       {selectedSalon?.is_active ? 'Active' : 'Inactive'}
                     </Badge>
+                  </div>
+
+                  <div className="p-4 border rounded-lg space-y-3">
+                    <p className="font-medium">Salon Details</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Name</p>
+                        <p>{selectedSalon?.name || 'Not set'}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Location</p>
+                        <p>{selectedSalon?.location}, {selectedSalon?.city}</p>
+                      </div>
+                      {selectedSalon?.description && (
+                        <div className="col-span-full">
+                          <p className="text-muted-foreground">Description</p>
+                          <p>{selectedSalon.description}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="p-4 border rounded-lg space-y-3">
@@ -986,10 +1091,6 @@ const SalonDashboard = () => {
                       </div>
                     </div>
                   </div>
-
-                  <p className="text-sm text-muted-foreground text-center pt-4">
-                    Contact the admin to update your salon details
-                  </p>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -1160,6 +1261,130 @@ const SalonDashboard = () => {
             </Button>
             <Button variant="destructive" onClick={handleDeleteService}>
               Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Salon Dialog */}
+      <Dialog open={isEditSalonDialogOpen} onOpenChange={setIsEditSalonDialogOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Salon Details</DialogTitle>
+            <DialogDescription>
+              Update your salon information
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Salon Name *</Label>
+              <Input
+                value={salonForm.name}
+                onChange={(e) => setSalonForm({ ...salonForm, name: e.target.value })}
+                placeholder="e.g., Premium Cuts"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea
+                value={salonForm.description}
+                onChange={(e) => setSalonForm({ ...salonForm, description: e.target.value })}
+                placeholder="Tell customers about your salon..."
+                rows={3}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Location/Address *</Label>
+                <Input
+                  value={salonForm.location}
+                  onChange={(e) => setSalonForm({ ...salonForm, location: e.target.value })}
+                  placeholder="e.g., 123 Main Street"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>City *</Label>
+                <Input
+                  value={salonForm.city}
+                  onChange={(e) => setSalonForm({ ...salonForm, city: e.target.value })}
+                  placeholder="e.g., Mumbai"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Phone Number</Label>
+                <Input
+                  value={salonForm.phone}
+                  onChange={(e) => setSalonForm({ ...salonForm, phone: e.target.value })}
+                  placeholder="e.g., +91 98765 43210"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={salonForm.email}
+                  onChange={(e) => setSalonForm({ ...salonForm, email: e.target.value })}
+                  placeholder="e.g., salon@example.com"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Opening Time</Label>
+                <Select 
+                  value={salonForm.opening_time} 
+                  onValueChange={(v) => setSalonForm({ ...salonForm, opening_time: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 13 }, (_, i) => i + 6).map(hour => (
+                      <SelectItem key={hour} value={`${hour.toString().padStart(2, '0')}:00`}>
+                        {hour.toString().padStart(2, '0')}:00
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Closing Time</Label>
+                <Select 
+                  value={salonForm.closing_time} 
+                  onValueChange={(v) => setSalonForm({ ...salonForm, closing_time: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 13 }, (_, i) => i + 12).map(hour => (
+                      <SelectItem key={hour} value={`${hour.toString().padStart(2, '0')}:00`}>
+                        {hour.toString().padStart(2, '0')}:00
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditSalonDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSaveSalon} 
+              disabled={isSubmittingSalon || !salonForm.name.trim() || !salonForm.location.trim() || !salonForm.city.trim()}
+            >
+              {isSubmittingSalon && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>
