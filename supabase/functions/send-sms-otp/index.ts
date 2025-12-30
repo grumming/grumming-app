@@ -19,17 +19,16 @@ const TWILIO_PHONE_NUMBER = Deno.env.get('TWILIO_PHONE_NUMBER');
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
 const MAX_SEND_ATTEMPTS = 3;
 
-// Whitelisted test phone numbers with custom OTPs
-const TEST_PHONE_NUMBERS: Record<string, string> = {
-  '+919693507281': '112233',
-  '+919534310739': '223344',
-  '+919876543210': '334455',
-  '+919123456789': '445566',
-  '+918888888888': '556677',
-};
+// Whitelisted test phone numbers (use fixed test OTP, skip SMS)
+const TEST_PHONE_NUMBERS = [
+  '+919262582899',
+  '+917004414512',
+  '+919534310739',
+  '+919135812785',
+];
 
-// Default test OTP for any additional whitelisted numbers
-const DEFAULT_TEST_OTP = '111456';
+// Fixed test OTP for whitelisted numbers
+const TEST_OTP = '111456';
 
 // Generate a 6-digit OTP
 function generateOTP(): string {
@@ -232,8 +231,7 @@ serve(async (req) => {
     }
 
     // Check if this is a whitelisted test number (skip rate limiting)
-    const isWhitelisted = phone in TEST_PHONE_NUMBERS;
-    const testOtp = isWhitelisted ? TEST_PHONE_NUMBERS[phone] : null;
+    const isWhitelisted = TEST_PHONE_NUMBERS.includes(phone);
     
     if (!isWhitelisted) {
       // Check rate limit only for non-whitelisted numbers
@@ -274,7 +272,7 @@ serve(async (req) => {
     }
 
     // For whitelisted test numbers, use fixed OTP and skip SMS
-    if (isWhitelisted && testOtp) {
+    if (isWhitelisted) {
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiry
       console.log(`Using test OTP for whitelisted number: ${phone}`);
 
@@ -286,7 +284,7 @@ serve(async (req) => {
         .from('phone_otps')
         .insert({
           phone,
-          otp_code: testOtp,
+          otp_code: TEST_OTP,
           expires_at: expiresAt.toISOString(),
           verified: false,
         });
@@ -299,11 +297,12 @@ serve(async (req) => {
         );
       }
 
-      console.log(`Test OTP stored for ${phone}`);
+      console.log(`Test OTP stored for ${phone}, OTP: ${TEST_OTP}`);
       return new Response(
         JSON.stringify({ 
           success: true, 
           message: 'OTP sent successfully',
+          isTestNumber: true, // For debugging
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );

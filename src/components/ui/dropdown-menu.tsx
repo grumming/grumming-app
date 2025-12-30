@@ -5,25 +5,16 @@ import { Check, ChevronRight, Circle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const DropdownMenu = DropdownMenuPrimitive.Root;
-DropdownMenu.displayName = "DropdownMenu";
 
-const DropdownMenuTrigger = React.forwardRef<
-  React.ElementRef<typeof DropdownMenuPrimitive.Trigger>,
-  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Trigger>
->(({ className, ...props }, ref) => (
-  <DropdownMenuPrimitive.Trigger ref={ref} className={className} {...props} />
-));
-DropdownMenuTrigger.displayName = "DropdownMenuTrigger";
+const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
 
 const DropdownMenuGroup = DropdownMenuPrimitive.Group;
-DropdownMenuGroup.displayName = "DropdownMenuGroup";
 
 const DropdownMenuPortal = DropdownMenuPrimitive.Portal;
 
 const DropdownMenuSub = DropdownMenuPrimitive.Sub;
 
 const DropdownMenuRadioGroup = DropdownMenuPrimitive.RadioGroup;
-DropdownMenuRadioGroup.displayName = "DropdownMenuRadioGroup";
 
 const DropdownMenuSubTrigger = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.SubTrigger>,

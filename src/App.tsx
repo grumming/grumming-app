@@ -10,7 +10,6 @@ import { FavoritesProvider } from "@/contexts/FavoritesContext";
 import { PushNotificationSetup } from "@/components/PushNotificationSetup";
 import { ReferralRewardListener } from "@/components/ReferralRewardListener";
 import { DeepLinkHandler } from "@/components/DeepLinkHandler";
-import ErrorBoundary from "@/components/ErrorBoundary";
 
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -53,6 +52,10 @@ const App = () => {
       const stack = opts.stack ?? "";
       const filename = opts.filename ?? "";
 
+      // Only suppress wallet-related extension errors
+      const isWalletRelated = /metamask|phantom|wallet|ethereum/i.test(message) ||
+        message.includes("Failed to connect to MetaMask");
+
       const isExtensionSource =
         filename.includes("chrome-extension://") ||
         filename.includes("moz-extension://") ||
@@ -61,16 +64,7 @@ const App = () => {
         stack.includes("nkbihfbeogaeaoehlefnkodbefgpgknn") ||
         stack.includes("inpage.js");
 
-      // In DEV we suppress all extension-sourced errors to avoid blank screens.
-      // In PROD we still suppress the common extension injection failures (they're outside our app).
-      const isKnownExtensionNoise =
-        /metamask|phantom|wallet|ethereum/i.test(message) ||
-        message.includes("Failed to connect to MetaMask") ||
-        /Cannot redefine property: ethereum/i.test(message) ||
-        /Cannot set property ethereum/i.test(message) ||
-        /Invalid property descriptor/i.test(message);
-
-      return isExtensionSource && (import.meta.env.DEV || isKnownExtensionNoise);
+      return isWalletRelated && isExtensionSource;
     };
 
     const onUnhandledRejection = (event: PromiseRejectionEvent) => {
@@ -105,57 +99,55 @@ const App = () => {
   }, []);
 
   return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <FavoritesProvider>
-            <LocationProvider>
-              <TooltipProvider>
-                <PushNotificationSetup />
-                <Toaster />
-                <Sonner />
-                <BrowserRouter>
-                  <ReferralRewardListener />
-                  <DeepLinkHandler />
-                  
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/auth" element={<Auth />} />
-                    <Route path="/profile" element={<Profile />} />
-                    <Route path="/edit-profile" element={<EditProfile />} />
-                    <Route path="/settings" element={<Settings />} />
-                    <Route path="/privacy-security" element={<PrivacySecurity />} />
-                    <Route path="/salon/:id" element={<SalonDetail />} />
-                    <Route path="/booking-confirmation" element={<BookingConfirmation />} />
-                    <Route path="/notification-settings" element={<NotificationSettings />} />
-                    <Route path="/my-bookings" element={<MyBookings />} />
-                    <Route path="/my-vouchers" element={<MyVouchers />} />
-                    <Route path="/saved-addresses" element={<SavedAddresses />} />
-                    <Route path="/search" element={<SearchSalons />} />
-                    <Route path="/referrals" element={<Referrals />} />
-                    <Route path="/wallet" element={<Wallet />} />
-                    <Route path="/favorites" element={<Favorites />} />
-                    <Route path="/payment-methods" element={<PaymentMethods />} />
-                    <Route path="/payment-history" element={<PaymentHistory />} />
-                    <Route path="/admin" element={<AdminDashboard />} />
-                    <Route path="/admin/promo-codes" element={<AdminPromoCodes />} />
-                    <Route path="/salon-dashboard" element={<SalonDashboard />} />
-                    <Route path="/salon-registration" element={<SalonRegistration />} />
-                    <Route path="/salon-owner-auth" element={<SalonOwnerAuth />} />
-                    <Route path="/terms" element={<Terms />} />
-                    <Route path="/privacy" element={<Privacy />} />
-                    <Route path="/chat" element={<Chat />} />
-                    <Route path="/chat/:conversationId" element={<Chat />} />
-                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </BrowserRouter>
-              </TooltipProvider>
-            </LocationProvider>
-          </FavoritesProvider>
-        </AuthProvider>
-      </QueryClientProvider>
-    </ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <FavoritesProvider>
+          <LocationProvider>
+            <TooltipProvider>
+              <PushNotificationSetup />
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <ReferralRewardListener />
+                <DeepLinkHandler />
+                
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/edit-profile" element={<EditProfile />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/privacy-security" element={<PrivacySecurity />} />
+                  <Route path="/salon/:id" element={<SalonDetail />} />
+                  <Route path="/booking-confirmation" element={<BookingConfirmation />} />
+                  <Route path="/notification-settings" element={<NotificationSettings />} />
+                  <Route path="/my-bookings" element={<MyBookings />} />
+                  <Route path="/my-vouchers" element={<MyVouchers />} />
+                  <Route path="/saved-addresses" element={<SavedAddresses />} />
+                  <Route path="/search" element={<SearchSalons />} />
+                  <Route path="/referrals" element={<Referrals />} />
+                  <Route path="/wallet" element={<Wallet />} />
+                  <Route path="/favorites" element={<Favorites />} />
+                  <Route path="/payment-methods" element={<PaymentMethods />} />
+                  <Route path="/payment-history" element={<PaymentHistory />} />
+                  <Route path="/admin" element={<AdminDashboard />} />
+                  <Route path="/admin/promo-codes" element={<AdminPromoCodes />} />
+                  <Route path="/salon-dashboard" element={<SalonDashboard />} />
+                  <Route path="/salon-registration" element={<SalonRegistration />} />
+                  <Route path="/salon-owner-auth" element={<SalonOwnerAuth />} />
+                  <Route path="/terms" element={<Terms />} />
+                  <Route path="/privacy" element={<Privacy />} />
+                  <Route path="/chat" element={<Chat />} />
+                  <Route path="/chat/:conversationId" element={<Chat />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </TooltipProvider>
+          </LocationProvider>
+        </FavoritesProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 };
 

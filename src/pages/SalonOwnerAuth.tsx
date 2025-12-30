@@ -13,8 +13,7 @@ import { z } from 'zod';
 const phoneSchema = z.string().min(10, 'Phone number must be at least 10 digits').regex(/^[0-9]+$/, 'Please enter a valid phone number');
 const otpSchema = z.string().length(6, 'OTP must be 6 digits');
 
-// Test phone numbers are now managed server-side only
-const TEST_PHONE_NUMBERS: string[] = [];
+const TEST_PHONE_NUMBERS = ['9262582899', '7004414512', '9534310739', '9135812785'];
 
 type AuthStep = 'phone' | 'otp';
 
@@ -35,7 +34,7 @@ const SalonOwnerAuth = () => {
   useEffect(() => {
     const checkAndRedirect = async () => {
       if (!loading && user) {
-        // Check if user has any salon ownership records
+        // Check if user is already a salon owner with approved salons
         const { data: ownershipData } = await supabase
           .from('salon_owners')
           .select(`
@@ -47,10 +46,13 @@ const SalonOwnerAuth = () => {
           .eq('user_id', user.id);
 
         if (ownershipData && ownershipData.length > 0) {
-          // User has salon(s) - go to dashboard to see status
-          navigate('/salon-dashboard');
+          const hasActiveSalon = ownershipData.some((o: any) => o.salons?.is_active);
+          if (hasActiveSalon) {
+            navigate('/salon-dashboard');
+          } else {
+            navigate('/salon-registration');
+          }
         } else {
-          // No salons - go to registration
           navigate('/salon-registration');
         }
       }
@@ -167,7 +169,7 @@ const SalonOwnerAuth = () => {
         localStorage.setItem('pendingSalonOwnerRegistration', 'true');
         window.location.href = data.verificationUrl;
       } else {
-        // Check if user already has salons (pending or active)
+        // Check if user already has salons
         const { data: ownershipData } = await supabase
           .from('salon_owners')
           .select(`
@@ -179,8 +181,8 @@ const SalonOwnerAuth = () => {
           .eq('user_id', data.user?.id);
 
         if (ownershipData && ownershipData.length > 0) {
-          // User has salon(s) - go to dashboard to see status
-          navigate('/salon-dashboard');
+          const hasActiveSalon = ownershipData.some((o: any) => o.salons?.is_active);
+          navigate(hasActiveSalon ? '/salon-dashboard' : '/salon-registration');
         } else {
           navigate('/salon-registration');
         }
@@ -257,9 +259,9 @@ const SalonOwnerAuth = () => {
           {step === 'phone' ? (
             <>
               <div className="text-center space-y-2">
-                <h1 className="text-2xl font-bold">Salon Owner Login</h1>
+                <h1 className="text-2xl font-bold">List Your Salon</h1>
                 <p className="text-muted-foreground text-sm">
-                  Enter your phone number to access your salon dashboard or register a new salon
+                  Enter your phone number to get started
                 </p>
               </div>
 
@@ -282,6 +284,9 @@ const SalonOwnerAuth = () => {
                   </div>
                   {errors.phone && (
                     <p className="text-xs text-destructive">{errors.phone}</p>
+                  )}
+                  {isTestNumber && (
+                    <p className="text-xs text-muted-foreground">🧪 Test Mode</p>
                   )}
                 </div>
 

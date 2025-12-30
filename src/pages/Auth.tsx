@@ -28,8 +28,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-// Test phone numbers are now managed server-side only
-const TEST_PHONE_NUMBERS: string[] = [];
+// Whitelisted test phone numbers (for development)
+const TEST_PHONE_NUMBERS = [
+  '9262582899',
+  '7004414512',
+  '9534310739',
+  '9135812785',
+];
+const TEST_OTP = '111456';
 
 const phoneSchema = z.string().min(10, 'Phone number must be at least 10 digits').regex(/^[0-9]+$/, 'Please enter a valid phone number');
 const otpSchema = z.string().length(6, 'OTP must be 6 digits');
@@ -397,17 +403,45 @@ const Auth = () => {
         setStep('profile');
       } else {
         // Existing user - complete login immediately
-        // In Salon Owner mode, don't query ownership here (RLS requires an authenticated session).
-        // Instead, set a flag so we can route after auth completes.
-        if (isSalonOwnerMode) {
-          localStorage.setItem('pendingSalonOwnerRegistration', 'true');
+        // If salon owner mode, check if user has an approved salon
+        if (isSalonOwnerMode && data.userId) {
+          const { data: ownerData, error: ownerError } = await supabase
+            .from('salon_owners')
+            .select(`
+              salon_id,
+              salons!inner (
+                id,
+                is_active
+              )
+            `)
+            .eq('user_id', data.userId);
+          
+          if (ownerError || !ownerData || ownerData.length === 0) {
+            triggerHaptic('error');
+            toast({
+              title: 'No Salon Found',
+              description: 'You don\'t have any registered salon. Please list your salon first.',
+              variant: 'destructive',
+            });
+            setIsLoading(false);
+            navigate('/salon-registration');
+            return;
+          }
+          
+          // Check if at least one salon is approved (is_active = true)
+          const hasApprovedSalon = ownerData.some((o: any) => o.salons?.is_active === true);
+          
+          if (!hasApprovedSalon) {
+            triggerHaptic('error');
+            toast({
+              title: 'Salon Pending Approval',
+              description: 'Your salon is pending admin approval. You\'ll be notified once approved.',
+              variant: 'destructive',
+            });
+            setIsLoading(false);
+            return;
+          }
         }
-
-        if (data.verificationUrl) {
-          window.location.href = data.verificationUrl;
-          return;
-        }
-        navigate('/');
         
         if (data.verificationUrl) {
           window.location.href = data.verificationUrl;
@@ -1114,6 +1148,23 @@ const Auth = () => {
                 Sent to +91 {phone}
               </p>
               
+              {/* Test OTP hint for whitelisted numbers */}
+              {TEST_PHONE_NUMBERS.includes(phone) && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-6 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-amber-600 dark:text-amber-400 text-sm font-medium">
+                      🧪 Test Mode
+                    </span>
+                  </div>
+                  <p className="text-amber-700 dark:text-amber-300 text-sm mt-1">
+                    Use OTP: <span className="font-mono font-bold tracking-wider">{TEST_OTP}</span>
+                  </p>
+                </motion.div>
+              )}
               
               <div className="space-y-6">
                 <div className="space-y-4">
