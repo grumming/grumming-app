@@ -30,6 +30,7 @@ import { useWallet } from '@/hooks/useWallet';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useRecentSearches } from '@/hooks/useRecentSearches';
 import { allSalonsList } from '@/data/salonsData';
+import { useSalonById } from '@/hooks/useSalons';
 
 // Mock salon data - in production this would come from database
 const salonsData: Record<string, any> = {
@@ -623,7 +624,33 @@ const SalonDetail = () => {
     fetchUserVouchers();
   }, [user]);
 
-  const salon = id ? salonsData[id] : null;
+  // Fetch salon from database
+  const { salon: dbSalon, isLoading: isSalonLoading } = useSalonById(id);
+  
+  // Transform DB salon to expected format, fallback to static data for demo
+  const salon = dbSalon ? {
+    id: dbSalon.id,
+    name: dbSalon.name,
+    image: dbSalon.image_url || "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&auto=format&fit=crop&q=80",
+    gallery: [dbSalon.image_url || "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&auto=format&fit=crop&q=80"],
+    rating: dbSalon.rating,
+    reviews: dbSalon.total_reviews,
+    location: dbSalon.location,
+    address: dbSalon.location + ', ' + dbSalon.city,
+    coordinates: null, // Could be added to DB later
+    timing: `${dbSalon.opening_time?.slice(0, 5) || '09:00'} - ${dbSalon.closing_time?.slice(0, 5) || '21:00'}`,
+    phone: dbSalon.phone || '+91 98765 43210',
+    description: dbSalon.description || 'Premium salon offering world-class beauty services.',
+    services: dbSalon.services.map((s, index) => ({
+      id: index + 1,
+      name: s.name,
+      duration: s.duration,
+      price: s.price,
+      category: s.category,
+    })),
+    amenities: ["AC", "WiFi", "Card Payment"],
+    reviewsList: [],
+  } : (id ? salonsData[id] : null);
 
   // Calculate distance from user's location
   const salonDistance = salon && coordinates && salon.coordinates
@@ -676,6 +703,18 @@ const SalonDetail = () => {
       });
     }
   }, [isRetryMode, retryService, retryDate, retryTime, retryBookingId, salon, toast]);
+
+  // Show loading state while fetching from database
+  if (isSalonLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-primary" />
+          <p className="text-muted-foreground">Loading salon...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!salon) {
     return (
