@@ -405,15 +405,10 @@ const Auth = () => {
         // Existing user - complete login immediately
         // If salon owner mode, check if user has an approved salon
         if (isSalonOwnerMode && data.userId) {
+          // First check if user has any salon ownership records
           const { data: ownerData, error: ownerError } = await supabase
             .from('salon_owners')
-            .select(`
-              salon_id,
-              salons!inner (
-                id,
-                is_active
-              )
-            `)
+            .select('salon_id')
             .eq('user_id', data.userId);
           
           if (ownerError || !ownerData || ownerData.length === 0) {
@@ -428,19 +423,10 @@ const Auth = () => {
             return;
           }
           
-          // Check if at least one salon is approved (is_active = true)
-          const hasApprovedSalon = ownerData.some((o: any) => o.salons?.is_active === true);
-          
-          if (!hasApprovedSalon) {
-            triggerHaptic('error');
-            toast({
-              title: 'Salon Pending Approval',
-              description: 'Your salon is pending admin approval. You\'ll be notified once approved.',
-              variant: 'destructive',
-            });
-            setIsLoading(false);
-            return;
-          }
+          // User has salon ownership, redirect to dashboard
+          // Dashboard will show pending status if salon not yet approved
+          navigate('/salon-dashboard');
+          return;
         }
         
         if (data.verificationUrl) {
