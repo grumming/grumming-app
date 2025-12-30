@@ -13,7 +13,8 @@ import { z } from 'zod';
 const phoneSchema = z.string().min(10, 'Phone number must be at least 10 digits').regex(/^[0-9]+$/, 'Please enter a valid phone number');
 const otpSchema = z.string().length(6, 'OTP must be 6 digits');
 
-const TEST_PHONE_NUMBERS = ['9262582899', '7004414512', '9534310739', '9135812785'];
+// Test phone numbers are now managed server-side only
+const TEST_PHONE_NUMBERS: string[] = [];
 
 type AuthStep = 'phone' | 'otp';
 
@@ -282,9 +283,6 @@ const SalonOwnerAuth = () => {
                   {errors.phone && (
                     <p className="text-xs text-destructive">{errors.phone}</p>
                   )}
-                  {isTestNumber && (
-                    <p className="text-xs text-muted-foreground">🧪 Test Mode - Use OTP: 111456</p>
-                  )}
                 </div>
 
                 <Button
@@ -304,9 +302,6 @@ const SalonOwnerAuth = () => {
                 <p className="text-muted-foreground text-sm">
                   Enter the 6-digit code sent to +91 {phone}
                 </p>
-                {isTestNumber && (
-                  <p className="text-xs text-primary font-medium">🧪 Test Mode - Use OTP: 111456</p>
-                )}
               </div>
 
               <div className="space-y-4">

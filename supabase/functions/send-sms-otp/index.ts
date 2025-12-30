@@ -19,12 +19,13 @@ const TWILIO_PHONE_NUMBER = Deno.env.get('TWILIO_PHONE_NUMBER');
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
 const MAX_SEND_ATTEMPTS = 3;
 
-// Whitelisted test phone numbers - EMPTY for production
-// Add numbers here only for emergency debugging
-const TEST_PHONE_NUMBERS: string[] = [];
+// Whitelisted test phone numbers with custom OTPs
+const TEST_PHONE_NUMBERS: Record<string, string> = {
+  '+919693507281': '112233',
+};
 
-// Fixed test OTP for whitelisted numbers (only used if TEST_PHONE_NUMBERS has entries)
-const TEST_OTP = '111456';
+// Default test OTP for any additional whitelisted numbers
+const DEFAULT_TEST_OTP = '111456';
 
 // Generate a 6-digit OTP
 function generateOTP(): string {
@@ -227,7 +228,8 @@ serve(async (req) => {
     }
 
     // Check if this is a whitelisted test number (skip rate limiting)
-    const isWhitelisted = TEST_PHONE_NUMBERS.includes(phone);
+    const isWhitelisted = phone in TEST_PHONE_NUMBERS;
+    const testOtp = isWhitelisted ? TEST_PHONE_NUMBERS[phone] : null;
     
     if (!isWhitelisted) {
       // Check rate limit only for non-whitelisted numbers
@@ -268,7 +270,7 @@ serve(async (req) => {
     }
 
     // For whitelisted test numbers, use fixed OTP and skip SMS
-    if (isWhitelisted) {
+    if (isWhitelisted && testOtp) {
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiry
       console.log(`Using test OTP for whitelisted number: ${phone}`);
 
@@ -280,7 +282,7 @@ serve(async (req) => {
         .from('phone_otps')
         .insert({
           phone,
-          otp_code: TEST_OTP,
+          otp_code: testOtp,
           expires_at: expiresAt.toISOString(),
           verified: false,
         });
@@ -293,12 +295,11 @@ serve(async (req) => {
         );
       }
 
-      console.log(`Test OTP stored for ${phone}, OTP: ${TEST_OTP}`);
+      console.log(`Test OTP stored for ${phone}`);
       return new Response(
         JSON.stringify({ 
           success: true, 
           message: 'OTP sent successfully',
-          isTestNumber: true, // For debugging
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
