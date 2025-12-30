@@ -111,13 +111,17 @@ const SearchSalons = () => {
   const filteredSalons = useMemo(() => {
     let filtered = dbSalons;
     
-    // Filter by selected city
+    // Filter by selected city - but if no matches, show all
     if (selectedCity) {
       const cityName = selectedCity.split(',')[0].trim().toLowerCase();
-      filtered = filtered.filter(salon => 
+      const cityMatches = filtered.filter(salon => 
         salon.city.toLowerCase().includes(cityName) ||
         cityName.includes(salon.city.toLowerCase())
       );
+      // Only apply city filter if there are matches, otherwise show all
+      if (cityMatches.length > 0) {
+        filtered = cityMatches;
+      }
     }
     
     // Search query filter
