@@ -19,16 +19,11 @@ const TWILIO_PHONE_NUMBER = Deno.env.get('TWILIO_PHONE_NUMBER');
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
 const MAX_SEND_ATTEMPTS = 3;
 
-// Whitelisted test phone numbers (use fixed test OTP, skip SMS)
-const TEST_PHONE_NUMBERS = [
-  '+919262582899',
-  '+917004414512',
-  '+919534310739',
-  '+919135812785',
-  '+919693507281',
-];
+// Whitelisted test phone numbers - EMPTY for production
+// Add numbers here only for emergency debugging
+const TEST_PHONE_NUMBERS: string[] = [];
 
-// Fixed test OTP for whitelisted numbers
+// Fixed test OTP for whitelisted numbers (only used if TEST_PHONE_NUMBERS has entries)
 const TEST_OTP = '111456';
 
 // Generate a 6-digit OTP
