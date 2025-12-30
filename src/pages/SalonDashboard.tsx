@@ -4,7 +4,8 @@ import { motion } from 'framer-motion';
 import { 
   ArrowLeft, Store, Calendar, Clock, Star, Users, TrendingUp,
   Package, MessageSquare, Settings, Bell, Loader2, AlertTriangle,
-  CheckCircle, XCircle, Eye, Edit2, ChevronRight, IndianRupee
+  CheckCircle, XCircle, Eye, Edit2, ChevronRight, IndianRupee,
+  Send, Reply
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -13,9 +14,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
+} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useSalonOwner } from '@/hooks/useSalonOwner';
@@ -43,6 +48,22 @@ interface SalonService {
   is_active: boolean;
 }
 
+interface Review {
+  id: string;
+  user_id: string;
+  salon_id: string;
+  booking_id: string | null;
+  rating: number;
+  review_text: string | null;
+  owner_response: string | null;
+  owner_response_at: string | null;
+  created_at: string;
+  profile?: {
+    full_name: string | null;
+    avatar_url: string | null;
+  };
+}
+
 interface DashboardStats {
   todayBookings: number;
   upcomingBookings: number;
@@ -62,6 +83,7 @@ const SalonDashboard = () => {
   const [selectedSalon, setSelectedSalon] = useState<any>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [services, setServices] = useState<SalonService[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
     todayBookings: 0,
     upcomingBookings: 0,
@@ -71,6 +93,12 @@ const SalonDashboard = () => {
     totalReviews: 0
   });
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Review response state
+  const [isRespondDialogOpen, setIsRespondDialogOpen] = useState(false);
+  const [selectedReview, setSelectedReview] = useState<Review | null>(null);
+  const [responseText, setResponseText] = useState('');
+  const [isSubmittingResponse, setIsSubmittingResponse] = useState(false);
 
   // Select first salon by default
   useEffect(() => {
@@ -125,11 +153,26 @@ const SalonDashboard = () => {
         const completedBookings = (bookingsData || []).filter(b => b.status === 'completed');
         const totalRevenue = completedBookings.reduce((sum, b) => sum + (b.service_price || 0), 0);
 
-        // Fetch reviews
+        // Fetch reviews with user profiles
         const { data: reviewsData } = await supabase
           .from('reviews')
-          .select('rating')
-          .eq('salon_id', selectedSalonId);
+          .select('*')
+          .eq('salon_id', selectedSalonId)
+          .order('created_at', { ascending: false });
+
+        // Fetch profiles for reviewers
+        const reviewerIds = reviewsData?.map(r => r.user_id) || [];
+        const { data: reviewerProfiles } = await supabase
+          .from('profiles')
+          .select('user_id, full_name, avatar_url')
+          .in('user_id', reviewerIds);
+
+        const reviewsWithProfiles = reviewsData?.map(review => ({
+          ...review,
+          profile: reviewerProfiles?.find(p => p.user_id === review.user_id)
+        })) || [];
+
+        setReviews(reviewsWithProfiles);
 
         const avgRating = reviewsData && reviewsData.length > 0
           ? reviewsData.reduce((sum, r) => sum + r.rating, 0) / reviewsData.length
@@ -195,6 +238,54 @@ const SalonDashboard = () => {
     if (isToday(date)) return 'Today';
     if (isTomorrow(date)) return 'Tomorrow';
     return format(date, 'MMM d, yyyy');
+  };
+
+  const handleOpenResponseDialog = (review: Review) => {
+    setSelectedReview(review);
+    setResponseText(review.owner_response || '');
+    setIsRespondDialogOpen(true);
+  };
+
+  const handleSubmitResponse = async () => {
+    if (!selectedReview || !responseText.trim()) {
+      toast({ title: 'Error', description: 'Please enter a response', variant: 'destructive' });
+      return;
+    }
+
+    setIsSubmittingResponse(true);
+
+    const { error } = await supabase
+      .from('reviews')
+      .update({
+        owner_response: responseText.trim(),
+        owner_response_at: new Date().toISOString()
+      })
+      .eq('id', selectedReview.id);
+
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Success', description: 'Response submitted successfully' });
+      setReviews(reviews.map(r => 
+        r.id === selectedReview.id 
+          ? { ...r, owner_response: responseText.trim(), owner_response_at: new Date().toISOString() }
+          : r
+      ));
+      setIsRespondDialogOpen(false);
+      setSelectedReview(null);
+      setResponseText('');
+    }
+
+    setIsSubmittingResponse(false);
+  };
+
+  const renderStars = (rating: number) => {
+    return Array.from({ length: 5 }).map((_, i) => (
+      <Star
+        key={i}
+        className={`w-4 h-4 ${i < rating ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'}`}
+      />
+    ));
   };
 
   // Loading state
@@ -285,9 +376,10 @@ const SalonDashboard = () => {
           </div>
         ) : (
           <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="bookings">Bookings</TabsTrigger>
+              <TabsTrigger value="reviews">Reviews</TabsTrigger>
               <TabsTrigger value="services">Services</TabsTrigger>
               <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
@@ -531,6 +623,109 @@ const SalonDashboard = () => {
               </Card>
             </TabsContent>
 
+            {/* Reviews Tab */}
+            <TabsContent value="reviews" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Customer Reviews</CardTitle>
+                      <CardDescription>View and respond to customer feedback</CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                      <span className="font-semibold">{stats.avgRating}</span>
+                      <span className="text-muted-foreground">({stats.totalReviews} reviews)</span>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {reviews.length === 0 ? (
+                    <div className="text-center py-12">
+                      <MessageSquare className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
+                      <h3 className="font-medium">No reviews yet</h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Reviews from customers will appear here
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {reviews.map(review => (
+                        <motion.div
+                          key={review.id}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="p-4 border rounded-lg space-y-3"
+                        >
+                          {/* Review Header */}
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-3">
+                              <Avatar className="w-10 h-10">
+                                <AvatarImage src={review.profile?.avatar_url || ''} />
+                                <AvatarFallback className="bg-primary/10 text-primary">
+                                  {review.profile?.full_name?.charAt(0) || 'U'}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="font-medium">
+                                  {review.profile?.full_name || 'Customer'}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {format(new Date(review.created_at), 'MMM d, yyyy')}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {renderStars(review.rating)}
+                            </div>
+                          </div>
+
+                          {/* Review Text */}
+                          {review.review_text && (
+                            <p className="text-sm text-muted-foreground">
+                              "{review.review_text}"
+                            </p>
+                          )}
+
+                          {/* Owner Response */}
+                          {review.owner_response ? (
+                            <div className="ml-4 p-3 bg-muted/50 rounded-lg border-l-2 border-primary">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Reply className="w-4 h-4 text-primary" />
+                                <span className="text-xs font-medium">Your Response</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {review.owner_response_at && format(new Date(review.owner_response_at), 'MMM d, yyyy')}
+                                </span>
+                              </div>
+                              <p className="text-sm">{review.owner_response}</p>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="mt-2 h-7 text-xs"
+                                onClick={() => handleOpenResponseDialog(review)}
+                              >
+                                <Edit2 className="w-3 h-3 mr-1" />
+                                Edit Response
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleOpenResponseDialog(review)}
+                            >
+                              <Reply className="w-4 h-4 mr-2" />
+                              Respond to Review
+                            </Button>
+                          )}
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             {/* Settings Tab */}
             <TabsContent value="settings" className="space-y-4">
               <Card>
@@ -590,6 +785,65 @@ const SalonDashboard = () => {
           </Tabs>
         )}
       </main>
+
+      {/* Response Dialog */}
+      <Dialog open={isRespondDialogOpen} onOpenChange={setIsRespondDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedReview?.owner_response ? 'Edit Response' : 'Respond to Review'}
+            </DialogTitle>
+            <DialogDescription>
+              Your response will be visible to all customers viewing this review
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedReview && (
+            <div className="space-y-4">
+              {/* Original Review */}
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-1">
+                    {renderStars(selectedReview.rating)}
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    by {selectedReview.profile?.full_name || 'Customer'}
+                  </span>
+                </div>
+                {selectedReview.review_text && (
+                  <p className="text-sm text-muted-foreground">"{selectedReview.review_text}"</p>
+                )}
+              </div>
+
+              {/* Response Input */}
+              <div className="space-y-2">
+                <Label>Your Response</Label>
+                <Textarea
+                  value={responseText}
+                  onChange={(e) => setResponseText(e.target.value)}
+                  placeholder="Thank you for your feedback..."
+                  rows={4}
+                  maxLength={500}
+                />
+                <p className="text-xs text-muted-foreground text-right">
+                  {responseText.length}/500 characters
+                </p>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsRespondDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSubmitResponse} disabled={isSubmittingResponse || !responseText.trim()}>
+              {isSubmittingResponse && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              <Send className="w-4 h-4 mr-2" />
+              Submit Response
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
