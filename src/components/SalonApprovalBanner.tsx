@@ -5,6 +5,13 @@ import { Button } from '@/components/ui/button';
 import { useSalonOwner } from '@/hooks/useSalonOwner';
 import { useAuth } from '@/hooks/useAuth';
 
+interface OwnedSalon {
+  id: string;
+  name: string;
+  status: 'pending' | 'approved' | 'rejected';
+  rejection_reason?: string | null;
+}
+
 const SalonApprovalBanner = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -44,13 +51,20 @@ const SalonApprovalBanner = () => {
               <h3 className="font-semibold text-red-900 dark:text-red-100 text-sm">
                 Registration Not Approved
               </h3>
-              <p className="text-xs text-red-700 dark:text-red-300 mt-0.5 mb-3">
-                {rejectedSalons.map(s => s.name).join(', ')} was not approved. You can edit and resubmit.
+              <p className="text-xs text-red-700 dark:text-red-300 mt-0.5">
+                {rejectedSalons.map(s => s.name).join(', ')} was not approved.
               </p>
+              {rejectedSalons[0].rejection_reason && (
+                <div className="mt-2 p-2 bg-red-100/50 dark:bg-red-900/30 rounded-md">
+                  <p className="text-xs text-red-800 dark:text-red-200">
+                    <span className="font-medium">Reason:</span> {rejectedSalons[0].rejection_reason}
+                  </p>
+                </div>
+              )}
               <Button 
                 size="sm" 
                 variant="outline"
-                className="border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/50"
+                className="mt-3 border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/50"
                 onClick={() => handleReapply(rejectedSalons[0].id)}
               >
                 <RefreshCw className="w-3.5 h-3.5 mr-1.5" />

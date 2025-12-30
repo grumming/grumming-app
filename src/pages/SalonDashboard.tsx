@@ -496,13 +496,20 @@ const SalonDashboard = () => {
                 <h3 className="font-semibold text-red-900 dark:text-red-100 text-sm">
                   Registration Not Approved
                 </h3>
-                <p className="text-xs text-red-700 dark:text-red-300 mt-0.5 mb-3">
-                  Your salon registration was not approved. You can edit your details and resubmit for review.
+                <p className="text-xs text-red-700 dark:text-red-300 mt-0.5">
+                  Your salon registration was not approved.
                 </p>
+                {selectedSalon.rejection_reason && (
+                  <div className="mt-2 p-2 bg-red-100/50 dark:bg-red-900/30 rounded-md">
+                    <p className="text-xs text-red-800 dark:text-red-200">
+                      <span className="font-medium">Reason:</span> {selectedSalon.rejection_reason}
+                    </p>
+                  </div>
+                )}
                 <Button 
                   size="sm" 
                   variant="outline"
-                  className="border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/50"
+                  className="mt-3 border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/50"
                   onClick={() => navigate(`/salon-registration?edit=${selectedSalon.id}`)}
                 >
                   <Edit2 className="w-3.5 h-3.5 mr-1.5" />

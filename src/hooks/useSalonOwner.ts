@@ -11,6 +11,7 @@ interface OwnedSalon {
   is_active: boolean;
   is_primary: boolean;
   status: 'pending' | 'approved' | 'rejected';
+  rejection_reason: string | null;
 }
 
 export const useSalonOwner = () => {
@@ -41,7 +42,8 @@ export const useSalonOwner = () => {
               city,
               image_url,
               is_active,
-              status
+              status,
+              rejection_reason
             )
           `)
           .eq('user_id', user.id);

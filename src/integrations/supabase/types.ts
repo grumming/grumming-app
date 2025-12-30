@@ -734,6 +734,7 @@ export type Database = {
           opening_time: string | null
           phone: string | null
           rating: number | null
+          rejection_reason: string | null
           status: string
           total_reviews: number | null
           updated_at: string
@@ -752,6 +753,7 @@ export type Database = {
           opening_time?: string | null
           phone?: string | null
           rating?: number | null
+          rejection_reason?: string | null
           status?: string
           total_reviews?: number | null
           updated_at?: string
@@ -770,6 +772,7 @@ export type Database = {
           opening_time?: string | null
           phone?: string | null
           rating?: number | null
+          rejection_reason?: string | null
           status?: string
           total_reviews?: number | null
           updated_at?: string
