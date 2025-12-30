@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Phone, ArrowLeft, Loader2, Gift, ChevronDown, ClipboardPaste, User, Mail, Smartphone, Check, X } from 'lucide-react';
+import { Phone, ArrowLeft, Loader2, Gift, ChevronDown, ClipboardPaste, User, Mail, Smartphone, Check, X, MoreVertical, Store } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,6 +21,12 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 // Whitelisted test phone numbers (for development)
 const TEST_PHONE_NUMBERS = [
@@ -50,6 +56,7 @@ const Auth = () => {
   const [step, setStep] = useState<AuthStep>('phone');
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isSalonOwnerMode, setIsSalonOwnerMode] = useState(false);
   const [showReferralSuccess, setShowReferralSuccess] = useState(false);
   const [showReferralInput, setShowReferralInput] = useState(!!referralCodeFromUrl);
   const [showTermsModal, setShowTermsModal] = useState(false);
@@ -538,10 +545,29 @@ const Auth = () => {
           />
         </div>
       {/* Header */}
-      <header className="relative z-10 p-4 flex items-center justify-start">
+      <header className="relative z-10 p-4 flex items-center justify-between">
         <button onClick={goBack} className="p-2 rounded-full hover:bg-muted transition-colors">
           <ArrowLeft className="w-6 h-6 text-foreground" />
         </button>
+        
+        {/* 3-dot menu for Salon Owner mode */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="p-2 rounded-full hover:bg-muted transition-colors">
+              <MoreVertical className="w-5 h-5 text-muted-foreground" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuItem 
+              onClick={() => setIsSalonOwnerMode(!isSalonOwnerMode)}
+              className="flex items-center gap-3 cursor-pointer"
+            >
+              <Store className="w-4 h-4" />
+              <span>{isSalonOwnerMode ? 'Switch to Customer' : 'Salon Owner Login'}</span>
+              {isSalonOwnerMode && <Check className="w-4 h-4 ml-auto text-primary" />}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </header>
 
       <div className="flex-1 flex flex-col">
@@ -557,6 +583,18 @@ const Auth = () => {
               exit={{ opacity: 0, x: -20 }}
               className="w-full max-w-md mx-auto"
             >
+              {/* Salon Owner Mode Badge */}
+              {isSalonOwnerMode && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-4 flex items-center justify-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-full"
+                >
+                  <Store className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-medium text-primary">Salon Owner</span>
+                </motion.div>
+              )}
+              
               {/* Login / Sign Up Toggle */}
               <div className="mb-8">
                 <div className="flex p-1 bg-muted rounded-lg mb-4 relative">
@@ -595,16 +633,20 @@ const Auth = () => {
                 </div>
                 <AnimatePresence mode="wait">
                   <motion.p
-                    key={isSignUp ? 'signup' : 'login'}
+                    key={`${isSignUp}-${isSalonOwnerMode}`}
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -5 }}
                     transition={{ duration: 0.2 }}
                     className="text-sm text-muted-foreground"
                   >
-                    {isSignUp
-                      ? 'Create a new account to book appointments and earn rewards.'
-                      : 'Welcome back! Enter your phone number to continue.'}
+                    {isSalonOwnerMode
+                      ? isSignUp
+                        ? 'Register your salon to manage bookings and grow your business.'
+                        : 'Welcome back! Access your salon dashboard.'
+                      : isSignUp
+                        ? 'Create a new account to book appointments and earn rewards.'
+                        : 'Welcome back! Enter your phone number to continue.'}
                   </motion.p>
                 </AnimatePresence>
               </div>
