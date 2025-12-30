@@ -654,38 +654,48 @@ const Auth = () => {
               
               {/* Login / Sign Up Toggle */}
               <div className="mb-8">
-                <div className="flex bg-muted/60 rounded-full p-1 mb-4 relative border border-border/40">
-                  {/* Animated background indicator */}
-                  <motion.div
-                    className="absolute top-1 bottom-1 rounded-full bg-background shadow-md"
-                    initial={false}
-                    animate={{
-                      left: isSignUp ? 'calc(50% + 2px)' : '4px',
-                      right: isSignUp ? '4px' : 'calc(50% + 2px)',
-                    }}
-                    transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-                  />
-                  <motion.button
-                    type="button"
-                    onClick={() => setIsSignUp(false)}
-                    whileTap={{ scale: 0.98 }}
-                    className={`relative z-10 flex-1 py-2.5 text-sm font-semibold rounded-full transition-colors ${
-                      !isSignUp ? 'text-primary' : 'text-muted-foreground'
-                    }`}
-                  >
-                    Login
-                  </motion.button>
-                  <motion.button
-                    type="button"
-                    onClick={() => setIsSignUp(true)}
-                    whileTap={{ scale: 0.98 }}
-                    className={`relative z-10 flex-1 py-2.5 text-sm font-semibold rounded-full transition-colors ${
-                      isSignUp ? 'text-foreground' : 'text-muted-foreground'
-                    }`}
-                  >
-                    Sign Up
-                  </motion.button>
-                </div>
+                {isSalonOwnerMode ? (
+                  // Single merged tab for salon owner mode
+                  <div className="flex justify-center mb-4">
+                    <div className="inline-flex items-center gap-1.5 px-6 py-2.5 bg-muted/60 rounded-full border border-border/40">
+                      <span className="text-sm font-semibold text-foreground">Login/Signup</span>
+                    </div>
+                  </div>
+                ) : (
+                  // Separate tabs for customer mode
+                  <div className="flex bg-muted/60 rounded-full p-1 mb-4 relative border border-border/40">
+                    {/* Animated background indicator */}
+                    <motion.div
+                      className="absolute top-1 bottom-1 rounded-full bg-background shadow-md"
+                      initial={false}
+                      animate={{
+                        left: isSignUp ? 'calc(50% + 2px)' : '4px',
+                        right: isSignUp ? '4px' : 'calc(50% + 2px)',
+                      }}
+                      transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                    />
+                    <motion.button
+                      type="button"
+                      onClick={() => setIsSignUp(false)}
+                      whileTap={{ scale: 0.98 }}
+                      className={`relative z-10 flex-1 py-2.5 text-sm font-semibold rounded-full transition-colors ${
+                        !isSignUp ? 'text-primary' : 'text-muted-foreground'
+                      }`}
+                    >
+                      Login
+                    </motion.button>
+                    <motion.button
+                      type="button"
+                      onClick={() => setIsSignUp(true)}
+                      whileTap={{ scale: 0.98 }}
+                      className={`relative z-10 flex-1 py-2.5 text-sm font-semibold rounded-full transition-colors ${
+                        isSignUp ? 'text-foreground' : 'text-muted-foreground'
+                      }`}
+                    >
+                      Sign Up
+                    </motion.button>
+                  </div>
+                )}
                 <AnimatePresence mode="wait">
                   <motion.p
                     key={`${isSignUp}-${isSalonOwnerMode}`}
@@ -696,9 +706,7 @@ const Auth = () => {
                     className="text-sm text-muted-foreground text-center"
                   >
                     {isSalonOwnerMode
-                      ? isSignUp
-                        ? 'Register your salon to manage bookings and grow your business.'
-                        : 'Welcome back! Access your salon dashboard.'
+                      ? 'Enter your phone to login or register your salon.'
                       : isSignUp
                         ? 'Create a new account to book appointments and earn rewards.'
                         : 'Welcome back! Enter your phone number to continue.'}
