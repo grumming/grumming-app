@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Settings, Store, Clock, MapPin, Phone, Mail, Globe, Camera,
-  Shield, CreditCard, Users, Palette, ChevronRight,
+  Shield, Bell, CreditCard, Users, Palette, ChevronRight,
   Save, Loader2, Check, AlertTriangle, Eye, EyeOff, Image,
-  Upload, Building2, Instagram, Facebook
+  Calendar, Star, X, Upload, Building2, Instagram, Facebook
 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription
@@ -74,6 +74,14 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
     is_active: true,
   });
 
+  // Notification preferences
+  const [notifications, setNotifications] = useState({
+    newBookings: true,
+    bookingCancellations: true,
+    newReviews: true,
+    dailySummary: false,
+    promotionalAlerts: true,
+  });
 
   useEffect(() => {
     if (salon) {
@@ -142,6 +150,7 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
     { id: 'general', label: 'General', icon: Store },
     { id: 'hours', label: 'Business Hours', icon: Clock },
     { id: 'contact', label: 'Contact Info', icon: Phone },
+    { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'visibility', label: 'Visibility', icon: Eye },
   ];
 
@@ -428,6 +437,87 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
                   </motion.div>
                 )}
 
+                {/* Notifications */}
+                {activeTab === 'notifications' && (
+                  <motion.div
+                    key="notifications"
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                    className="space-y-6"
+                  >
+                    <div>
+                      <h3 className="text-lg font-semibold mb-1">Notification Preferences</h3>
+                      <p className="text-sm text-muted-foreground">Control how you receive updates</p>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                            <Calendar className="w-5 h-5 text-green-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">New Bookings</p>
+                            <p className="text-xs text-muted-foreground">Get notified when customers book</p>
+                          </div>
+                        </div>
+                        <Switch
+                          checked={notifications.newBookings}
+                          onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, newBookings: checked }))}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                            <X className="w-5 h-5 text-red-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">Booking Cancellations</p>
+                            <p className="text-xs text-muted-foreground">Alert when bookings are cancelled</p>
+                          </div>
+                        </div>
+                        <Switch
+                          checked={notifications.bookingCancellations}
+                          onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, bookingCancellations: checked }))}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                            <Star className="w-5 h-5 text-amber-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">New Reviews</p>
+                            <p className="text-xs text-muted-foreground">Get notified when customers leave reviews</p>
+                          </div>
+                        </div>
+                        <Switch
+                          checked={notifications.newReviews}
+                          onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, newReviews: checked }))}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                            <Bell className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">Daily Summary</p>
+                            <p className="text-xs text-muted-foreground">Receive daily booking summary</p>
+                          </div>
+                        </div>
+                        <Switch
+                          checked={notifications.dailySummary}
+                          onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, dailySummary: checked }))}
+                        />
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
 
                 {/* Visibility Settings */}
                 {activeTab === 'visibility' && (
