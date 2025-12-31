@@ -132,6 +132,32 @@ serve(async (req) => {
       console.error('Failed to create notification:', notifError);
     }
 
+    // Send refund email notification
+    try {
+      const emailResponse = await fetch(`${supabaseUrl}/functions/v1/send-refund-notification`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+        },
+        body: JSON.stringify({
+          user_id: booking.user_id,
+          booking_id: booking_id,
+          salon_name: booking.salon_name,
+          service_name: booking.service_name,
+          refund_amount: amountToRefund,
+          refund_status: booking.payment_id ? 'processed' : 'initiated',
+          refund_id: refundId,
+          estimated_days: '5-7 business days',
+        }),
+      });
+      const emailResult = await emailResponse.json();
+      console.log('Refund email notification result:', emailResult);
+    } catch (emailError) {
+      console.error('Failed to send refund email:', emailError);
+      // Don't fail the refund if email fails
+    }
+
     console.log('Refund completed for booking:', booking_id);
 
     return new Response(
