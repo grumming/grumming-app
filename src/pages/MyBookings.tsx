@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, Calendar, Clock, 
-  Loader2, AlertCircle, CheckCircle2, Star, CreditCard, MessageCircle 
+  Loader2, AlertCircle, CheckCircle2, Star, CreditCard, MessageCircle, Wallet 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -16,6 +16,7 @@ import { format, parseISO, isPast, isToday } from 'date-fns';
 import { ReviewDialog } from '@/components/ReviewDialog';
 import { BookingPaymentSheet } from '@/components/BookingPaymentSheet';
 import { BookingCancellationDialog } from '@/components/BookingCancellationDialog';
+import { RefundStatusTracker } from '@/components/RefundStatusTracker';
 
 interface Booking {
   id: string;
@@ -150,14 +151,18 @@ const MyBookings = () => {
 
       <div className="p-4">
         <Tabs defaultValue="upcoming" className="w-full">
-          <TabsList className="w-full grid grid-cols-2 mb-6">
-            <TabsTrigger value="upcoming" className="gap-2">
+          <TabsList className="w-full grid grid-cols-3 mb-6">
+            <TabsTrigger value="upcoming" className="gap-1 text-xs sm:text-sm">
               <Calendar className="w-4 h-4" />
-              Upcoming ({upcomingBookings.length})
+              <span className="hidden sm:inline">Upcoming</span> ({upcomingBookings.length})
             </TabsTrigger>
-            <TabsTrigger value="past" className="gap-2">
+            <TabsTrigger value="past" className="gap-1 text-xs sm:text-sm">
               <CheckCircle2 className="w-4 h-4" />
-              Past ({pastBookings.length})
+              <span className="hidden sm:inline">Past</span> ({pastBookings.length})
+            </TabsTrigger>
+            <TabsTrigger value="refunds" className="gap-1 text-xs sm:text-sm">
+              <Wallet className="w-4 h-4" />
+              <span className="hidden sm:inline">Refunds</span>
             </TabsTrigger>
           </TabsList>
 
@@ -346,6 +351,10 @@ const MyBookings = () => {
                 </div>
               )}
             </AnimatePresence>
+          </TabsContent>
+
+          <TabsContent value="refunds">
+            {user && <RefundStatusTracker userId={user.id} />}
           </TabsContent>
         </Tabs>
       </div>
