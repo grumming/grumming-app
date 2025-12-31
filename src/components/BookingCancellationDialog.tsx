@@ -77,26 +77,19 @@ export function BookingCancellationDialog({
           description: `₹${refundAmount} has been instantly credited to your wallet.`,
         });
       } else {
-        // Refund to original payment method (takes up to 7 days)
-        // In production, this would call a Razorpay refund API
-        const { error } = await supabase
-          .from('bookings')
-          .update({ 
-            status: 'cancelled',
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', booking.id);
+        // Refund to original payment method via Razorpay
+        const { data: refundResult, error: refundError } = await supabase.functions.invoke(
+          'process-razorpay-refund',
+          {
+            body: {
+              booking_id: booking.id,
+              refund_amount: refundAmount,
+            },
+          }
+        );
 
-        if (error) throw error;
-
-        // Create a notification for refund processing
-        await supabase.from('notifications').insert({
-          user_id: (await supabase.auth.getUser()).data.user?.id,
-          title: 'Refund Processing',
-          message: `Your refund of ₹${refundAmount} for ${booking.salon_name} will be credited to your original payment method within 5-7 business days.`,
-          type: 'refund',
-          link: '/my-bookings',
-        });
+        if (refundError) throw refundError;
+        if (!refundResult?.success) throw new Error(refundResult?.error || 'Refund failed');
 
         toast({
           title: 'Booking Cancelled',
