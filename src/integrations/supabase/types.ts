@@ -607,6 +607,50 @@ export type Database = {
         }
         Relationships: []
       }
+      refund_audit_log: {
+        Row: {
+          action: string
+          admin_user_id: string
+          booking_id: string
+          created_at: string
+          id: string
+          new_status: string | null
+          note: string | null
+          previous_status: string | null
+          refund_amount: number | null
+        }
+        Insert: {
+          action: string
+          admin_user_id: string
+          booking_id: string
+          created_at?: string
+          id?: string
+          new_status?: string | null
+          note?: string | null
+          previous_status?: string | null
+          refund_amount?: number | null
+        }
+        Update: {
+          action?: string
+          admin_user_id?: string
+          booking_id?: string
+          created_at?: string
+          id?: string
+          new_status?: string | null
+          note?: string | null
+          previous_status?: string | null
+          refund_amount?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refund_audit_log_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reviews: {
         Row: {
           booking_id: string | null
