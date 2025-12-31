@@ -31,6 +31,7 @@ import SalonManagement from '@/components/admin/SalonManagement';
 import SalonOwnerManagement from '@/components/admin/SalonOwnerManagement';
 import PendingSalonApprovals from '@/components/admin/PendingSalonApprovals';
 import TestPhoneWhitelist from '@/components/admin/TestPhoneWhitelist';
+import RefundManagement from '@/components/admin/RefundManagement';
 import { getDisplayContact } from '@/utils/displayUtils';
 
 interface UserProfile {
@@ -299,7 +300,7 @@ const AdminDashboard = () => {
           </div>
         ) : (
           <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="salons" className="relative">
                 Salons
@@ -312,6 +313,7 @@ const AdminDashboard = () => {
                   </Badge>
                 )}
               </TabsTrigger>
+              <TabsTrigger value="refunds">Refunds</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
               <TabsTrigger value="users">Users</TabsTrigger>
               <TabsTrigger value="tools">Tools</TabsTrigger>
@@ -508,6 +510,11 @@ const AdminDashboard = () => {
                   <SalonOwnerManagement />
                 </TabsContent>
               </Tabs>
+            </TabsContent>
+
+            {/* Refunds Tab */}
+            <TabsContent value="refunds" className="space-y-6">
+              <RefundManagement />
             </TabsContent>
 
             {/* Analytics Tab */}
