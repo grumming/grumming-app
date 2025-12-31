@@ -45,7 +45,7 @@ const Footer = () => {
                 support@grumming.com
               </a>
               <a 
-                href={`https://wa.me/${WHATSAPP_NUMBER}`}
+                href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('Hello! I need help with Grumming.')}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 hover:text-[#25D366] transition-colors"
