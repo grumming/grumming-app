@@ -20,6 +20,7 @@ export type Database = {
           booking_time: string
           created_at: string
           id: string
+          payment_id: string | null
           reminder_sent: boolean
           salon_id: string | null
           salon_name: string
@@ -34,6 +35,7 @@ export type Database = {
           booking_time: string
           created_at?: string
           id?: string
+          payment_id?: string | null
           reminder_sent?: boolean
           salon_id?: string | null
           salon_name: string
@@ -48,6 +50,7 @@ export type Database = {
           booking_time?: string
           created_at?: string
           id?: string
+          payment_id?: string | null
           reminder_sent?: boolean
           salon_id?: string | null
           salon_name?: string
