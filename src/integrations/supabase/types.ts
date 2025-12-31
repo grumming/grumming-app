@@ -890,6 +890,7 @@ export type Database = {
           category: string
           created_at: string
           id: string
+          internal_notes: string | null
           message: string
           priority: string
           resolved_at: string | null
@@ -907,6 +908,7 @@ export type Database = {
           category: string
           created_at?: string
           id?: string
+          internal_notes?: string | null
           message: string
           priority?: string
           resolved_at?: string | null
@@ -924,6 +926,7 @@ export type Database = {
           category?: string
           created_at?: string
           id?: string
+          internal_notes?: string | null
           message?: string
           priority?: string
           resolved_at?: string | null
