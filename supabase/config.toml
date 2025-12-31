@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.notify-admin-new-salon]
 verify_jwt = false
+
+[functions.send-ticket-response]
+verify_jwt = false

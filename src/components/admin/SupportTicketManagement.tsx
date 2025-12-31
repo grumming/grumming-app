@@ -101,10 +101,14 @@ const SupportTicketManagement = () => {
   const updateTicket = useMutation({
     mutationFn: async ({ 
       ticketId, 
-      updates 
+      updates,
+      sendEmail = false,
+      ticketData,
     }: { 
       ticketId: string; 
       updates: Partial<SupportTicket>;
+      sendEmail?: boolean;
+      ticketData?: SupportTicket;
     }) => {
       const { error } = await supabase
         .from("support_tickets")
@@ -112,6 +116,27 @@ const SupportTicketManagement = () => {
         .eq("id", ticketId);
       
       if (error) throw error;
+
+      // Send email notification if this is a response
+      if (sendEmail && ticketData && updates.admin_response) {
+        try {
+          await supabase.functions.invoke("send-ticket-response", {
+            body: {
+              ticket_id: ticketId,
+              ticket_number: ticketData.ticket_number,
+              subject: ticketData.subject,
+              category: ticketData.category,
+              user_message: ticketData.message,
+              admin_response: updates.admin_response,
+              status: updates.status || ticketData.status,
+              user_id: ticketData.user_id,
+            },
+          });
+        } catch (emailError) {
+          console.error("Failed to send email notification:", emailError);
+          // Don't throw - ticket was updated successfully
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-support-tickets"] });
@@ -123,22 +148,24 @@ const SupportTicketManagement = () => {
   });
 
   // Send response
-  const handleSendResponse = (ticketId: string) => {
-    const response = responses[ticketId];
+  const handleSendResponse = (ticket: SupportTicket) => {
+    const response = responses[ticket.id];
     if (!response?.trim()) {
       toast.error("Please enter a response");
       return;
     }
 
     updateTicket.mutate({
-      ticketId,
+      ticketId: ticket.id,
       updates: {
         admin_response: response,
         responded_at: new Date().toISOString(),
         status: "in_progress",
       },
+      sendEmail: true,
+      ticketData: ticket,
     });
-    setResponses(prev => ({ ...prev, [ticketId]: "" }));
+    setResponses(prev => ({ ...prev, [ticket.id]: "" }));
   };
 
   // Resolve ticket
@@ -402,7 +429,7 @@ const SupportTicketManagement = () => {
                           <div className="flex flex-wrap gap-2">
                             <Button
                               size="sm"
-                              onClick={() => handleSendResponse(ticket.id)}
+                              onClick={() => handleSendResponse(ticket)}
                               disabled={!responses[ticket.id]?.trim() || updateTicket.isPending}
                             >
                               <Send className="h-4 w-4 mr-2" />
