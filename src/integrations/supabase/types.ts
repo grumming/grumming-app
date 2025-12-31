@@ -835,6 +835,36 @@ export type Database = {
         }
         Relationships: []
       }
+      test_phone_whitelist: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          otp_code: string
+          phone: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          otp_code: string
+          phone: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          otp_code?: string
+          phone?: string
+        }
+        Relationships: []
+      }
       user_addresses: {
         Row: {
           address_line1: string
