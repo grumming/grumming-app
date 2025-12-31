@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { 
   MessageCircle, Clock, CheckCircle, AlertCircle, Search, 
-  Send, ChevronDown, ChevronUp, User, Mail, Phone, UserPlus 
+  Send, ChevronDown, ChevronUp, User, Mail, Phone, UserPlus, Image, ExternalLink 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,7 @@ interface SupportTicket {
   created_at: string;
   updated_at: string;
   assigned_to: string | null;
+  attachments: string[] | null;
 }
 
 interface UserProfile {
@@ -476,6 +477,47 @@ const SupportTicketManagement = () => {
                           User Message:
                         </p>
                         <p className="text-sm whitespace-pre-wrap">{ticket.message}</p>
+                        
+                        {/* Attachments */}
+                        {ticket.attachments && ticket.attachments.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-border/50">
+                            <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                              <Image className="h-3 w-3" />
+                              Attachments ({ticket.attachments.length})
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {ticket.attachments.map((url, idx) => {
+                                const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
+                                return isImage ? (
+                                  <a
+                                    key={idx}
+                                    href={url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block w-20 h-20 rounded-lg overflow-hidden border border-border hover:ring-2 ring-primary transition-all"
+                                  >
+                                    <img
+                                      src={url}
+                                      alt={`Attachment ${idx + 1}`}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </a>
+                                ) : (
+                                  <a
+                                    key={idx}
+                                    href={url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 px-3 py-2 bg-background rounded-lg border border-border hover:bg-muted transition-colors text-sm"
+                                  >
+                                    <ExternalLink className="h-4 w-4" />
+                                    File {idx + 1}
+                                  </a>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Previous Response */}

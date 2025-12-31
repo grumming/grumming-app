@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, MessageCircle, Clock, CheckCircle, AlertCircle, ExternalLink, Phone, Mail } from "lucide-react";
+import { ArrowLeft, Send, MessageCircle, Clock, CheckCircle, AlertCircle, ExternalLink, Phone, Mail, Paperclip, X, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -43,17 +43,21 @@ interface SupportTicket {
   responded_at: string | null;
   resolved_at: string | null;
   created_at: string;
+  attachments: string[] | null;
 }
 
 const ContactSupport = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [category, setCategory] = useState("");
   const [priority, setPriority] = useState("normal");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Fetch user's tickets
   const { data: tickets, isLoading: ticketsLoading } = useQuery({
@@ -72,10 +76,49 @@ const ContactSupport = () => {
     enabled: !!user?.id,
   });
 
+  // Upload attachments to storage
+  const uploadAttachments = async (): Promise<string[]> => {
+    if (attachments.length === 0) return [];
+    
+    const uploadedUrls: string[] = [];
+    
+    for (const file of attachments) {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user?.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('ticket-attachments')
+        .upload(fileName, file);
+      
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw new Error(`Failed to upload ${file.name}`);
+      }
+      
+      const { data: urlData } = supabase.storage
+        .from('ticket-attachments')
+        .getPublicUrl(fileName);
+      
+      uploadedUrls.push(urlData.publicUrl);
+    }
+    
+    return uploadedUrls;
+  };
+
   // Submit ticket mutation
   const submitTicket = useMutation({
     mutationFn: async () => {
       if (!user?.id) throw new Error("Please login to submit a ticket");
+      
+      setIsUploading(true);
+      
+      // Upload attachments first
+      let attachmentUrls: string[] = [];
+      try {
+        attachmentUrls = await uploadAttachments();
+      } catch (error) {
+        throw error;
+      }
       
       const { error } = await supabase.from("support_tickets").insert([{
         user_id: user.id,
@@ -83,6 +126,7 @@ const ContactSupport = () => {
         subject,
         message,
         priority,
+        attachments: attachmentUrls,
         ticket_number: "TKT-TEMP", // Will be overwritten by trigger
       }]);
       
@@ -94,12 +138,50 @@ const ContactSupport = () => {
       setSubject("");
       setMessage("");
       setPriority("normal");
+      setAttachments([]);
+      setIsUploading(false);
       queryClient.invalidateQueries({ queryKey: ["support-tickets"] });
     },
     onError: (error: Error) => {
+      setIsUploading(false);
       toast.error(error.message || "Failed to submit ticket");
     },
   });
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    
+    const validFiles: File[] = [];
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
+    
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error(`${file.name}: Only images and PDFs are allowed`);
+        continue;
+      }
+      if (file.size > maxSize) {
+        toast.error(`${file.name}: File size must be less than 5MB`);
+        continue;
+      }
+      if (attachments.length + validFiles.length >= 5) {
+        toast.error("Maximum 5 attachments allowed");
+        break;
+      }
+      validFiles.push(file);
+    }
+    
+    setAttachments(prev => [...prev, ...validFiles]);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -270,13 +352,55 @@ const ContactSupport = () => {
                       </p>
                     </div>
 
+                    {/* Attachments Section */}
+                    <div className="space-y-2">
+                      <Label>Attachments (optional)</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {attachments.map((file, index) => (
+                          <div key={index} className="flex items-center gap-2 px-3 py-2 bg-muted rounded-lg text-sm">
+                            <Image className="h-4 w-4 text-muted-foreground" />
+                            <span className="truncate max-w-[150px]">{file.name}</span>
+                            <button
+                              type="button"
+                              onClick={() => removeAttachment(index)}
+                              className="text-muted-foreground hover:text-destructive"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ))}
+                        {attachments.length < 5 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => fileInputRef.current?.click()}
+                          >
+                            <Paperclip className="h-4 w-4 mr-2" />
+                            Add File
+                          </Button>
+                        )}
+                      </div>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*,.pdf"
+                        multiple
+                        onChange={handleFileSelect}
+                        className="hidden"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Max 5 files, 5MB each. Images and PDFs only.
+                      </p>
+                    </div>
+
                     <Button
                       type="submit"
                       className="w-full"
-                      disabled={submitTicket.isPending}
+                      disabled={submitTicket.isPending || isUploading}
                     >
-                      {submitTicket.isPending ? (
-                        "Submitting..."
+                      {submitTicket.isPending || isUploading ? (
+                        isUploading ? "Uploading..." : "Submitting..."
                       ) : (
                         <>
                           <Send className="h-4 w-4 mr-2" />
@@ -315,6 +439,24 @@ const ContactSupport = () => {
                               <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
                                 {ticket.message}
                               </p>
+
+                              {/* Attachments display */}
+                              {ticket.attachments && ticket.attachments.length > 0 && (
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                  {ticket.attachments.map((url, idx) => (
+                                    <a
+                                      key={idx}
+                                      href={url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex items-center gap-1 text-xs text-primary hover:underline"
+                                    >
+                                      <Image className="h-3 w-3" />
+                                      Attachment {idx + 1}
+                                    </a>
+                                  ))}
+                                </div>
+                              )}
                               
                               {ticket.admin_response && (
                                 <div className="mt-3 p-3 bg-muted/50 rounded-lg">
