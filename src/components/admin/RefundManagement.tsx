@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Search, Loader2, RefreshCw, AlertCircle, CheckCircle, 
-  XCircle, Clock, CreditCard, User, Calendar, DollarSign,
-  ArrowUpRight, Filter, History, FileText, Download
+  XCircle, Clock, CreditCard, User, DollarSign,
+  ArrowUpRight, Filter, History, FileText, Download, CalendarIcon
 } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -25,7 +27,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth, subMonths, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface CancelledBooking {
   id: string;
@@ -101,6 +104,10 @@ const RefundManagement = () => {
   const [bookingAuditLogs, setBookingAuditLogs] = useState<AuditLogEntry[]>([]);
   const [isAuditDialogOpen, setIsAuditDialogOpen] = useState(false);
   const [isLoadingBookingAudit, setIsLoadingBookingAudit] = useState(false);
+
+  // Date range filter for audit logs
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(startOfMonth(subMonths(new Date(), 1)));
+  const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
 
   const logAuditAction = async (
     bookingId: string,
@@ -278,8 +285,32 @@ const RefundManagement = () => {
     setIsLoadingBookingAudit(false);
   };
 
+  // Filter audit logs by date range
+  const filteredAuditLogs = auditLogs.filter(log => {
+    if (!dateFrom && !dateTo) return true;
+    
+    const logDate = new Date(log.created_at);
+    
+    if (dateFrom && dateTo) {
+      return isWithinInterval(logDate, {
+        start: startOfDay(dateFrom),
+        end: endOfDay(dateTo)
+      });
+    }
+    
+    if (dateFrom) {
+      return logDate >= startOfDay(dateFrom);
+    }
+    
+    if (dateTo) {
+      return logDate <= endOfDay(dateTo);
+    }
+    
+    return true;
+  });
+
   const exportAuditLogsToCSV = () => {
-    if (auditLogs.length === 0) return;
+    if (filteredAuditLogs.length === 0) return;
 
     // Define CSV headers
     const headers = [
@@ -296,8 +327,8 @@ const RefundManagement = () => {
       'Note'
     ];
 
-    // Convert audit logs to CSV rows
-    const rows = auditLogs.map(log => [
+    // Convert filtered audit logs to CSV rows
+    const rows = filteredAuditLogs.map(log => [
       format(new Date(log.created_at), 'yyyy-MM-dd HH:mm:ss'),
       log.admin_profile?.full_name || 'Unknown',
       log.admin_profile?.email || 'N/A',
@@ -317,12 +348,16 @@ const RefundManagement = () => {
       ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
     ].join('\n');
 
+    // Create filename with date range
+    const fromStr = dateFrom ? format(dateFrom, 'yyyy-MM-dd') : 'start';
+    const toStr = dateTo ? format(dateTo, 'yyyy-MM-dd') : 'end';
+
     // Create and download file
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `refund-audit-log-${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    link.setAttribute('download', `refund-audit-log-${fromStr}-to-${toStr}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -330,8 +365,29 @@ const RefundManagement = () => {
 
     toast({
       title: 'Export Complete',
-      description: `Exported ${auditLogs.length} audit log entries to CSV`
+      description: `Exported ${filteredAuditLogs.length} audit log entries to CSV`
     });
+  };
+
+  const setThisMonth = () => {
+    setDateFrom(startOfMonth(new Date()));
+    setDateTo(new Date());
+  };
+
+  const setLastMonth = () => {
+    const lastMonth = subMonths(new Date(), 1);
+    setDateFrom(startOfMonth(lastMonth));
+    setDateTo(endOfMonth(lastMonth));
+  };
+
+  const setLast3Months = () => {
+    setDateFrom(startOfMonth(subMonths(new Date(), 2)));
+    setDateTo(new Date());
+  };
+
+  const clearDateFilter = () => {
+    setDateFrom(undefined);
+    setDateTo(undefined);
   };
 
   useEffect(() => {
@@ -721,7 +777,7 @@ const RefundManagement = () => {
         <TabsContent value="audit">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div>
                   <CardTitle className="text-lg flex items-center gap-2">
                     <FileText className="w-5 h-5" />
@@ -734,7 +790,7 @@ const RefundManagement = () => {
                     variant="outline" 
                     size="sm" 
                     onClick={exportAuditLogsToCSV}
-                    disabled={auditLogs.length === 0}
+                    disabled={filteredAuditLogs.length === 0}
                   >
                     <Download className="w-4 h-4 mr-2" />
                     Export CSV
@@ -747,14 +803,90 @@ const RefundManagement = () => {
               </div>
             </CardHeader>
             <CardContent>
+              {/* Date Range Filters */}
+              <div className="flex flex-col sm:flex-row gap-4 mb-6 p-4 bg-muted/50 rounded-lg">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-medium text-muted-foreground">Quick filters:</span>
+                  <Button variant="outline" size="sm" onClick={setThisMonth}>This Month</Button>
+                  <Button variant="outline" size="sm" onClick={setLastMonth}>Last Month</Button>
+                  <Button variant="outline" size="sm" onClick={setLast3Months}>Last 3 Months</Button>
+                  {(dateFrom || dateTo) && (
+                    <Button variant="ghost" size="sm" onClick={clearDateFilter}>Clear</Button>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 ml-auto">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          "justify-start text-left font-normal min-w-[130px]",
+                          !dateFrom && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dateFrom ? format(dateFrom, "MMM d, yyyy") : "From date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={dateFrom}
+                        onSelect={setDateFrom}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <span className="text-muted-foreground">to</span>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          "justify-start text-left font-normal min-w-[130px]",
+                          !dateTo && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dateTo ? format(dateTo, "MMM d, yyyy") : "To date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="end">
+                      <Calendar
+                        mode="single"
+                        selected={dateTo}
+                        onSelect={setDateTo}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+
+              {/* Results count */}
+              {(dateFrom || dateTo) && (
+                <div className="mb-4 text-sm text-muted-foreground">
+                  Showing {filteredAuditLogs.length} of {auditLogs.length} entries
+                  {dateFrom && dateTo && (
+                    <span> from {format(dateFrom, 'MMM d, yyyy')} to {format(dateTo, 'MMM d, yyyy')}</span>
+                  )}
+                </div>
+              )}
+
               {isLoadingAudit ? (
                 <div className="flex justify-center py-12">
                   <Loader2 className="w-6 h-6 animate-spin text-primary" />
                 </div>
-              ) : auditLogs.length === 0 ? (
+              ) : filteredAuditLogs.length === 0 ? (
                 <div className="text-center py-12">
                   <History className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No audit logs yet</p>
+                  <p className="text-muted-foreground">
+                    {auditLogs.length === 0 ? 'No audit logs yet' : 'No logs found in selected date range'}
+                  </p>
                 </div>
               ) : (
                 <div className="rounded-md border overflow-x-auto">
@@ -771,7 +903,7 @@ const RefundManagement = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {auditLogs.map((log) => (
+                      {filteredAuditLogs.map((log) => (
                         <TableRow key={log.id}>
                           <TableCell>
                             <div>
