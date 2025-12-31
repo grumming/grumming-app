@@ -36,8 +36,8 @@ const Footer = () => {
               <Link to="/refund-policy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                 Refunds
               </Link>
-              <Link to="/privacy-security" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                Security
+              <Link to="/contact-support" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                Support
               </Link>
             </div>
 
