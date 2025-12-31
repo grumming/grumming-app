@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { 
   MessageCircle, Clock, CheckCircle, AlertCircle, Search, 
-  Send, ChevronDown, ChevronUp, User, Mail, Phone, UserPlus, Image, ExternalLink, StickyNote, Save 
+  Send, ChevronDown, ChevronUp, User, Mail, Phone, UserPlus, Image, ExternalLink, StickyNote, Save, FileText 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,8 +14,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { 
   Collapsible, CollapsibleContent, CollapsibleTrigger 
 } from "@/components/ui/collapsible";
+import {
+  Popover, PopoverContent, PopoverTrigger
+} from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+interface ResponseTemplate {
+  id: string;
+  title: string;
+  content: string;
+  category: string | null;
+}
 
 interface SupportTicket {
   id: string;
@@ -110,7 +120,19 @@ const SupportTicketManagement = () => {
     },
   });
 
-  // Fetch user profiles for tickets
+  // Fetch response templates
+  const { data: templates } = useQuery({
+    queryKey: ["response-templates"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("response_templates")
+        .select("id, title, content, category")
+        .order("title");
+      
+      if (error) throw error;
+      return data as ResponseTemplate[];
+    },
+  });
   const { data: userProfiles } = useQuery({
     queryKey: ["ticket-user-profiles", tickets?.map(t => t.user_id)],
     queryFn: async () => {
@@ -603,6 +625,55 @@ const SupportTicketManagement = () => {
                       {/* Response Form */}
                       {ticket.status !== "closed" && (
                         <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                  <FileText className="h-4 w-4 mr-2" />
+                                  Use Template
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-80 p-0" align="start">
+                                <div className="p-2 border-b">
+                                  <p className="text-sm font-medium">Response Templates</p>
+                                </div>
+                                <div className="max-h-60 overflow-y-auto">
+                                  {templates && templates.length > 0 ? (
+                                    templates
+                                      .filter(t => !t.category || t.category === ticket.category)
+                                      .concat(templates.filter(t => t.category && t.category !== ticket.category))
+                                      .map(template => (
+                                        <button
+                                          key={template.id}
+                                          className="w-full text-left px-3 py-2 hover:bg-muted transition-colors border-b last:border-b-0"
+                                          onClick={() => {
+                                            setResponses(prev => ({
+                                              ...prev,
+                                              [ticket.id]: template.content
+                                            }));
+                                          }}
+                                        >
+                                          <p className="text-sm font-medium">{template.title}</p>
+                                          <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                                            {template.content}
+                                          </p>
+                                          {template.category && (
+                                            <Badge variant="outline" className="mt-1 text-xs">
+                                              {categories[template.category] || template.category}
+                                            </Badge>
+                                          )}
+                                        </button>
+                                      ))
+                                  ) : (
+                                    <p className="text-sm text-muted-foreground p-3">No templates available</p>
+                                  )}
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                            <span className="text-xs text-muted-foreground">
+                              or type a custom response below
+                            </span>
+                          </div>
                           <Textarea
                             placeholder="Type your response..."
                             value={responses[ticket.id] || ""}
