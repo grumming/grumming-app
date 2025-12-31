@@ -30,6 +30,7 @@ import RevenueAnalytics from '@/components/RevenueAnalytics';
 import SalonManagement from '@/components/admin/SalonManagement';
 import SalonOwnerManagement from '@/components/admin/SalonOwnerManagement';
 import PendingSalonApprovals from '@/components/admin/PendingSalonApprovals';
+import TestPhoneWhitelist from '@/components/admin/TestPhoneWhitelist';
 import { getDisplayContact } from '@/utils/displayUtils';
 
 interface UserProfile {
@@ -601,6 +602,9 @@ const AdminDashboard = () => {
 
             {/* Tools Tab */}
             <TabsContent value="tools" className="space-y-6">
+              {/* Test Phone Whitelist */}
+              <TestPhoneWhitelist />
+
               {/* Salon Owners Section */}
               <SalonOwnerManagement />
 

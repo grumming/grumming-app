@@ -19,44 +19,26 @@ const TWILIO_PHONE_NUMBER = Deno.env.get('TWILIO_PHONE_NUMBER');
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
 const MAX_SEND_ATTEMPTS = 3;
 
-// Whitelisted test phone numbers with custom OTPs
-const TEST_PHONE_NUMBERS: Record<string, string> = {
-  '+919693507281': '112233',
-  '+919262582899': '111456',
-  '+917004414512': '111456',
-  '+919534310739': '111456',
-  '+919135812785': '111456',
-  '+917870137024': '787013',
-  '+918077560160': '778012',
-  '+919576322976': '632244',
-  '+919318300063': '123456',
-  '+918466840955': '848484',
-  '+919693500675': '500500',
-  '+917654647292': '769254',
-  '+919624284920': '202428',
-  '+919229164988': '919298',
-  '+919135679986': '919935',
-  '+916205830502': '203050',
-  '+917759064953': '775953',
-  '+916207061454': '616207',
-  '+919199224630': '992246',
-  '+916299475114': '476299',
-  '+918432405304': '845304',
-  '+917667077949': '766766',
-  '+916206065070': '650700',
-  '+919102237486': '910220',
-  '+919262316895': '926202',
-  '+917091666198': '709166',
-  '+917070033370': '707003',
-  '+919694811207': '969400',
-  '+918936041605': '893650',
-  '+919508054016': '951654',
-  '+919153139727': '972717',
-};
-
 // Generate a 6-digit OTP
 function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+// Fetch whitelisted test phone numbers from database
+async function getWhitelistedPhone(supabase: any, phone: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('test_phone_whitelist')
+    .select('otp_code')
+    .eq('phone', phone)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error fetching whitelist:', error);
+    return null;
+  }
+
+  return data?.otp_code || null;
 }
 
 // Send SMS via Fast2SMS (for Indian numbers)
@@ -254,8 +236,9 @@ serve(async (req) => {
       );
     }
 
-    // Check if this is a whitelisted test number (skip rate limiting)
-    const isWhitelisted = phone in TEST_PHONE_NUMBERS;
+    // Check if this is a whitelisted test number from database
+    const whitelistedOtp = await getWhitelistedPhone(supabase, phone);
+    const isWhitelisted = !!whitelistedOtp;
     
     if (!isWhitelisted) {
       // Check rate limit only for non-whitelisted numbers
@@ -296,8 +279,7 @@ serve(async (req) => {
     }
 
     // For whitelisted test numbers, use fixed OTP and skip SMS
-    if (isWhitelisted) {
-      const testOtp = TEST_PHONE_NUMBERS[phone];
+    if (isWhitelisted && whitelistedOtp) {
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiry
       console.log(`Using test OTP for whitelisted number: ${phone}`);
 
@@ -309,7 +291,7 @@ serve(async (req) => {
         .from('phone_otps')
         .insert({
           phone,
-          otp_code: testOtp,
+          otp_code: whitelistedOtp,
           expires_at: expiresAt.toISOString(),
           verified: false,
         });
@@ -322,7 +304,7 @@ serve(async (req) => {
         );
       }
 
-      console.log(`Test OTP stored for ${phone}, OTP: ${testOtp}`);
+      console.log(`Test OTP stored for ${phone}, OTP: ${whitelistedOtp}`);
       return new Response(
         JSON.stringify({ 
           success: true, 
