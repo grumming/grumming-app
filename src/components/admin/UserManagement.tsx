@@ -4,8 +4,8 @@ import {
   Search, Loader2, Phone, Mail, UserCheck, UserX, 
   Calendar, ChevronDown, ChevronUp, IndianRupee,
   ShoppingBag, Wallet, Clock, CheckCircle, XCircle,
-  Star, ArrowUpCircle, ArrowDownCircle, Gift,
-  Activity, UserPlus
+  Star, ArrowUpCircle, ArrowDownCircle,
+  Activity, UserPlus, Shield, Store, Crown, User
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,8 +21,13 @@ import {
 } from '@/components/ui/collapsible';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { format, formatDistanceToNow } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
+import { Database } from '@/integrations/supabase/types';
+
+type AppRole = Database['public']['Enums']['app_role'];
 
 interface UserProfile {
   id: string;
@@ -81,23 +86,39 @@ interface ActivityItem {
   icon: 'booking' | 'credit' | 'debit' | 'review' | 'signup';
 }
 
+interface UserRole {
+  id: string;
+  role: AppRole;
+}
+
 interface UserWithStats extends UserProfile {
   bookings: UserBooking[];
   wallet: UserWallet | null;
   transactions: WalletTransaction[];
   reviews: UserReview[];
   activities: ActivityItem[];
+  roles: AppRole[];
   totalBookings: number;
   totalSpent: number;
   dataLoaded: boolean;
 }
 
+const AVAILABLE_ROLES: { role: AppRole; label: string; description: string; icon: any; color: string }[] = [
+  { role: 'admin', label: 'Admin', description: 'Full system access', icon: Crown, color: 'text-red-600' },
+  { role: 'moderator', label: 'Moderator', description: 'Content moderation', icon: Shield, color: 'text-blue-600' },
+  { role: 'salon_owner', label: 'Salon Owner', description: 'Manage salons', icon: Store, color: 'text-purple-600' },
+  { role: 'user', label: 'User', description: 'Standard user', icon: User, color: 'text-muted-foreground' },
+];
+
 const UserManagement = () => {
+  const { toast } = useToast();
   const [users, setUsers] = useState<UserWithStats[]>([]);
+  const [userRolesMap, setUserRolesMap] = useState<Map<string, AppRole[]>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
   const [loadingUserData, setLoadingUserData] = useState<Set<string>>(new Set());
+  const [updatingRole, setUpdatingRole] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -113,18 +134,30 @@ const UserManagement = () => {
 
       if (profilesError) throw profilesError;
 
-      const { data: wallets } = await supabase
-        .from('wallets')
-        .select('user_id, balance, total_earned, total_spent');
+      // Fetch all data in parallel
+      const [walletsRes, bookingsRes, rolesRes] = await Promise.all([
+        supabase.from('wallets').select('user_id, balance, total_earned, total_spent'),
+        supabase.from('bookings').select('user_id, service_price, status'),
+        supabase.from('user_roles').select('user_id, role')
+      ]);
 
-      const { data: bookings } = await supabase
-        .from('bookings')
-        .select('user_id, service_price, status');
+      const wallets = walletsRes.data || [];
+      const bookings = bookingsRes.data || [];
+      const roles = rolesRes.data || [];
 
-      const walletMap = new Map(wallets?.map(w => [w.user_id, w]) || []);
+      const walletMap = new Map(wallets.map(w => [w.user_id, w]));
+      
+      // Build roles map
+      const rolesMap = new Map<string, AppRole[]>();
+      roles.forEach(r => {
+        const existing = rolesMap.get(r.user_id) || [];
+        existing.push(r.role);
+        rolesMap.set(r.user_id, existing);
+      });
+      setUserRolesMap(rolesMap);
       
       const bookingStats = new Map<string, { total: number; spent: number }>();
-      bookings?.forEach(b => {
+      bookings.forEach(b => {
         const current = bookingStats.get(b.user_id) || { total: 0, spent: 0 };
         current.total += 1;
         if (b.status === 'completed') {
@@ -136,6 +169,7 @@ const UserManagement = () => {
       const usersWithStats: UserWithStats[] = (profiles || []).map(profile => {
         const wallet = walletMap.get(profile.user_id);
         const stats = bookingStats.get(profile.user_id) || { total: 0, spent: 0 };
+        const userRoles = rolesMap.get(profile.user_id) || [];
         
         return {
           ...profile,
@@ -143,6 +177,7 @@ const UserManagement = () => {
           transactions: [],
           reviews: [],
           activities: [],
+          roles: userRoles,
           wallet: wallet ? {
             balance: wallet.balance || 0,
             total_earned: wallet.total_earned || 0,
@@ -290,6 +325,81 @@ const UserManagement = () => {
     );
   });
 
+  const toggleRole = async (userId: string, role: AppRole, hasRole: boolean) => {
+    const roleKey = `${userId}-${role}`;
+    setUpdatingRole(roleKey);
+    
+    try {
+      if (hasRole) {
+        // Remove role
+        const { error } = await supabase
+          .from('user_roles')
+          .delete()
+          .eq('user_id', userId)
+          .eq('role', role);
+        
+        if (error) throw error;
+
+        // Update local state
+        setUsers(prev => prev.map(user => 
+          user.user_id === userId 
+            ? { ...user, roles: user.roles.filter(r => r !== role) }
+            : user
+        ));
+        
+        toast({
+          title: 'Role removed',
+          description: `${role} role has been removed from the user.`,
+        });
+      } else {
+        // Add role
+        const { error } = await supabase
+          .from('user_roles')
+          .insert({ user_id: userId, role });
+        
+        if (error) throw error;
+
+        // Update local state
+        setUsers(prev => prev.map(user => 
+          user.user_id === userId 
+            ? { ...user, roles: [...user.roles, role] }
+            : user
+        ));
+        
+        toast({
+          title: 'Role assigned',
+          description: `${role} role has been assigned to the user.`,
+        });
+      }
+    } catch (error: any) {
+      console.error('Error updating role:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update role',
+        variant: 'destructive',
+      });
+    }
+    
+    setUpdatingRole(null);
+  };
+
+  const getRoleBadge = (role: AppRole) => {
+    const roleConfig = AVAILABLE_ROLES.find(r => r.role === role);
+    if (!roleConfig) return null;
+    
+    const Icon = roleConfig.icon;
+    return (
+      <Badge 
+        key={role} 
+        variant="outline" 
+        className={`text-[10px] ${roleConfig.color} border-current`}
+      >
+        <Icon className="w-3 h-3 mr-1" />
+        {roleConfig.label}
+      </Badge>
+    );
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
@@ -418,6 +528,7 @@ const UserManagement = () => {
                                 <><UserX className="w-3 h-3 mr-1" /> Unverified</>
                               )}
                             </Badge>
+                            {user.roles.map(role => getRoleBadge(role))}
                           </div>
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground mt-1">
                             {user.phone && (
@@ -498,7 +609,7 @@ const UserManagement = () => {
                       ) : (
                         <Tabs defaultValue="activity" className="w-full">
                           <div className="px-4 pt-4">
-                            <TabsList className="grid w-full grid-cols-4">
+                            <TabsList className="grid w-full grid-cols-5">
                               <TabsTrigger value="activity" className="text-xs">
                                 <Activity className="w-3 h-3 mr-1" />
                                 Activity
@@ -514,6 +625,10 @@ const UserManagement = () => {
                               <TabsTrigger value="reviews" className="text-xs">
                                 <Star className="w-3 h-3 mr-1" />
                                 Reviews
+                              </TabsTrigger>
+                              <TabsTrigger value="roles" className="text-xs">
+                                <Shield className="w-3 h-3 mr-1" />
+                                Roles
                               </TabsTrigger>
                             </TabsList>
                           </div>
@@ -734,6 +849,77 @@ const UserManagement = () => {
                                 ))}
                               </div>
                             )}
+                          </TabsContent>
+
+                          {/* Roles Tab */}
+                          <TabsContent value="roles" className="p-4 pt-2">
+                            <div className="space-y-4">
+                              <div className="text-sm text-muted-foreground mb-4">
+                                Manage user roles and permissions. Changes take effect immediately.
+                              </div>
+                              
+                              <div className="space-y-3">
+                                {AVAILABLE_ROLES.map(({ role, label, description, icon: Icon, color }) => {
+                                  const hasRole = user.roles.includes(role);
+                                  const isUpdating = updatingRole === `${user.user_id}-${role}`;
+                                  
+                                  return (
+                                    <div 
+                                      key={role}
+                                      className={`flex items-center justify-between p-4 rounded-lg border transition-colors ${
+                                        hasRole ? 'bg-primary/5 border-primary/20' : 'bg-muted/30'
+                                      }`}
+                                    >
+                                      <div className="flex items-center gap-3">
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                          hasRole ? 'bg-primary/10' : 'bg-muted'
+                                        }`}>
+                                          <Icon className={`w-5 h-5 ${hasRole ? color : 'text-muted-foreground'}`} />
+                                        </div>
+                                        <div>
+                                          <p className="font-medium">{label}</p>
+                                          <p className="text-xs text-muted-foreground">{description}</p>
+                                        </div>
+                                      </div>
+                                      
+                                      <div className="flex items-center gap-2">
+                                        {isUpdating && (
+                                          <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                                        )}
+                                        <Switch
+                                          checked={hasRole}
+                                          onCheckedChange={() => toggleRole(user.user_id, role, hasRole)}
+                                          disabled={isUpdating}
+                                        />
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+
+                              {user.roles.length > 0 && (
+                                <div className="mt-4 pt-4 border-t">
+                                  <p className="text-xs text-muted-foreground mb-2">Current Roles:</p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {user.roles.map(role => {
+                                      const roleConfig = AVAILABLE_ROLES.find(r => r.role === role);
+                                      if (!roleConfig) return null;
+                                      const Icon = roleConfig.icon;
+                                      return (
+                                        <Badge 
+                                          key={role}
+                                          variant="outline"
+                                          className={`${roleConfig.color} border-current`}
+                                        >
+                                          <Icon className="w-3 h-3 mr-1" />
+                                          {roleConfig.label}
+                                        </Badge>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                           </TabsContent>
                         </Tabs>
                       )}
