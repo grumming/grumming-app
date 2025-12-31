@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Clock, CheckCircle2, AlertCircle, Loader2, 
-  RefreshCw, ArrowRight, Wallet, XCircle 
+  RefreshCw, ArrowRight, Wallet, XCircle, Timer 
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, addHours, differenceInMinutes, differenceInHours, isFuture } from 'date-fns';
 
 interface RefundBooking {
   id: string;
@@ -25,11 +25,18 @@ interface RefundStatusTrackerProps {
 }
 
 const REFUND_STAGES = [
-  { key: 'cancelled', label: 'Cancelled', description: 'Booking cancelled' },
-  { key: 'refund_initiated', label: 'Initiated', description: 'Refund request submitted' },
-  { key: 'refund_processing', label: 'Processing', description: 'Being processed' },
-  { key: 'refund_completed', label: 'Completed', description: 'Credited to wallet' },
+  { key: 'cancelled', label: 'Cancelled', description: 'Booking cancelled', avgHours: 0 },
+  { key: 'refund_initiated', label: 'Initiated', description: 'Refund request submitted', avgHours: 2 },
+  { key: 'refund_processing', label: 'Processing', description: 'Being processed', avgHours: 24 },
+  { key: 'refund_completed', label: 'Completed', description: 'Credited to wallet', avgHours: 0 },
 ];
+
+// Average time in hours for each stage to complete
+const STAGE_PROCESSING_TIMES: Record<string, number> = {
+  'cancelled': 2, // 2 hours to initiate
+  'refund_initiated': 24, // 24 hours to process
+  'refund_processing': 48, // 48 hours to complete
+};
 
 export const RefundStatusTracker = ({ userId }: RefundStatusTrackerProps) => {
   const [refundBookings, setRefundBookings] = useState<RefundBooking[]>([]);
@@ -112,6 +119,40 @@ export const RefundStatusTracker = ({ userId }: RefundStatusTrackerProps) => {
     }
   };
 
+  const getEstimatedCompletion = (status: string, updatedAt: string) => {
+    if (status === 'refund_completed' || status === 'refund_failed') {
+      return null;
+    }
+
+    const processingHours = STAGE_PROCESSING_TIMES[status];
+    if (!processingHours) return null;
+
+    const updatedDate = parseISO(updatedAt);
+    const estimatedDate = addHours(updatedDate, processingHours);
+    
+    return {
+      date: estimatedDate,
+      isFuture: isFuture(estimatedDate),
+      hoursRemaining: Math.max(0, differenceInHours(estimatedDate, new Date())),
+      minutesRemaining: Math.max(0, differenceInMinutes(estimatedDate, new Date()) % 60),
+    };
+  };
+
+  const formatTimeRemaining = (hours: number, minutes: number) => {
+    if (hours > 24) {
+      const days = Math.floor(hours / 24);
+      const remainingHours = hours % 24;
+      return `~${days}d ${remainingHours}h`;
+    }
+    if (hours > 0) {
+      return `~${hours}h ${minutes}m`;
+    }
+    if (minutes > 0) {
+      return `~${minutes}m`;
+    }
+    return 'Soon';
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -143,6 +184,8 @@ export const RefundStatusTracker = ({ userId }: RefundStatusTrackerProps) => {
         const StatusIcon = statusConfig.icon;
         const currentStageIndex = getStageIndex(booking.status);
         const isFailed = booking.status === 'refund_failed';
+        const isCompleted = booking.status === 'refund_completed';
+        const estimatedCompletion = getEstimatedCompletion(booking.status, booking.updated_at);
 
         return (
           <motion.div
@@ -165,10 +208,34 @@ export const RefundStatusTracker = ({ userId }: RefundStatusTrackerProps) => {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Refund Amount */}
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                  <span className="text-sm text-muted-foreground">Refund Amount</span>
-                  <span className="font-semibold text-lg text-primary">₹{booking.service_price}</span>
+                {/* Refund Amount & Estimated Time */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <span className="text-xs text-muted-foreground block mb-1">Refund Amount</span>
+                    <span className="font-semibold text-lg text-primary">₹{booking.service_price}</span>
+                  </div>
+                  
+                  {estimatedCompletion && !isCompleted && !isFailed && (
+                    <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
+                      <span className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
+                        <Timer className="w-3 h-3" />
+                        Est. Completion
+                      </span>
+                      <span className="font-semibold text-sm text-primary">
+                        {estimatedCompletion.isFuture 
+                          ? formatTimeRemaining(estimatedCompletion.hoursRemaining, estimatedCompletion.minutesRemaining)
+                          : 'Any moment now'
+                        }
+                      </span>
+                    </div>
+                  )}
+                  
+                  {isCompleted && (
+                    <div className="p-3 bg-green-500/10 rounded-lg border border-green-500/20">
+                      <span className="text-xs text-muted-foreground block mb-1">Status</span>
+                      <span className="font-semibold text-sm text-green-600 dark:text-green-400">Completed!</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Progress Bar */}
@@ -225,9 +292,14 @@ export const RefundStatusTracker = ({ userId }: RefundStatusTrackerProps) => {
 
                 {/* Status Timeline */}
                 <div className="space-y-2 pt-2 border-t border-border">
-                  <p className="text-xs text-muted-foreground">
-                    Last updated: {format(parseISO(booking.updated_at), 'MMM d, yyyy h:mm a')}
-                  </p>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Last updated: {format(parseISO(booking.updated_at), 'MMM d, yyyy h:mm a')}</span>
+                    {estimatedCompletion && estimatedCompletion.isFuture && (
+                      <span className="text-primary">
+                        Expected by {format(estimatedCompletion.date, 'MMM d, h:mm a')}
+                      </span>
+                    )}
+                  </div>
                   
                   {booking.status === 'refund_completed' && (
                     <motion.div
