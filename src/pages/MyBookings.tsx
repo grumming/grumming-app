@@ -2,29 +2,20 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  ArrowLeft, Calendar, Clock, MapPin, 
-  Loader2, AlertCircle, CheckCircle2, XCircle, Star, CreditCard, MessageCircle 
+  ArrowLeft, Calendar, Clock, 
+  Loader2, AlertCircle, CheckCircle2, Star, CreditCard, MessageCircle 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { format, parseISO, isPast, isToday } from 'date-fns';
 import { ReviewDialog } from '@/components/ReviewDialog';
 import { BookingPaymentSheet } from '@/components/BookingPaymentSheet';
+import { BookingCancellationDialog } from '@/components/BookingCancellationDialog';
 
 interface Booking {
   id: string;
@@ -45,7 +36,6 @@ const MyBookings = () => {
   
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
-  const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
@@ -105,32 +95,8 @@ const MyBookings = () => {
     setLoading(false);
   };
 
-  const handleCancelBooking = async () => {
-    if (!selectedBooking) return;
-    
-    setCancellingId(selectedBooking.id);
-    
-    const { error } = await supabase
-      .from('bookings')
-      .update({ status: 'cancelled' })
-      .eq('id', selectedBooking.id);
-
-    if (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to cancel booking',
-        variant: 'destructive',
-      });
-    } else {
-      toast({
-        title: 'Booking Cancelled',
-        description: 'Your appointment has been cancelled.',
-      });
-      fetchBookings();
-    }
-    
-    setCancellingId(null);
-    setShowCancelDialog(false);
+  const handleCancellationComplete = () => {
+    fetchBookings();
     setSelectedBooking(null);
   };
 
@@ -279,13 +245,8 @@ const MyBookings = () => {
                                   setSelectedBooking(booking);
                                   setShowCancelDialog(true);
                                 }}
-                                disabled={cancellingId === booking.id}
                               >
-                                {cancellingId === booking.id ? (
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  'Cancel'
-                                )}
+                                Cancel
                               </Button>
                             </div>
                           </div>
@@ -389,31 +350,15 @@ const MyBookings = () => {
         </Tabs>
       </div>
 
-      {/* Cancel Confirmation Dialog */}
-      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Cancel Booking?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to cancel your appointment at{' '}
-              <strong>{selectedBooking?.salon_name}</strong> on{' '}
-              <strong>
-                {selectedBooking && format(parseISO(selectedBooking.booking_date), 'MMM d, yyyy')}
-              </strong>
-              ? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Keep Booking</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleCancelBooking}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-            Cancel Booking
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Cancellation Dialog with Refund Options */}
+      {selectedBooking && (
+        <BookingCancellationDialog
+          open={showCancelDialog}
+          onOpenChange={setShowCancelDialog}
+          booking={selectedBooking}
+          onCancellationComplete={handleCancellationComplete}
+        />
+      )}
 
       {/* Review Dialog */}
       {reviewBooking && user && (
