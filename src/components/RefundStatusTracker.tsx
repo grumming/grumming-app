@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Clock, CheckCircle2, AlertCircle, Loader2, 
-  RefreshCw, ArrowRight, Wallet, XCircle, Timer 
+  RefreshCw, ArrowRight, Wallet, XCircle, Timer, MessageCircle 
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -281,11 +281,24 @@ export const RefundStatusTracker = ({ userId }: RefundStatusTrackerProps) => {
 
                   {/* Failed State */}
                   {isFailed && (
-                    <div className="flex items-center gap-2 p-3 bg-destructive/10 text-destructive rounded-lg">
-                      <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                      <p className="text-sm">
-                        Refund failed. Please contact support for assistance.
-                      </p>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 p-3 bg-destructive/10 text-destructive rounded-lg">
+                        <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                        <p className="text-sm">
+                          Refund failed. Please contact support for assistance.
+                        </p>
+                      </div>
+                      <a
+                        href={`https://wa.me/919229506624?text=${encodeURIComponent(
+                          `Hi, I need help with a failed refund.\n\nBooking: ${booking.salon_name}\nService: ${booking.service_name}\nAmount: ₹${booking.service_price}\nBooking ID: ${booking.id}`
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 w-full p-3 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors font-medium"
+                      >
+                        <MessageCircle className="w-5 h-5" />
+                        Chat with Support on WhatsApp
+                      </a>
                     </div>
                   )}
                 </div>
