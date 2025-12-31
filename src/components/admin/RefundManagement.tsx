@@ -27,8 +27,22 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { format, startOfMonth, endOfMonth, subMonths, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
+import { format, startOfMonth, endOfMonth, subMonths, isWithinInterval, startOfDay, endOfDay, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
+
+interface MonthlyRefundSummary {
+  month: string;
+  monthLabel: string;
+  totalRefunds: number;
+  refundCount: number;
+  avgRefundAmount: number;
+  statusBreakdown: {
+    initiated: number;
+    processed: number;
+    completed: number;
+    failed: number;
+  };
+}
 
 interface CancelledBooking {
   id: string;
@@ -390,6 +404,70 @@ const RefundManagement = () => {
     setDateTo(undefined);
   };
 
+  // Calculate monthly refund summary from bookings
+  const calculateMonthlySummary = (): MonthlyRefundSummary[] => {
+    const monthlyData: Record<string, MonthlyRefundSummary> = {};
+
+    // Get last 12 months
+    for (let i = 0; i < 12; i++) {
+      const date = subMonths(new Date(), i);
+      const monthKey = format(date, 'yyyy-MM');
+      const monthLabel = format(date, 'MMMM yyyy');
+      monthlyData[monthKey] = {
+        month: monthKey,
+        monthLabel,
+        totalRefunds: 0,
+        refundCount: 0,
+        avgRefundAmount: 0,
+        statusBreakdown: {
+          initiated: 0,
+          processed: 0,
+          completed: 0,
+          failed: 0
+        }
+      };
+    }
+
+    // Process bookings
+    bookings.forEach(booking => {
+      const bookingMonth = format(new Date(booking.updated_at), 'yyyy-MM');
+      if (monthlyData[bookingMonth]) {
+        monthlyData[bookingMonth].refundCount++;
+        
+        // Only count amount for processed/completed refunds
+        if (['refund_processed', 'refund_completed'].includes(booking.status)) {
+          monthlyData[bookingMonth].totalRefunds += booking.service_price;
+        }
+
+        // Status breakdown
+        switch (booking.status) {
+          case 'refund_initiated':
+            monthlyData[bookingMonth].statusBreakdown.initiated++;
+            break;
+          case 'refund_processed':
+            monthlyData[bookingMonth].statusBreakdown.processed++;
+            break;
+          case 'refund_completed':
+            monthlyData[bookingMonth].statusBreakdown.completed++;
+            break;
+          case 'refund_failed':
+            monthlyData[bookingMonth].statusBreakdown.failed++;
+            break;
+        }
+      }
+    });
+
+    // Calculate averages
+    Object.values(monthlyData).forEach(month => {
+      const completedCount = month.statusBreakdown.processed + month.statusBreakdown.completed;
+      month.avgRefundAmount = completedCount > 0 ? month.totalRefunds / completedCount : 0;
+    });
+
+    return Object.values(monthlyData).sort((a, b) => b.month.localeCompare(a.month));
+  };
+
+  const monthlySummary = calculateMonthlySummary();
+
   useEffect(() => {
     fetchCancelledBookings();
     fetchAuditLogs();
@@ -624,10 +702,11 @@ const RefundManagement = () => {
         </Card>
       </div>
 
-      {/* Tabs for Refunds and Audit Log */}
+      {/* Tabs for Refunds, Summary and Audit Log */}
       <Tabs defaultValue="refunds" className="space-y-4">
         <TabsList>
           <TabsTrigger value="refunds">Refund Requests</TabsTrigger>
+          <TabsTrigger value="summary">Monthly Summary</TabsTrigger>
           <TabsTrigger value="audit">Audit Log</TabsTrigger>
         </TabsList>
 
@@ -769,6 +848,140 @@ const RefundManagement = () => {
                   </Table>
                 </div>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Monthly Summary Tab */}
+        <TabsContent value="summary">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <DollarSign className="w-5 h-5" />
+                    Monthly Refund Summary
+                  </CardTitle>
+                  <CardDescription>Financial overview of refunds by month (last 12 months)</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {/* Summary Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <Card className="bg-muted/50">
+                  <CardContent className="pt-4">
+                    <p className="text-sm text-muted-foreground">Total Refunded (12 months)</p>
+                    <h3 className="text-2xl font-bold">
+                      ₹{monthlySummary.reduce((sum, m) => sum + m.totalRefunds, 0).toLocaleString()}
+                    </h3>
+                  </CardContent>
+                </Card>
+                <Card className="bg-muted/50">
+                  <CardContent className="pt-4">
+                    <p className="text-sm text-muted-foreground">Total Refund Cases</p>
+                    <h3 className="text-2xl font-bold">
+                      {monthlySummary.reduce((sum, m) => sum + m.refundCount, 0)}
+                    </h3>
+                  </CardContent>
+                </Card>
+                <Card className="bg-muted/50">
+                  <CardContent className="pt-4">
+                    <p className="text-sm text-muted-foreground">Average Refund Amount</p>
+                    <h3 className="text-2xl font-bold">
+                      ₹{(() => {
+                        const totalAmount = monthlySummary.reduce((sum, m) => sum + m.totalRefunds, 0);
+                        const totalCompleted = monthlySummary.reduce((sum, m) => sum + m.statusBreakdown.processed + m.statusBreakdown.completed, 0);
+                        return totalCompleted > 0 ? Math.round(totalAmount / totalCompleted).toLocaleString() : '0';
+                      })()}
+                    </h3>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Monthly Chart Visualization */}
+              <div className="mb-6 p-4 bg-muted/30 rounded-lg">
+                <h4 className="text-sm font-medium mb-4">Refund Trend (Last 12 Months)</h4>
+                <div className="flex items-end justify-between gap-2 h-40">
+                  {[...monthlySummary].reverse().map((month, i) => {
+                    const maxAmount = Math.max(...monthlySummary.map(m => m.totalRefunds), 1);
+                    const height = (month.totalRefunds / maxAmount) * 100;
+                    return (
+                      <div key={month.month} className="flex-1 flex flex-col items-center gap-1">
+                        <span className="text-[10px] text-muted-foreground">
+                          {month.totalRefunds > 0 ? `₹${(month.totalRefunds / 1000).toFixed(1)}k` : '-'}
+                        </span>
+                        <div 
+                          className="w-full bg-primary/80 rounded-t transition-all hover:bg-primary"
+                          style={{ height: `${Math.max(height, 4)}%` }}
+                          title={`${month.monthLabel}: ₹${month.totalRefunds.toLocaleString()}`}
+                        />
+                        <span className="text-[9px] text-muted-foreground">{format(new Date(month.month + '-01'), 'MMM')}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Monthly Table */}
+              <div className="rounded-md border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Month</TableHead>
+                      <TableHead className="text-right">Refund Cases</TableHead>
+                      <TableHead className="text-right">Total Amount</TableHead>
+                      <TableHead className="text-right">Avg Amount</TableHead>
+                      <TableHead className="text-center">Initiated</TableHead>
+                      <TableHead className="text-center">Processed</TableHead>
+                      <TableHead className="text-center">Completed</TableHead>
+                      <TableHead className="text-center">Failed</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {monthlySummary.map((month) => (
+                      <TableRow key={month.month}>
+                        <TableCell className="font-medium">{month.monthLabel}</TableCell>
+                        <TableCell className="text-right">{month.refundCount}</TableCell>
+                        <TableCell className="text-right font-semibold">
+                          ₹{month.totalRefunds.toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          ₹{Math.round(month.avgRefundAmount).toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {month.statusBreakdown.initiated > 0 ? (
+                            <Badge className="bg-yellow-500">{month.statusBreakdown.initiated}</Badge>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {month.statusBreakdown.processed > 0 ? (
+                            <Badge className="bg-blue-500">{month.statusBreakdown.processed}</Badge>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {month.statusBreakdown.completed > 0 ? (
+                            <Badge className="bg-green-500">{month.statusBreakdown.completed}</Badge>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {month.statusBreakdown.failed > 0 ? (
+                            <Badge variant="destructive">{month.statusBreakdown.failed}</Badge>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
