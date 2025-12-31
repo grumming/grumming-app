@@ -33,6 +33,7 @@ import PendingSalonApprovals from '@/components/admin/PendingSalonApprovals';
 import TestPhoneWhitelist from '@/components/admin/TestPhoneWhitelist';
 import RefundManagement from '@/components/admin/RefundManagement';
 import SupportTicketManagement from '@/components/admin/SupportTicketManagement';
+import UserManagement from '@/components/admin/UserManagement';
 import { getDisplayContact } from '@/utils/displayUtils';
 
 interface UserProfile {
@@ -531,87 +532,7 @@ const AdminDashboard = () => {
 
             {/* Users Tab */}
             <TabsContent value="users" className="space-y-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search users by name, email, or phone..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-
-              <div className="text-sm text-muted-foreground">
-                {filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''} found
-              </div>
-
-              <div className="space-y-2">
-                {filteredUsers.map((u) => (
-                  <motion.div
-                    key={u.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                  >
-                    <Card className="hover:shadow-md transition-shadow">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <Avatar className="w-12 h-12">
-                              <AvatarImage src={u.avatar_url || ''} />
-                              <AvatarFallback className="bg-primary/10 text-primary">
-                                {u.full_name?.charAt(0) || u.phone?.charAt(0) || 'U'}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-semibold">{u.full_name || 'Unnamed User'}</p>
-                              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                                {u.phone && (
-                                  <span className="flex items-center gap-1">
-                                    <Phone className="w-3 h-3" />
-                                    {u.phone}
-                                  </span>
-                                )}
-                                {u.email && (
-                                  <span className="flex items-center gap-1">
-                                    <Mail className="w-3 h-3" />
-                                    {u.email}
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2 mt-1">
-                                <Badge variant={u.email_verified ? 'default' : 'secondary'} className="text-[10px]">
-                                  {u.email_verified ? (
-                                    <><UserCheck className="w-3 h-3 mr-1" /> Verified</>
-                                  ) : (
-                                    <><UserX className="w-3 h-3 mr-1" /> Unverified</>
-                                  )}
-                                </Badge>
-                                <span className="text-[10px] text-muted-foreground">
-                                  Joined {format(new Date(u.created_at), 'MMM d, yyyy')}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreVertical className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleViewUser(u)}>
-                                <Eye className="w-4 h-4 mr-2" />
-                                View Details
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                ))}
-              </div>
+              <UserManagement />
             </TabsContent>
 
             {/* Tools Tab */}
