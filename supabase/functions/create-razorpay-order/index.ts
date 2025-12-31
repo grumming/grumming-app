@@ -57,27 +57,19 @@ serve(async (req) => {
       });
     }
 
-    // Validate booking is in pending_payment status
-    if (booking.status !== 'pending_payment') {
-      console.error('Booking status mismatch:', booking.status);
-      return new Response(JSON.stringify({ error: 'Booking is not pending payment' }), {
+    // Validate booking is in a payable status (pending_payment or payment_failed for retry)
+    const payableStatuses = ['pending_payment', 'payment_failed', 'upcoming'];
+    if (!payableStatuses.includes(booking.status)) {
+      console.error('Booking status not payable:', booking.status);
+      return new Response(JSON.stringify({ error: 'Booking cannot be paid for' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Validate amount matches booking price (use server-side value)
-    const expectedAmount = parseFloat(booking.service_price);
-    if (Math.abs(amount - expectedAmount) > 0.01) {
-      console.error(`Amount mismatch detected: client sent ${amount}, expected ${expectedAmount}`);
-      return new Response(JSON.stringify({ error: 'Invalid payment amount' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Use validated amount from database (not client-supplied)
-    const validatedAmount = expectedAmount;
+    // Use the amount from the database for security (server-side validation)
+    const validatedAmount = parseFloat(booking.service_price);
+    console.log(`Creating order for validated amount: ${validatedAmount} ${currency} for booking: ${booking_id}`);
 
     console.log(`Creating order for validated amount: ${validatedAmount} ${currency} for booking: ${booking_id}`);
 

@@ -103,6 +103,18 @@ export function BookingPaymentSheet({
     setIsProcessing(true);
 
     try {
+      // Handle pay at salon - just complete the booking
+      if (paymentMethod === 'salon') {
+        toast({
+          title: 'Booking Confirmed!',
+          description: `Pay ₹${totalAmount} at ${booking.salon_name}`,
+        });
+        onPaymentSuccess();
+        onOpenChange(false);
+        setIsProcessing(false);
+        return;
+      }
+
       // Handle wallet deduction for split payment
       if (isSplitPayment && walletAmountToUse > 0) {
         try {
@@ -241,7 +253,7 @@ export function BookingPaymentSheet({
         <div className="absolute bottom-0 left-0 right-0 p-4 bg-background border-t border-border">
           <Button
             onClick={handlePayNow}
-            disabled={isLoading || (paymentMethod === 'salon')}
+            disabled={isLoading}
             className="w-full h-14 text-lg font-semibold gap-2"
           >
             {isLoading ? (
@@ -252,7 +264,7 @@ export function BookingPaymentSheet({
             ) : paymentMethod === 'salon' ? (
               <>
                 <CheckCircle2 className="w-5 h-5" />
-                Pay at Salon
+                Confirm Booking
               </>
             ) : (
               <>
@@ -264,7 +276,7 @@ export function BookingPaymentSheet({
           
           {paymentMethod === 'salon' && (
             <p className="text-xs text-center text-muted-foreground mt-2">
-              No advance payment needed - pay at the salon
+              Pay ₹{totalAmount} at the salon when you arrive
             </p>
           )}
         </div>

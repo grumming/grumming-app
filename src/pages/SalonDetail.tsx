@@ -963,6 +963,7 @@ const SalonDetail = () => {
         .from('bookings')
         .insert({
           user_id: user.id,
+          salon_id: dbSalon?.id || null, // Link to actual salon in database
           salon_name: salon.name,
           service_name: serviceNames,
           service_price: totalPrice,
