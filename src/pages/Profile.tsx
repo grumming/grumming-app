@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { 
   ArrowLeft, Mail, Phone, Calendar, Edit2, Loader2, 
   ChevronRight, Gift, Settings, LogOut, CreditCard, Heart, Wallet, Ticket,
-  CheckCircle2, AlertCircle, Shield
+  CheckCircle2, AlertCircle, Shield, Receipt
 } from 'lucide-react';
 import { useWallet } from '@/hooks/useWallet';
 import { Button } from '@/components/ui/button';
@@ -109,6 +109,7 @@ const Profile = () => {
 
   const menuItems = [
     { icon: Heart, label: 'Favorites', onClick: () => navigate('/favorites'), badge: favorites.length > 0 ? `${favorites.length}` : undefined },
+    { icon: Receipt, label: 'Payment History', onClick: () => navigate('/payment-history') },
     { icon: CreditCard, label: 'Payment Methods', onClick: () => navigate('/payment-methods') },
     { icon: Settings, label: 'Settings', onClick: () => navigate('/settings') },
     ...(isAdmin ? [{ icon: Shield, label: 'Admin Dashboard', onClick: () => navigate('/admin') }] : []),
