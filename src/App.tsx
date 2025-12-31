@@ -11,7 +11,6 @@ import { PushNotificationSetup } from "@/components/PushNotificationSetup";
 import { ReferralRewardListener } from "@/components/ReferralRewardListener";
 import { DeepLinkHandler } from "@/components/DeepLinkHandler";
 import { SalonOwnerRouteGuard } from "@/components/SalonOwnerRouteGuard";
-import WhatsAppSupport from "@/components/WhatsAppSupport";
 
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -125,7 +124,6 @@ const App = () => {
               <BrowserRouter>
                 <ReferralRewardListener />
                 <DeepLinkHandler />
-                <WhatsAppSupport />
                 
                 <Routes>
                   <Route path="/" element={<SalonOwnerRouteGuard><Index /></SalonOwnerRouteGuard>} />
