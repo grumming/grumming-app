@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { 
   Search, Loader2, RefreshCw, AlertCircle, CheckCircle, 
   XCircle, Clock, CreditCard, User, DollarSign,
-  ArrowUpRight, Filter, History, FileText, Download, CalendarIcon
+  ArrowUpRight, Filter, History, FileText, Download, CalendarIcon, FileDown
 } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -29,6 +29,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { format, startOfMonth, endOfMonth, subMonths, isWithinInterval, startOfDay, endOfDay, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface MonthlyRefundSummary {
   month: string;
@@ -468,6 +470,142 @@ const RefundManagement = () => {
 
   const monthlySummary = calculateMonthlySummary();
 
+  const exportMonthlySummaryToPDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    
+    // Brand colors
+    const primaryColor: [number, number, number] = [212, 141, 128]; // Rose gold
+    const darkColor: [number, number, number] = [51, 51, 51];
+    
+    // Header with branding
+    doc.setFillColor(...primaryColor);
+    doc.rect(0, 0, pageWidth, 45, 'F');
+    
+    // Company name
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Grumming', 20, 25);
+    
+    // Report title
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Monthly Refund Report', 20, 35);
+    
+    // Report date
+    doc.setFontSize(10);
+    doc.text(`Generated: ${format(new Date(), 'MMMM d, yyyy HH:mm')}`, pageWidth - 20, 25, { align: 'right' });
+    doc.text('Financial Year Report', pageWidth - 20, 35, { align: 'right' });
+    
+    // Summary section
+    let yPos = 60;
+    
+    doc.setTextColor(...darkColor);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Executive Summary', 20, yPos);
+    
+    yPos += 15;
+    
+    // Calculate totals
+    const totalRefunded = monthlySummary.reduce((sum, m) => sum + m.totalRefunds, 0);
+    const totalCases = monthlySummary.reduce((sum, m) => sum + m.refundCount, 0);
+    const totalCompleted = monthlySummary.reduce((sum, m) => sum + m.statusBreakdown.processed + m.statusBreakdown.completed, 0);
+    const avgAmount = totalCompleted > 0 ? totalRefunded / totalCompleted : 0;
+    
+    // Summary boxes
+    doc.setFillColor(248, 248, 248);
+    doc.roundedRect(20, yPos, 55, 30, 3, 3, 'F');
+    doc.roundedRect(80, yPos, 55, 30, 3, 3, 'F');
+    doc.roundedRect(140, yPos, 55, 30, 3, 3, 'F');
+    
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+    doc.text('Total Refunded', 47.5, yPos + 10, { align: 'center' });
+    doc.text('Total Cases', 107.5, yPos + 10, { align: 'center' });
+    doc.text('Average Amount', 167.5, yPos + 10, { align: 'center' });
+    
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...darkColor);
+    doc.text(`₹${totalRefunded.toLocaleString()}`, 47.5, yPos + 22, { align: 'center' });
+    doc.text(`${totalCases}`, 107.5, yPos + 22, { align: 'center' });
+    doc.text(`₹${Math.round(avgAmount).toLocaleString()}`, 167.5, yPos + 22, { align: 'center' });
+    
+    yPos += 45;
+    
+    // Monthly breakdown title
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Monthly Breakdown', 20, yPos);
+    
+    yPos += 10;
+    
+    // Monthly data table
+    const tableData = monthlySummary.map(month => [
+      month.monthLabel,
+      month.refundCount.toString(),
+      `₹${month.totalRefunds.toLocaleString()}`,
+      `₹${Math.round(month.avgRefundAmount).toLocaleString()}`,
+      month.statusBreakdown.initiated.toString(),
+      month.statusBreakdown.processed.toString(),
+      month.statusBreakdown.completed.toString(),
+      month.statusBreakdown.failed.toString()
+    ]);
+    
+    autoTable(doc, {
+      startY: yPos,
+      head: [['Month', 'Cases', 'Total Amount', 'Avg Amount', 'Initiated', 'Processed', 'Completed', 'Failed']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: {
+        fillColor: primaryColor,
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 9
+      },
+      bodyStyles: {
+        fontSize: 9
+      },
+      columnStyles: {
+        0: { cellWidth: 35 },
+        1: { halign: 'center', cellWidth: 18 },
+        2: { halign: 'right', cellWidth: 28 },
+        3: { halign: 'right', cellWidth: 25 },
+        4: { halign: 'center', cellWidth: 20 },
+        5: { halign: 'center', cellWidth: 22 },
+        6: { halign: 'center', cellWidth: 22 },
+        7: { halign: 'center', cellWidth: 18 }
+      },
+      margin: { left: 20, right: 20 }
+    });
+    
+    // Footer
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      const pageHeight = doc.internal.pageSize.getHeight();
+      
+      doc.setDrawColor(200, 200, 200);
+      doc.line(20, pageHeight - 20, pageWidth - 20, pageHeight - 20);
+      
+      doc.setFontSize(8);
+      doc.setTextColor(128, 128, 128);
+      doc.text('Grumming - Confidential Financial Report', 20, pageHeight - 12);
+      doc.text(`Page ${i} of ${pageCount}`, pageWidth - 20, pageHeight - 12, { align: 'right' });
+    }
+    
+    // Save the PDF
+    doc.save(`grumming-refund-report-${format(new Date(), 'yyyy-MM')}.pdf`);
+    
+    toast({
+      title: 'PDF Exported',
+      description: 'Monthly refund report has been downloaded'
+    });
+  };
+
   useEffect(() => {
     fetchCancelledBookings();
     fetchAuditLogs();
@@ -864,6 +1002,10 @@ const RefundManagement = () => {
                   </CardTitle>
                   <CardDescription>Financial overview of refunds by month (last 12 months)</CardDescription>
                 </div>
+                <Button onClick={exportMonthlySummaryToPDF} className="gap-2">
+                  <FileDown className="w-4 h-4" />
+                  Export PDF Report
+                </Button>
               </div>
             </CardHeader>
             <CardContent>
