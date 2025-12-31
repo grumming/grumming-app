@@ -34,6 +34,7 @@ import PaymentMethods from "./pages/PaymentMethods";
 import PaymentHistory from "./pages/PaymentHistory";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
+import RefundPolicy from "./pages/RefundPolicy";
 import Chat from "./pages/Chat";
 import SalonDashboard from "./pages/SalonDashboard";
 import SalonRegistration from "./pages/SalonRegistration";
@@ -155,6 +156,7 @@ const App = () => {
                   <Route path="/salon-owner-auth" element={<SalonOwnerAuth />} />
                   <Route path="/terms" element={<Terms />} />
                   <Route path="/privacy" element={<Privacy />} />
+                  <Route path="/refund-policy" element={<RefundPolicy />} />
                   <Route path="/chat" element={<Chat />} />
                   <Route path="/chat/:conversationId" element={<Chat />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

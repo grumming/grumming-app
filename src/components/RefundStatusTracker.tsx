@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Clock, CheckCircle2, AlertCircle, Loader2, 
-  RefreshCw, ArrowRight, Wallet, XCircle, Timer, MessageCircle 
+  RefreshCw, ArrowRight, Wallet, XCircle, Timer, MessageCircle, HelpCircle 
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -170,15 +171,33 @@ export const RefundStatusTracker = ({ userId }: RefundStatusTrackerProps) => {
       >
         <Wallet className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
         <h3 className="text-lg font-semibold mb-2">No Refunds</h3>
-        <p className="text-muted-foreground">
-          You don't have any refunds to track
+        <p className="text-muted-foreground mb-4">
+          You don&apos;t have any refunds to track
         </p>
+        <Link 
+          to="/refund-policy" 
+          className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+        >
+          <HelpCircle className="w-4 h-4" />
+          Learn about our refund policy
+        </Link>
       </motion.div>
     );
   }
 
   return (
     <div className="space-y-4">
+      {/* Refund Policy Link */}
+      <div className="flex justify-end">
+        <Link 
+          to="/refund-policy" 
+          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors"
+        >
+          <HelpCircle className="w-3.5 h-3.5" />
+          Refund Policy & FAQs
+        </Link>
+      </div>
+      
       {refundBookings.map((booking, index) => {
         const statusConfig = getStatusConfig(booking.status);
         const StatusIcon = statusConfig.icon;
