@@ -45,7 +45,7 @@ serve(async (req) => {
       throw new Error('Booking not found');
     }
 
-    console.log('Booking found:', booking.id, 'status:', booking.status);
+    console.log('Booking found:', booking.id, 'status:', booking.status, 'payment_id:', booking.payment_id);
 
     // Check if booking is in a refundable state
     if (!['confirmed', 'upcoming', 'pending_payment'].includes(booking.status)) {
@@ -55,21 +55,55 @@ serve(async (req) => {
     const amountToRefund = refund_amount || booking.service_price;
     const amountInPaise = Math.round(amountToRefund * 100);
 
-    // For now, we'll simulate the refund process since we need payment_id to process actual refunds
-    // In a real implementation, you would store the payment_id when the payment is made
-    // and use it here to process the refund via Razorpay API
+    let refundId = null;
+    let refundStatus = 'initiated';
 
-    // Check if we have a stored payment reference (you would typically store this during payment)
-    // Since we don't have payment_id stored, we'll mark the refund as initiated
-    // and it will be processed manually or via a batch process
+    // If we have a payment_id, process actual Razorpay refund
+    if (booking.payment_id) {
+      console.log('Processing Razorpay refund for payment:', booking.payment_id);
 
-    console.log('Initiating refund of', amountToRefund, 'INR (', amountInPaise, 'paise)');
+      const auth = btoa(`${razorpayKeyId}:${razorpayKeySecret}`);
+      
+      const refundResponse = await fetch(
+        `https://api.razorpay.com/v1/payments/${booking.payment_id}/refund`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Basic ${auth}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            amount: amountInPaise,
+            speed: 'normal',
+            notes: {
+              booking_id: booking_id,
+              reason: 'Customer requested cancellation',
+            },
+          }),
+        }
+      );
 
-    // Update booking status to reflect refund initiated
+      const refundData = await refundResponse.json();
+      console.log('Razorpay refund response:', refundData);
+
+      if (!refundResponse.ok) {
+        console.error('Razorpay refund failed:', refundData);
+        throw new Error(refundData.error?.description || 'Razorpay refund failed');
+      }
+
+      refundId = refundData.id;
+      refundStatus = refundData.status || 'processed';
+      console.log('Razorpay refund successful:', refundId, 'status:', refundStatus);
+    } else {
+      console.log('No payment_id found - marking as manual refund required');
+      refundStatus = 'manual_required';
+    }
+
+    // Update booking status
     const { error: updateError } = await supabase
       .from('bookings')
       .update({ 
-        status: 'refund_initiated',
+        status: booking.payment_id ? 'refunded' : 'refund_initiated',
         updated_at: new Date().toISOString()
       })
       .eq('id', booking_id);
@@ -80,27 +114,32 @@ serve(async (req) => {
     }
 
     // Create a notification for the user about the refund
+    const notificationMessage = booking.payment_id
+      ? `Your refund of ₹${amountToRefund} for ${booking.salon_name} booking has been processed. It will be credited to your original payment method within 5-7 business days.`
+      : `Your refund of ₹${amountToRefund} for ${booking.salon_name} booking has been initiated. Our team will process it within 5-7 business days.`;
+
     const { error: notifError } = await supabase
       .from('notifications')
       .insert({
         user_id: booking.user_id,
-        title: '💸 Refund Initiated',
-        message: `Your refund of ₹${amountToRefund} for ${booking.salon_name} booking has been initiated. It will be credited to your original payment method within 5-7 business days.`,
+        title: booking.payment_id ? '✅ Refund Processed' : '💸 Refund Initiated',
+        message: notificationMessage,
         type: 'refund',
         link: '/my-bookings'
       });
 
     if (notifError) {
       console.error('Failed to create notification:', notifError);
-      // Don't throw, notification failure shouldn't block refund
     }
 
-    console.log('Refund initiated successfully for booking:', booking_id);
+    console.log('Refund completed for booking:', booking_id);
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Refund initiated successfully',
+        message: booking.payment_id ? 'Refund processed successfully' : 'Refund initiated - manual processing required',
+        refund_id: refundId,
+        refund_status: refundStatus,
         refund_amount: amountToRefund,
         estimated_days: '5-7 business days',
         booking_id: booking_id

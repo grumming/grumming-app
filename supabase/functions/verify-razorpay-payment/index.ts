@@ -68,10 +68,12 @@ serve(async (req) => {
         .eq('id', booking_id)
         .single();
 
+      // Store payment_id for future refunds and update status
       const { error: updateError } = await supabase
         .from('bookings')
         .update({ 
           status: 'confirmed',
+          payment_id: razorpay_payment_id,
           updated_at: new Date().toISOString()
         })
         .eq('id', booking_id);
