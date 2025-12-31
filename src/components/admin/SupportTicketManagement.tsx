@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Collapsible, CollapsibleContent, CollapsibleTrigger 
 } from "@/components/ui/collapsible";
@@ -75,6 +76,8 @@ const SupportTicketManagement = () => {
   const [expandedTicket, setExpandedTicket] = useState<string | null>(null);
   const [responses, setResponses] = useState<Record<string, string>>({});
   const [internalNotes, setInternalNotes] = useState<Record<string, string>>({});
+  const [selectedTickets, setSelectedTickets] = useState<Set<string>>(new Set());
+  const [bulkAssignee, setBulkAssignee] = useState<string>("");
 
   // Fetch all tickets
   const { data: tickets, isLoading } = useQuery({
@@ -209,7 +212,85 @@ const SupportTicketManagement = () => {
     },
   });
 
-  // Send response
+  // Bulk update tickets mutation
+  const bulkUpdateTickets = useMutation({
+    mutationFn: async ({ 
+      ticketIds, 
+      updates 
+    }: { 
+      ticketIds: string[]; 
+      updates: Partial<SupportTicket>;
+    }) => {
+      const { error } = await supabase
+        .from("support_tickets")
+        .update(updates)
+        .in("id", ticketIds);
+      
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-support-tickets"] });
+      toast.success(`${variables.ticketIds.length} tickets updated successfully`);
+      setSelectedTickets(new Set());
+      setBulkAssignee("");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to update tickets");
+    },
+  });
+
+  // Toggle ticket selection
+  const toggleTicketSelection = (ticketId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedTickets(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(ticketId)) {
+        newSet.delete(ticketId);
+      } else {
+        newSet.add(ticketId);
+      }
+      return newSet;
+    });
+  };
+
+  // Select all visible tickets
+  const selectAllTickets = () => {
+    if (selectedTickets.size === filteredTickets.length) {
+      setSelectedTickets(new Set());
+    } else {
+      setSelectedTickets(new Set(filteredTickets.map(t => t.id)));
+    }
+  };
+
+  // Bulk actions
+  const handleBulkResolve = () => {
+    if (selectedTickets.size === 0) return;
+    bulkUpdateTickets.mutate({
+      ticketIds: Array.from(selectedTickets),
+      updates: {
+        status: "resolved",
+        resolved_at: new Date().toISOString(),
+      },
+    });
+  };
+
+  const handleBulkClose = () => {
+    if (selectedTickets.size === 0) return;
+    bulkUpdateTickets.mutate({
+      ticketIds: Array.from(selectedTickets),
+      updates: { status: "closed" },
+    });
+  };
+
+  const handleBulkAssign = () => {
+    if (selectedTickets.size === 0 || !bulkAssignee) return;
+    bulkUpdateTickets.mutate({
+      ticketIds: Array.from(selectedTickets),
+      updates: { 
+        assigned_to: bulkAssignee === "unassigned" ? null : bulkAssignee 
+      },
+    });
+  };
   const handleSendResponse = (ticket: SupportTicket) => {
     const response = responses[ticket.id];
     if (!response?.trim()) {
@@ -411,6 +492,84 @@ const SupportTicketManagement = () => {
         </Select>
       </div>
 
+      {/* Bulk Actions Bar */}
+      {selectedTickets.size > 0 && (
+        <Card className="border-primary/50 bg-primary/5">
+          <CardContent className="p-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-sm font-medium">
+                {selectedTickets.size} ticket{selectedTickets.size > 1 ? 's' : ''} selected
+              </span>
+              <div className="flex-1" />
+              <div className="flex flex-wrap items-center gap-2">
+                <Select value={bulkAssignee} onValueChange={setBulkAssignee}>
+                  <SelectTrigger className="w-[150px] h-8">
+                    <SelectValue placeholder="Assign to..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unassigned">Unassign</SelectItem>
+                    {adminUsers?.map(admin => (
+                      <SelectItem key={admin.user_id} value={admin.user_id}>
+                        {admin.full_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {bulkAssignee && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleBulkAssign}
+                    disabled={bulkUpdateTickets.isPending}
+                  >
+                    <UserPlus className="h-4 w-4 mr-1" />
+                    Assign
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-green-500 text-green-600 hover:bg-green-500/10"
+                  onClick={handleBulkResolve}
+                  disabled={bulkUpdateTickets.isPending}
+                >
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                  Resolve
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleBulkClose}
+                  disabled={bulkUpdateTickets.isPending}
+                >
+                  Close
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setSelectedTickets(new Set())}
+                >
+                  Clear
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Select All */}
+      {filteredTickets.length > 0 && (
+        <div className="flex items-center gap-2">
+          <Checkbox
+            checked={selectedTickets.size === filteredTickets.length && filteredTickets.length > 0}
+            onCheckedChange={selectAllTickets}
+          />
+          <span className="text-sm text-muted-foreground">
+            Select all ({filteredTickets.length})
+          </span>
+        </div>
+      )}
+
       {/* Tickets List */}
       {isLoading ? (
         <div className="flex justify-center py-8">
@@ -433,6 +592,7 @@ const SupportTicketManagement = () => {
           {filteredTickets.map((ticket) => {
             const isExpanded = expandedTicket === ticket.id;
             const userProfile = userProfiles?.[ticket.user_id];
+            const isSelected = selectedTickets.has(ticket.id);
 
             return (
               <Collapsible
@@ -440,11 +600,17 @@ const SupportTicketManagement = () => {
                 open={isExpanded}
                 onOpenChange={() => setExpandedTicket(isExpanded ? null : ticket.id)}
               >
-                <Card className={isExpanded ? "ring-1 ring-primary/20" : ""}>
+                <Card className={`${isExpanded ? "ring-1 ring-primary/20" : ""} ${isSelected ? "ring-1 ring-primary bg-primary/5" : ""}`}>
                   <CollapsibleTrigger asChild>
                     <CardHeader className="cursor-pointer hover:bg-muted/30 transition-colors p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-start gap-3 flex-1 min-w-0">
+                          <div 
+                            className="pt-0.5"
+                            onClick={(e) => toggleTicketSelection(ticket.id, e)}
+                          >
+                            <Checkbox checked={isSelected} />
+                          </div>
                           {getStatusIcon(ticket.status)}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
