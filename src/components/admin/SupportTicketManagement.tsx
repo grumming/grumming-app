@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { 
   MessageCircle, Clock, CheckCircle, AlertCircle, Search, 
-  Send, ChevronDown, ChevronUp, User, Mail, Phone 
+  Send, ChevronDown, ChevronUp, User, Mail, Phone, UserPlus 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,12 +31,18 @@ interface SupportTicket {
   resolved_at: string | null;
   created_at: string;
   updated_at: string;
+  assigned_to: string | null;
 }
 
 interface UserProfile {
   full_name: string | null;
   email: string | null;
   phone: string | null;
+}
+
+interface AdminUser {
+  user_id: string;
+  full_name: string | null;
 }
 
 const categories: Record<string, string> = {
@@ -53,6 +59,7 @@ const SupportTicketManagement = () => {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
   const [expandedTicket, setExpandedTicket] = useState<string | null>(null);
   const [responses, setResponses] = useState<Record<string, string>>({});
 
@@ -67,6 +74,36 @@ const SupportTicketManagement = () => {
       
       if (error) throw error;
       return data as SupportTicket[];
+    },
+  });
+
+  // Fetch admin users for assignment
+  const { data: adminUsers } = useQuery({
+    queryKey: ["admin-users"],
+    queryFn: async () => {
+      // Get all admin user IDs
+      const { data: roleData, error: roleError } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin");
+      
+      if (roleError) throw roleError;
+      if (!roleData || roleData.length === 0) return [];
+
+      const adminUserIds = roleData.map(r => r.user_id);
+      
+      // Get profiles for these admins
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", adminUserIds);
+      
+      if (profileError) throw profileError;
+      
+      return (profileData || []).map(p => ({
+        user_id: p.user_id,
+        full_name: p.full_name || "Admin",
+      })) as AdminUser[];
     },
   });
 
@@ -200,6 +237,23 @@ const SupportTicketManagement = () => {
     });
   };
 
+  // Assign ticket
+  const handleAssign = (ticketId: string, assignedTo: string | null) => {
+    updateTicket.mutate({
+      ticketId,
+      updates: {
+        assigned_to: assignedTo,
+      },
+    });
+  };
+
+  // Get admin name by ID
+  const getAdminName = (userId: string | null) => {
+    if (!userId) return null;
+    const admin = adminUsers?.find(a => a.user_id === userId);
+    return admin?.full_name || "Unknown";
+  };
+
   // Filter tickets
   const filteredTickets = tickets?.filter(ticket => {
     const matchesSearch = 
@@ -209,7 +263,12 @@ const SupportTicketManagement = () => {
     
     const matchesStatus = statusFilter === "all" || ticket.status === statusFilter;
     
-    return matchesSearch && matchesStatus;
+    const matchesAssignee = 
+      assigneeFilter === "all" || 
+      (assigneeFilter === "unassigned" && !ticket.assigned_to) ||
+      ticket.assigned_to === assigneeFilter;
+    
+    return matchesSearch && matchesStatus && matchesAssignee;
   }) || [];
 
   const getStatusBadge = (status: string) => {
@@ -300,7 +359,7 @@ const SupportTicketManagement = () => {
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-[180px]">
+          <SelectTrigger className="w-full sm:w-[140px]">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
@@ -309,6 +368,20 @@ const SupportTicketManagement = () => {
             <SelectItem value="in_progress">In Progress</SelectItem>
             <SelectItem value="resolved">Resolved</SelectItem>
             <SelectItem value="closed">Closed</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+          <SelectTrigger className="w-full sm:w-[160px]">
+            <SelectValue placeholder="Filter by assignee" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Assignees</SelectItem>
+            <SelectItem value="unassigned">Unassigned</SelectItem>
+            {adminUsers?.map(admin => (
+              <SelectItem key={admin.user_id} value={admin.user_id}>
+                {admin.full_name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -371,6 +444,12 @@ const SupportTicketManagement = () => {
                                     {userProfile.phone}
                                   </span>
                                 )}
+                                {ticket.assigned_to && (
+                                  <span className="flex items-center gap-1 text-primary">
+                                    <UserPlus className="h-3 w-3" />
+                                    {getAdminName(ticket.assigned_to)}
+                                  </span>
+                                )}
                               </div>
                             )}
                           </div>
@@ -413,6 +492,28 @@ const SupportTicketManagement = () => {
                           )}
                         </div>
                       )}
+
+                      {/* Assignment */}
+                      <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                        <UserPlus className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">Assign to:</span>
+                        <Select 
+                          value={ticket.assigned_to || "unassigned"} 
+                          onValueChange={(value) => handleAssign(ticket.id, value === "unassigned" ? null : value)}
+                        >
+                          <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Select admin" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="unassigned">Unassigned</SelectItem>
+                            {adminUsers?.map(admin => (
+                              <SelectItem key={admin.user_id} value={admin.user_id}>
+                                {admin.full_name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
 
                       {/* Response Form */}
                       {ticket.status !== "closed" && (
