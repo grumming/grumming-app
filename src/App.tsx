@@ -64,19 +64,23 @@ const App = () => {
 
       const isExtensionSource = isExtensionFilename || isExtensionStack;
 
+      // Suppress property descriptor errors from extensions (crypto wallets)
+      const isPropertyDescriptorError = 
+        message.includes("Invalid property descriptor") ||
+        message.includes("Cannot redefine property") ||
+        message.includes("Cannot set property ethereum");
+
+      if (isPropertyDescriptorError && isExtensionSource) return true;
+
       // In dev/preview, suppress ALL extension-sourced errors (they can cause false blank screens)
-      if (import.meta.env.DEV && isExtensionSource) return true;
+      if (isExtensionSource) return true;
 
-      // In production, always suppress errors whose *source file* is a browser extension.
-      // These are injected by extensions and are not actionable for our app.
-      if (!import.meta.env.DEV && isExtensionFilename) return true;
-
-      // In production, additionally suppress wallet-related errors when they come from extension scripts.
+      // Wallet-related errors
       const isWalletRelated =
         /metamask|phantom|wallet|ethereum/i.test(message) ||
         message.includes("Failed to connect to MetaMask");
 
-      return isWalletRelated && isExtensionStack;
+      return isWalletRelated;
     };
 
     const onUnhandledRejection = (event: PromiseRejectionEvent) => {
