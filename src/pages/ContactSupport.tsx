@@ -59,14 +59,14 @@ const ContactSupport = () => {
   const [attachments, setAttachments] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Fetch user's tickets
+  // Fetch user's tickets (explicitly exclude internal_notes which is admin-only)
   const { data: tickets, isLoading: ticketsLoading } = useQuery({
     queryKey: ["support-tickets", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
       const { data, error } = await supabase
         .from("support_tickets")
-        .select("*")
+        .select("id, ticket_number, category, subject, message, status, priority, admin_response, responded_at, resolved_at, created_at, attachments")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       

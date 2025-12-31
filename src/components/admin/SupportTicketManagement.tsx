@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { 
   MessageCircle, Clock, CheckCircle, AlertCircle, Search, 
-  Send, ChevronDown, ChevronUp, User, Mail, Phone, UserPlus, Image, ExternalLink 
+  Send, ChevronDown, ChevronUp, User, Mail, Phone, UserPlus, Image, ExternalLink, StickyNote, Save 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,7 @@ interface SupportTicket {
   updated_at: string;
   assigned_to: string | null;
   attachments: string[] | null;
+  internal_notes: string | null;
 }
 
 interface UserProfile {
@@ -63,6 +64,7 @@ const SupportTicketManagement = () => {
   const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
   const [expandedTicket, setExpandedTicket] = useState<string | null>(null);
   const [responses, setResponses] = useState<Record<string, string>>({});
+  const [internalNotes, setInternalNotes] = useState<Record<string, string>>({});
 
   // Fetch all tickets
   const { data: tickets, isLoading } = useQuery({
@@ -555,6 +557,47 @@ const SupportTicketManagement = () => {
                             ))}
                           </SelectContent>
                         </Select>
+                      </div>
+
+                      {/* Internal Notes Section */}
+                      <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg space-y-2">
+                        <div className="flex items-center gap-2">
+                          <StickyNote className="h-4 w-4 text-amber-600" />
+                          <span className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                            Internal Notes
+                          </span>
+                          <span className="text-xs text-amber-600/70 dark:text-amber-500/70">
+                            (Not visible to user)
+                          </span>
+                        </div>
+                        <Textarea
+                          placeholder="Add internal notes about this ticket..."
+                          value={internalNotes[ticket.id] ?? ticket.internal_notes ?? ""}
+                          onChange={(e) => setInternalNotes(prev => ({
+                            ...prev,
+                            [ticket.id]: e.target.value
+                          }))}
+                          rows={2}
+                          className="bg-background/50"
+                        />
+                        {(internalNotes[ticket.id] !== undefined && 
+                          internalNotes[ticket.id] !== (ticket.internal_notes ?? "")) && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-amber-500 text-amber-600 hover:bg-amber-500/10"
+                            onClick={() => {
+                              updateTicket.mutate({
+                                ticketId: ticket.id,
+                                updates: { internal_notes: internalNotes[ticket.id] || null },
+                              });
+                            }}
+                            disabled={updateTicket.isPending}
+                          >
+                            <Save className="h-4 w-4 mr-2" />
+                            Save Notes
+                          </Button>
+                        )}
                       </div>
 
                       {/* Response Form */}
