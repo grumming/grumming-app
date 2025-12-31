@@ -835,6 +835,51 @@ export type Database = {
         }
         Relationships: []
       }
+      test_phone_audit_log: {
+        Row: {
+          action: string
+          id: string
+          ip_address: string | null
+          new_description: string | null
+          new_is_active: boolean | null
+          new_otp_code: string | null
+          old_description: string | null
+          old_is_active: boolean | null
+          old_otp_code: string | null
+          performed_at: string | null
+          performed_by: string | null
+          phone: string
+        }
+        Insert: {
+          action: string
+          id?: string
+          ip_address?: string | null
+          new_description?: string | null
+          new_is_active?: boolean | null
+          new_otp_code?: string | null
+          old_description?: string | null
+          old_is_active?: boolean | null
+          old_otp_code?: string | null
+          performed_at?: string | null
+          performed_by?: string | null
+          phone: string
+        }
+        Update: {
+          action?: string
+          id?: string
+          ip_address?: string | null
+          new_description?: string | null
+          new_is_active?: boolean | null
+          new_otp_code?: string | null
+          old_description?: string | null
+          old_is_active?: boolean | null
+          old_otp_code?: string | null
+          performed_at?: string | null
+          performed_by?: string | null
+          phone?: string
+        }
+        Relationships: []
+      }
       test_phone_whitelist: {
         Row: {
           created_at: string | null
