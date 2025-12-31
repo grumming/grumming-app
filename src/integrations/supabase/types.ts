@@ -886,6 +886,7 @@ export type Database = {
         Row: {
           admin_response: string | null
           assigned_to: string | null
+          attachments: string[] | null
           category: string
           created_at: string
           id: string
@@ -902,6 +903,7 @@ export type Database = {
         Insert: {
           admin_response?: string | null
           assigned_to?: string | null
+          attachments?: string[] | null
           category: string
           created_at?: string
           id?: string
@@ -918,6 +920,7 @@ export type Database = {
         Update: {
           admin_response?: string | null
           assigned_to?: string | null
+          attachments?: string[] | null
           category?: string
           created_at?: string
           id?: string
