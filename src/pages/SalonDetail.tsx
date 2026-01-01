@@ -929,16 +929,14 @@ const SalonDetail = () => {
 
     const serviceNames = selectedServicesData.map((s: any) => s.name).join(', ');
     
-    // Calculate amounts for split payment
-    const walletPaymentAmount = paymentMethod === 'split' ? splitWalletAmount : 0;
-    const remainingAmount = paymentMethod === 'split' ? totalPrice - splitWalletAmount : totalPrice;
+    // Calculate amounts - wallet can be used with any payment method now
+    const walletPaymentAmount = splitWalletAmount;
+    const remainingAmount = totalPrice - splitWalletAmount;
 
     // Create new booking or update existing one (retry mode)
     const bookingStatus = paymentMethod === 'online' || paymentMethod === 'upi' 
       ? 'pending_payment' 
-      : paymentMethod === 'split' 
-        ? 'partial_paid' 
-        : 'upcoming';
+      : 'upcoming';
 
     let bookingData: { id: string } | null = null;
     let bookingError: Error | null = null;
@@ -989,12 +987,12 @@ const SalonDetail = () => {
       return;
     }
 
-    // Handle split payment - deduct wallet first
-    if (paymentMethod === 'split' && walletPaymentAmount > 0) {
+    // Handle wallet payment - deduct from wallet
+    if (walletPaymentAmount > 0) {
       await useCredits({
         amount: walletPaymentAmount,
         category: 'booking_discount',
-        description: `Split payment for booking at ${salon.name}`,
+        description: `Wallet payment for booking at ${salon.name}`,
         referenceId: bookingData.id,
       });
     }
@@ -1229,7 +1227,7 @@ const SalonDetail = () => {
       setIsSplitPayment(false);
       setSplitWalletAmount(0);
 
-      const toastMessage = paymentMethod === 'split'
+      const toastMessage = walletPaymentAmount > 0
         ? `₹${walletPaymentAmount} paid from wallet. Pay ₹${remainingAmount} at the salon.`
         : totalDiscount > 0 
           ? `You saved ₹${totalDiscount}. Pay ₹${totalPrice} at the salon.`
@@ -1248,11 +1246,11 @@ const SalonDetail = () => {
         time: selectedTime,
         paymentMethod: paymentMethod,
         discount: totalDiscount.toString(),
-        ...(paymentMethod === 'split' && { walletPaid: walletPaymentAmount.toString() }),
+        ...(walletPaymentAmount > 0 && { walletPaid: walletPaymentAmount.toString() }),
         ...(appliedPromo && { promoCode: appliedPromo.code, promoDiscount: promoDiscount.toString() }),
         ...(appliedVoucher && { voucherCode: appliedVoucher.code, voucherDiscount: voucherDiscount.toString() }),
         ...(rewardDiscount > 0 && { rewardDiscount: rewardDiscount.toString() }),
-        ...(!isSplitPayment && walletCreditsDiscount > 0 && { walletDiscount: walletCreditsDiscount.toString() }),
+        ...(walletCreditsDiscount > 0 && { walletDiscount: walletCreditsDiscount.toString() }),
       });
       
       navigate(`/booking-confirmation?${params.toString()}`);
@@ -2165,8 +2163,6 @@ const SalonDetail = () => {
                     walletBalance={walletBalance}
                     walletAmountToUse={splitWalletAmount}
                     onWalletAmountChange={setSplitWalletAmount}
-                    isSplitPayment={isSplitPayment}
-                    onSplitToggle={setIsSplitPayment}
                     selectedSavedMethodId={selectedSavedPaymentMethod}
                     onSavedMethodSelect={setSelectedSavedPaymentMethod}
                     selectedUpiAppId={selectedUpiApp}
@@ -2205,7 +2201,7 @@ const SalonDetail = () => {
                           <CreditCard className="w-5 h-5" />
                           Pay ₹{totalPrice}
                         </div>
-                      ) : paymentMethod === 'split' ? (
+                      ) : splitWalletAmount > 0 ? (
                         <div className="flex items-center gap-2">
                           <Wallet className="w-5 h-5" />
                           Pay ₹{splitWalletAmount} + ₹{totalPrice - splitWalletAmount}
