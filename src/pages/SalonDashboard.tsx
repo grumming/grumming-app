@@ -34,6 +34,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format, subDays, isToday, isTomorrow, parseISO } from 'date-fns';
 import SalonOwnerBottomNav from '@/components/SalonOwnerBottomNav';
 import SalonSettingsDialog from '@/components/SalonSettingsDialog';
+import SalonOwnerChatDialog from '@/components/SalonOwnerChatDialog';
 
 interface Booking {
   id: string;
@@ -149,6 +150,11 @@ const SalonDashboard = () => {
   const [selectedBookingForPin, setSelectedBookingForPin] = useState<Booking | null>(null);
   const [enteredPin, setEnteredPin] = useState('');
   const [isPinVerifying, setIsPinVerifying] = useState(false);
+
+  // Chat dialog state
+  const [isChatDialogOpen, setIsChatDialogOpen] = useState(false);
+  const [selectedBookingForChat, setSelectedBookingForChat] = useState<Booking | null>(null);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const PULL_THRESHOLD = 80;
 
@@ -1024,26 +1030,41 @@ const SalonDashboard = () => {
                             <p className="text-sm font-medium mt-1">₹{booking.service_price}</p>
                           </div>
                           
-                          {booking.status === 'upcoming' && (
-                            <div className="flex gap-2">
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => handleOpenPinDialog(booking)}
-                              >
-                                <KeyRound className="w-4 h-4 mr-1" />
-                                Complete
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                className="text-destructive"
-                                onClick={() => handleUpdateBookingStatus(booking.id, 'cancelled')}
-                              >
-                                <XCircle className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          )}
+                          <div className="flex gap-2 flex-wrap justify-end">
+                            {/* Message Customer Button - always visible */}
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedBookingForChat(booking);
+                                setIsChatDialogOpen(true);
+                              }}
+                            >
+                              <MessageSquare className="w-4 h-4 mr-1" />
+                              Message
+                            </Button>
+                            
+                            {booking.status === 'upcoming' && (
+                              <>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => handleOpenPinDialog(booking)}
+                                >
+                                  <KeyRound className="w-4 h-4 mr-1" />
+                                  Complete
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  className="text-destructive"
+                                  onClick={() => handleUpdateBookingStatus(booking.id, 'cancelled')}
+                                >
+                                  <XCircle className="w-4 h-4" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
                         </motion.div>
                       ))}
                     </div>
@@ -1494,6 +1515,25 @@ const SalonDashboard = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Chat Dialog for messaging customers */}
+      {selectedBookingForChat && selectedSalonId && (
+        <SalonOwnerChatDialog
+          open={isChatDialogOpen}
+          onOpenChange={(open) => {
+            setIsChatDialogOpen(open);
+            if (!open) setSelectedBookingForChat(null);
+          }}
+          booking={{
+            id: selectedBookingForChat.id,
+            user_id: selectedBookingForChat.user_id,
+            salon_name: selectedBookingForChat.salon_name,
+            service_name: selectedBookingForChat.service_name,
+            customer_name: selectedBookingForChat.customer_name,
+          }}
+          salonId={selectedSalonId}
+        />
+      )}
 
       {/* Salon Owner Bottom Navigation */}
       <SalonOwnerBottomNav />
