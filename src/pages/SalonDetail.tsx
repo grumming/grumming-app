@@ -573,6 +573,7 @@ const SalonDetail = () => {
     valid_until: string | null;
     source: string;
   }>>([]);
+  const [isVouchersLoading, setIsVouchersLoading] = useState(true);
   const [appliedVoucher, setAppliedVoucher] = useState<{
     id: string;
     code: string;
@@ -606,8 +607,12 @@ const SalonDetail = () => {
   // Fetch user vouchers
   useEffect(() => {
     const fetchUserVouchers = async () => {
-      if (!user) return;
+      if (!user) {
+        setIsVouchersLoading(false);
+        return;
+      }
       
+      setIsVouchersLoading(true);
       const now = new Date().toISOString();
       const { data } = await supabase
         .from('user_vouchers')
@@ -620,6 +625,7 @@ const SalonDetail = () => {
       if (data) {
         setUserVouchers(data);
       }
+      setIsVouchersLoading(false);
     };
     
     fetchUserVouchers();
@@ -1917,14 +1923,14 @@ const SalonDetail = () => {
                     </div>
                   )}
 
-                  {availableReward === 0 && walletBalance === 0 && !isWalletLoading && (
+                  {availableReward === 0 && walletBalance === 0 && userVouchers.length === 0 && !isWalletLoading && !isVouchersLoading && (
                     <p className="text-sm text-muted-foreground text-center py-2">No rewards or credits available</p>
                   )}
 
-                  {isWalletLoading && availableReward === 0 && (
+                  {(isWalletLoading || isVouchersLoading) && availableReward === 0 && walletBalance === 0 && userVouchers.length === 0 && (
                     <div className="flex items-center justify-center py-2 gap-2">
                       <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                      <span className="text-sm text-muted-foreground">Loading wallet...</span>
+                      <span className="text-sm text-muted-foreground">Loading...</span>
                     </div>
                   )}
                 </div>
