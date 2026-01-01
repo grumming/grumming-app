@@ -76,7 +76,6 @@ export function BookingPaymentSheet({
     switch (method) {
       case 'online': return 'Card/Net Banking';
       case 'upi': return 'UPI';
-      case 'split': return 'Wallet + Pay at Salon';
       case 'salon': return 'Pay at Salon';
       default: return 'Online';
     }
@@ -240,8 +239,6 @@ export function BookingPaymentSheet({
             walletBalance={walletBalance}
             walletAmountToUse={walletAmountToUse}
             onWalletAmountChange={setWalletAmountToUse}
-            isSplitPayment={isSplitPayment}
-            onSplitToggle={setIsSplitPayment}
             selectedSavedMethodId={selectedSavedMethodId}
             onSavedMethodSelect={setSelectedSavedMethodId}
             selectedUpiAppId={selectedUpiAppId}
