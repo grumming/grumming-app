@@ -60,7 +60,7 @@ const Chat = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   
   // Presence tracking for salon owners
-  const { isUserOnline } = usePresence('grumming-presence');
+  const { isUserOnline, getLastSeen } = usePresence('grumming-presence');
   
   const {
     conversations,
@@ -198,7 +198,13 @@ const Chat = () => {
                   {currentConversation.salon_name}
                 </h1>
                 <p className="text-xs text-muted-foreground">
-                  {isTyping ? 'Typing...' : isUserOnline(currentConversation.salon_id) ? 'Online' : 'Offline'}
+                  {isTyping 
+                    ? 'Typing...' 
+                    : isUserOnline(currentConversation.salon_id) 
+                      ? 'Online' 
+                      : getLastSeen(currentConversation.salon_id)
+                        ? `Last seen ${getLastSeen(currentConversation.salon_id)}`
+                        : 'Offline'}
                 </p>
               </div>
             </div>

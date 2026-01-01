@@ -47,8 +47,9 @@ const SalonOwnerChatDialog = ({ open, onOpenChange, booking, salonId, onMessages
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Presence tracking for customers
-  const { isUserOnline } = usePresence('grumming-presence');
+  const { isUserOnline, getLastSeen } = usePresence('grumming-presence');
   const isCustomerOnline = isUserOnline(booking.user_id);
+  const customerLastSeen = getLastSeen(booking.user_id);
 
   // Scroll to bottom on new messages
   const scrollToBottom = () => {
@@ -254,7 +255,13 @@ const SalonOwnerChatDialog = ({ open, onOpenChange, booking, salonId, onMessages
             <div>
               <p className="font-medium text-base">{booking.customer_name || 'Customer'}</p>
               <p className="text-xs text-muted-foreground font-normal">
-                {isCustomerTyping ? 'Typing...' : isCustomerOnline ? 'Online' : 'Offline'} • {booking.service_name}
+                {isCustomerTyping 
+                  ? 'Typing...' 
+                  : isCustomerOnline 
+                    ? 'Online' 
+                    : customerLastSeen 
+                      ? `Last seen ${customerLastSeen}` 
+                      : 'Offline'} • {booking.service_name}
               </p>
             </div>
           </DialogTitle>
