@@ -69,68 +69,6 @@ export function PaymentMethodSelector({
 
   return (
     <div className="space-y-5">
-      {/* Wallet Balance Section */}
-      {walletBalance > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="p-4 rounded-2xl bg-gradient-to-br from-primary/5 via-background to-accent/5 border border-primary/10 shadow-sm"
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center shadow-sm">
-                <Wallet className="w-5 h-5 text-primary" />
-              </div>
-              <span className="text-sm font-semibold text-foreground">Use Wallet Balance</span>
-            </div>
-            <div className="px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
-              <span className="text-xs font-semibold text-primary">
-                ₹{walletBalance.toFixed(2)} available
-              </span>
-            </div>
-          </div>
-
-          {/* Slider */}
-          <div className="space-y-2 mb-1">
-            <div className="relative">
-              <Slider
-                value={[walletAmountToUse]}
-                onValueChange={(value) => onWalletAmountChange(value[0])}
-                max={maxWalletUsable}
-                min={0}
-                step={1}
-                className="w-full [&_[role=slider]]:h-5 [&_[role=slider]]:w-5 [&_[role=slider]]:border-2 [&_[role=slider]]:border-primary [&_[role=slider]]:bg-background [&_[role=slider]]:shadow-md [&_.relative]:h-2 [&_.bg-primary]:bg-gradient-to-r [&_.bg-primary]:from-primary/80 [&_.bg-primary]:to-primary"
-              />
-            </div>
-            <div className="flex justify-between text-xs text-muted-foreground font-medium">
-              <span>₹0</span>
-              <span>₹{maxWalletUsable}</span>
-            </div>
-          </div>
-
-          {/* Deduction Breakdown - Always visible */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="mt-4 pt-3 border-t border-border/30 space-y-2"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Wallet deduction</span>
-              <span className={`text-sm font-bold ${walletAmountToUse > 0 ? 'text-primary' : 'text-muted-foreground'}`}>
-                {walletAmountToUse > 0 ? `-₹${walletAmountToUse}` : '₹0'}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Remaining to pay</span>
-              <span className="text-sm font-bold text-foreground">
-                ₹{totalAmount - walletAmountToUse}
-              </span>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-
       {/* Payment Methods Grid */}
       <div className="grid grid-cols-3 gap-3">
         {paymentMethods.map((method) => {
