@@ -1029,64 +1029,79 @@ const SalonDashboard = () => {
 
             {/* Bookings Tab */}
             <TabsContent value="bookings" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>All Bookings</CardTitle>
-                  <CardDescription>Manage your salon bookings</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {bookings.length === 0 ? (
-                    <p className="text-center text-muted-foreground py-8">No bookings yet</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {bookings.map(booking => (
-                        <motion.div
-                          key={booking.id}
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          className="flex items-center justify-between p-4 border rounded-lg"
-                        >
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <p className="font-medium">{booking.service_name}</p>
-                              <Badge variant={
-                                booking.status === 'completed' ? 'default' :
-                                booking.status === 'cancelled' ? 'destructive' : 'secondary'
-                              }>
-                                {booking.status}
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                              <User className="w-3 h-3" /> {booking.customer_name}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {getBookingDateLabel(booking.booking_date)} at {booking.booking_time}
-                            </p>
-                            <p className="text-sm font-medium mt-1">₹{booking.service_price}</p>
-                          </div>
-                          
-                          <div className="flex gap-2 flex-wrap justify-end">
-                            {/* Message Customer Button - always visible */}
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              className="relative"
-                              onClick={() => {
-                                setSelectedBookingForChat(booking);
-                                setIsChatDialogOpen(true);
-                              }}
+              <Tabs defaultValue="upcoming" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-4">
+                  <TabsTrigger value="upcoming" className="flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    Upcoming
+                    {bookings.filter(b => b.status === 'upcoming').length > 0 && (
+                      <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                        {bookings.filter(b => b.status === 'upcoming').length}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
+                  <TabsTrigger value="completed" className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4" />
+                    Completed
+                    {bookings.filter(b => b.status === 'completed').length > 0 && (
+                      <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                        {bookings.filter(b => b.status === 'completed').length}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* Upcoming Bookings */}
+                <TabsContent value="upcoming">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Upcoming Bookings</CardTitle>
+                      <CardDescription>Bookings awaiting service</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {bookings.filter(b => b.status === 'upcoming').length === 0 ? (
+                        <p className="text-center text-muted-foreground py-8">No upcoming bookings</p>
+                      ) : (
+                        <div className="space-y-3">
+                          {bookings.filter(b => b.status === 'upcoming').map(booking => (
+                            <motion.div
+                              key={booking.id}
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              className="flex items-center justify-between p-4 border rounded-lg"
                             >
-                              <MessageSquare className="w-4 h-4 mr-1" />
-                              Message
-                              {booking.unread_count && booking.unread_count > 0 && (
-                                <span className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
-                                  {booking.unread_count > 9 ? '9+' : booking.unread_count}
-                                </span>
-                              )}
-                            </Button>
-                            
-                            {booking.status === 'upcoming' && (
-                              <>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <p className="font-medium">{booking.service_name}</p>
+                                  <Badge variant="secondary">{booking.status}</Badge>
+                                </div>
+                                <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                                  <User className="w-3 h-3" /> {booking.customer_name}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  {getBookingDateLabel(booking.booking_date)} at {booking.booking_time}
+                                </p>
+                                <p className="text-sm font-medium mt-1">₹{booking.service_price}</p>
+                              </div>
+                              
+                              <div className="flex gap-2 flex-wrap justify-end">
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  className="relative"
+                                  onClick={() => {
+                                    setSelectedBookingForChat(booking);
+                                    setIsChatDialogOpen(true);
+                                  }}
+                                >
+                                  <MessageSquare className="w-4 h-4 mr-1" />
+                                  Message
+                                  {booking.unread_count && booking.unread_count > 0 && (
+                                    <span className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                                      {booking.unread_count > 9 ? '9+' : booking.unread_count}
+                                    </span>
+                                  )}
+                                </Button>
                                 <Button 
                                   size="sm" 
                                   variant="outline"
@@ -1098,20 +1113,79 @@ const SalonDashboard = () => {
                                 <Button 
                                   size="sm" 
                                   variant="outline"
-                                  className="text-destructive"
+                                  className="text-destructive hover:text-destructive"
                                   onClick={() => handleUpdateBookingStatus(booking.id, 'cancelled')}
                                 >
-                                  <XCircle className="w-4 h-4" />
+                                  <XCircle className="w-4 h-4 mr-1" />
+                                  Cancel
                                 </Button>
-                              </>
-                            )}
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                {/* Completed Bookings */}
+                <TabsContent value="completed">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Completed Bookings</CardTitle>
+                      <CardDescription>Successfully completed appointments</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {bookings.filter(b => b.status === 'completed').length === 0 ? (
+                        <p className="text-center text-muted-foreground py-8">No completed bookings yet</p>
+                      ) : (
+                        <div className="space-y-3">
+                          {bookings.filter(b => b.status === 'completed').map(booking => (
+                            <motion.div
+                              key={booking.id}
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              className="flex items-center justify-between p-4 border rounded-lg bg-muted/20"
+                            >
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <p className="font-medium">{booking.service_name}</p>
+                                  <Badge variant="default" className="bg-green-500/10 text-green-600 border-green-200">
+                                    <CheckCircle className="w-3 h-3 mr-1" />
+                                    Completed
+                                  </Badge>
+                                </div>
+                                <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                                  <User className="w-3 h-3" /> {booking.customer_name}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  {getBookingDateLabel(booking.booking_date)} at {booking.booking_time}
+                                </p>
+                                <p className="text-sm font-medium mt-1">₹{booking.service_price}</p>
+                              </div>
+                              
+                              <div className="flex gap-2 flex-wrap justify-end">
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  className="relative"
+                                  onClick={() => {
+                                    setSelectedBookingForChat(booking);
+                                    setIsChatDialogOpen(true);
+                                  }}
+                                >
+                                  <MessageSquare className="w-4 h-4 mr-1" />
+                                  Message
+                                </Button>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
             </TabsContent>
 
             {/* Manage Tab - with nested tabs for Reviews, Services, Settings */}
