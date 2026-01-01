@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { getDisplayContact } from '@/utils/displayUtils';
 
@@ -22,6 +23,7 @@ const UserMenu = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [fullName, setFullName] = useState<string | null>(null);
+  const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
     if (user) {
@@ -31,6 +33,12 @@ const UserMenu = () => {
       setFullName(null);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetchPendingCount();
+    }
+  }, [isAdmin]);
 
   const fetchProfile = async () => {
     if (!user) return;
@@ -45,6 +53,15 @@ const UserMenu = () => {
       setAvatarUrl(data.avatar_url);
       setFullName(data.full_name);
     }
+  };
+
+  const fetchPendingCount = async () => {
+    const { count } = await supabase
+      .from('salons')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'pending');
+    
+    setPendingCount(count || 0);
   };
 
   const handleSignOut = async () => {
@@ -117,9 +134,17 @@ const UserMenu = () => {
         {isAdmin && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate('/admin')}>
+            <DropdownMenuItem onClick={() => navigate('/admin')} className="relative">
               <Shield className="mr-2 h-4 w-4 text-orange-500" />
               <span>Admin Dashboard</span>
+              {pendingCount > 0 && (
+                <Badge 
+                  variant="destructive" 
+                  className="ml-auto h-5 min-w-5 px-1.5 text-[10px] flex items-center justify-center"
+                >
+                  {pendingCount}
+                </Badge>
+              )}
             </DropdownMenuItem>
           </>
         )}
