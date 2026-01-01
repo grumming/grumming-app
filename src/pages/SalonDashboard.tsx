@@ -1030,7 +1030,7 @@ const SalonDashboard = () => {
             {/* Bookings Tab */}
             <TabsContent value="bookings" className="space-y-4">
               <Tabs defaultValue="upcoming" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsList className="grid w-full grid-cols-3 mb-4">
                   <TabsTrigger value="upcoming" className="flex items-center gap-2">
                     <Clock className="w-4 h-4" />
                     Upcoming
@@ -1046,6 +1046,15 @@ const SalonDashboard = () => {
                     {bookings.filter(b => b.status === 'completed').length > 0 && (
                       <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
                         {bookings.filter(b => b.status === 'completed').length}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
+                  <TabsTrigger value="cancelled" className="flex items-center gap-2">
+                    <XCircle className="w-4 h-4" />
+                    Cancelled
+                    {bookings.filter(b => b.status === 'cancelled').length > 0 && (
+                      <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                        {bookings.filter(b => b.status === 'cancelled').length}
                       </Badge>
                     )}
                   </TabsTrigger>
@@ -1153,6 +1162,63 @@ const SalonDashboard = () => {
                                   <Badge variant="default" className="bg-green-500/10 text-green-600 border-green-200">
                                     <CheckCircle className="w-3 h-3 mr-1" />
                                     Completed
+                                  </Badge>
+                                </div>
+                                <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                                  <User className="w-3 h-3" /> {booking.customer_name}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  {getBookingDateLabel(booking.booking_date)} at {booking.booking_time}
+                                </p>
+                                <p className="text-sm font-medium mt-1">₹{booking.service_price}</p>
+                              </div>
+                              
+                              <div className="flex gap-2 flex-wrap justify-end">
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  className="relative"
+                                  onClick={() => {
+                                    setSelectedBookingForChat(booking);
+                                    setIsChatDialogOpen(true);
+                                  }}
+                                >
+                                  <MessageSquare className="w-4 h-4 mr-1" />
+                                  Message
+                                </Button>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                {/* Cancelled Bookings */}
+                <TabsContent value="cancelled">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Cancelled Bookings</CardTitle>
+                      <CardDescription>Bookings that were cancelled</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {bookings.filter(b => b.status === 'cancelled').length === 0 ? (
+                        <p className="text-center text-muted-foreground py-8">No cancelled bookings</p>
+                      ) : (
+                        <div className="space-y-3">
+                          {bookings.filter(b => b.status === 'cancelled').map(booking => (
+                            <motion.div
+                              key={booking.id}
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              className="flex items-center justify-between p-4 border rounded-lg bg-muted/20"
+                            >
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <p className="font-medium">{booking.service_name}</p>
+                                  <Badge variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20">
+                                    <XCircle className="w-3 h-3 mr-1" />
+                                    Cancelled
                                   </Badge>
                                 </div>
                                 <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
