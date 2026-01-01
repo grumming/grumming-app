@@ -117,9 +117,9 @@ const UserMenu = () => {
         {isAdmin && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate('/admin/promo-codes')}>
+            <DropdownMenuItem onClick={() => navigate('/admin')}>
               <Shield className="mr-2 h-4 w-4 text-orange-500" />
-              <span>Admin: Promo Codes</span>
+              <span>Admin Dashboard</span>
             </DropdownMenuItem>
           </>
         )}
