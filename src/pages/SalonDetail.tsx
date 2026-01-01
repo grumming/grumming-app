@@ -1618,68 +1618,72 @@ const SalonDetail = () => {
         setShowBookingModal(open);
         if (!open) setBookingStep(1);
       }}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto p-0">
-          {/* Step Progress Indicator */}
-          <div className="sticky top-0 z-50 bg-background border-b border-border/50 px-6 py-4">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-accent/10 to-primary/5 -z-10" />
-            <div className="flex items-center justify-center gap-3 mb-4">
-              {/* Step 1 */}
-              <div className="flex items-center gap-2">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${
-                  bookingStep >= 1 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-                }`}>
-                  {bookingStep > 1 ? <Check className="w-4 h-4" /> : '1'}
+        <DialogContent className="max-w-md max-h-[90vh] p-0 flex flex-col overflow-hidden">
+          {/* Step Progress Indicator - Fixed Header */}
+          <div className="flex-shrink-0 bg-background border-b border-border/50 px-6 py-4 relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-accent/10 to-primary/5" />
+            <div className="relative">
+              <div className="flex items-center justify-center gap-3 mb-4">
+                {/* Step 1 */}
+                <div className="flex items-center gap-2">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${
+                    bookingStep >= 1 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                  }`}>
+                    {bookingStep > 1 ? <Check className="w-4 h-4" /> : '1'}
+                  </div>
+                  <span className={`text-xs font-medium hidden sm:inline ${bookingStep === 1 ? 'text-foreground' : 'text-muted-foreground'}`}>
+                    Schedule
+                  </span>
                 </div>
-                <span className={`text-xs font-medium hidden sm:inline ${bookingStep === 1 ? 'text-foreground' : 'text-muted-foreground'}`}>
-                  Schedule
-                </span>
+                
+                {/* Connector */}
+                <div className={`w-12 h-0.5 rounded-full transition-all ${bookingStep > 1 ? 'bg-primary' : 'bg-muted'}`} />
+                
+                {/* Step 2 */}
+                <div className="flex items-center gap-2">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${
+                    bookingStep >= 2 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                  }`}>
+                    2
+                  </div>
+                  <span className={`text-xs font-medium hidden sm:inline ${bookingStep === 2 ? 'text-foreground' : 'text-muted-foreground'}`}>
+                    Payment
+                  </span>
+                </div>
               </div>
               
-              {/* Connector */}
-              <div className={`w-12 h-0.5 rounded-full transition-all ${bookingStep > 1 ? 'bg-primary' : 'bg-muted'}`} />
-              
-              {/* Step 2 */}
-              <div className="flex items-center gap-2">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${
-                  bookingStep >= 2 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-                }`}>
-                  2
-                </div>
-                <span className={`text-xs font-medium hidden sm:inline ${bookingStep === 2 ? 'text-foreground' : 'text-muted-foreground'}`}>
-                  Payment
-                </span>
-              </div>
+              <DialogHeader className="space-y-1.5">
+                <DialogTitle className="text-xl font-display flex items-center gap-2">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <Calendar className="w-5 h-5 text-primary" />
+                  </div>
+                  Complete Your Booking
+                </DialogTitle>
+                <DialogDescription className="text-muted-foreground">
+                  {bookingStep === 1 ? 'Select your preferred date and time' : 'Apply offers and complete payment'}
+                </DialogDescription>
+              </DialogHeader>
             </div>
-            
-            <DialogHeader className="space-y-1.5">
-              <DialogTitle className="text-xl font-display flex items-center gap-2">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <Calendar className="w-5 h-5 text-primary" />
-                </div>
-                Complete Your Booking
-              </DialogTitle>
-              <DialogDescription className="text-muted-foreground">
-                {bookingStep === 1 ? 'Select your preferred date and time' : 'Apply offers and complete payment'}
-              </DialogDescription>
-            </DialogHeader>
           </div>
 
-          <AnimatePresence mode="wait" initial={false}>
-            {/* Step 1: Schedule */}
-            {bookingStep === 1 && (
-              <motion.div
-                key="step-1"
-                initial={{ opacity: 0, x: -100 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -100 }}
-                transition={{ 
-                  type: "spring",
-                  stiffness: 300,
-                  damping: 30,
-                  opacity: { duration: 0.2 }
-                }}
-                className="p-6 space-y-6"
-              >
+          {/* Scrollable Content Area */}
+          <div className="flex-1 overflow-y-auto">
+            <AnimatePresence mode="wait" initial={false}>
+              {/* Step 1: Schedule */}
+              {bookingStep === 1 && (
+                <motion.div
+                  key="step-1"
+                  initial={{ opacity: 0, x: -100 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -100 }}
+                  transition={{ 
+                    type: "spring",
+                    stiffness: 300,
+                    damping: 30,
+                    opacity: { duration: 0.2 }
+                  }}
+                  className="p-6 space-y-6"
+                >
                 {/* Selected Services Summary */}
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
@@ -2218,6 +2222,7 @@ const SalonDetail = () => {
               </motion.div>
             )}
           </AnimatePresence>
+          </div>
         </DialogContent>
       </Dialog>
       <BackToTop />
