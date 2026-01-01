@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import confetti from 'canvas-confetti';
 import { 
   ArrowLeft, Star, MapPin, Clock, Phone, Heart, Share2, 
   ChevronRight, Calendar, Check, User, MessageSquare, CreditCard, Gift, X,
@@ -1057,9 +1058,40 @@ const SalonDetail = () => {
       setIsSplitPayment(false);
       setSplitWalletAmount(0);
 
+      // Trigger celebration animation for credits-only payment
+      const triggerCreditsCelebration = () => {
+        // Center burst with wallet-themed colors
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#22c55e', '#10b981', '#f59e0b', '#fbbf24', '#a855f7']
+        });
+        
+        // Side bursts with delay
+        setTimeout(() => {
+          confetti({
+            particleCount: 50,
+            angle: 60,
+            spread: 55,
+            origin: { x: 0 },
+            colors: ['#22c55e', '#10b981', '#f59e0b']
+          });
+          confetti({
+            particleCount: 50,
+            angle: 120,
+            spread: 55,
+            origin: { x: 1 },
+            colors: ['#22c55e', '#10b981', '#f59e0b']
+          });
+        }, 150);
+      };
+      
+      triggerCreditsCelebration();
+
       toast({
-        title: 'Booking Confirmed!',
-        description: `Your booking is fully paid with credits. You saved ₹${totalDiscount}!`,
+        title: '🎉 Booking Confirmed!',
+        description: `Fully paid with credits. You saved ₹${totalDiscount}!`,
       });
 
       const params = new URLSearchParams({
