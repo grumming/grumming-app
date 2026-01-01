@@ -390,6 +390,22 @@ export const useChat = (conversationId?: string) => {
     return groupedReactions;
   };
 
+  // Broadcast typing status
+  const broadcastTyping = (convId: string, isTypingNow: boolean) => {
+    if (!user || !convId) return;
+    
+    const channel = supabase.channel(`typing:${convId}`);
+    channel.send({
+      type: 'broadcast',
+      event: 'typing',
+      payload: { 
+        userId: user.id, 
+        senderType: 'user',
+        isTyping: isTypingNow 
+      }
+    });
+  };
+
   return {
     conversations,
     conversationsLoading,
@@ -402,5 +418,6 @@ export const useChat = (conversationId?: string) => {
     isTyping,
     addReaction,
     getMessageReactions,
+    broadcastTyping,
   };
 };
