@@ -1663,15 +1663,20 @@ const SalonDetail = () => {
             </DialogHeader>
           </div>
 
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="wait" initial={false}>
             {/* Step 1: Schedule */}
             {bookingStep === 1 && (
               <motion.div
                 key="step-1"
-                initial={{ opacity: 0, x: -20 }}
+                initial={{ opacity: 0, x: -100 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.2 }}
+                exit={{ opacity: 0, x: -100 }}
+                transition={{ 
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 30,
+                  opacity: { duration: 0.2 }
+                }}
                 className="p-6 space-y-6"
               >
                 {/* Selected Services Summary */}
@@ -1780,10 +1785,15 @@ const SalonDetail = () => {
             {bookingStep === 2 && (
               <motion.div
                 key="step-2"
-                initial={{ opacity: 0, x: 20 }}
+                initial={{ opacity: 0, x: 100 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                transition={{ duration: 0.2 }}
+                exit={{ opacity: 0, x: 100 }}
+                transition={{ 
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 30,
+                  opacity: { duration: 0.2 }
+                }}
                 className="p-6 space-y-6"
               >
                 {/* Booking Summary Mini */}
