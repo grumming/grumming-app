@@ -7,6 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useChat } from '@/hooks/useChat';
 import { useAuth } from '@/hooks/useAuth';
+import { usePresence } from '@/hooks/usePresence';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
 import EmojiPicker from '@/components/chat/EmojiPicker';
@@ -15,6 +16,14 @@ import ChatImageUpload from '@/components/chat/ChatImageUpload';
 import ReadReceipt from '@/components/chat/ReadReceipt';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 
+// Online status indicator component
+const OnlineStatus = ({ isOnline }: { isOnline: boolean }) => (
+  <span
+    className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-card ${
+      isOnline ? 'bg-green-500' : 'bg-muted-foreground/40'
+    }`}
+  />
+);
 // Typing indicator component
 const TypingIndicator = () => (
   <div className="flex justify-start">
@@ -49,6 +58,9 @@ const Chat = () => {
   const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  
+  // Presence tracking for salon owners
+  const { isUserOnline } = usePresence('grumming-presence');
   
   const {
     conversations,
@@ -173,17 +185,20 @@ const Chat = () => {
           </Button>
           {currentConversation ? (
             <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10">
-                <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                  {currentConversation.salon_name.charAt(0)}
-                </AvatarFallback>
-              </Avatar>
+              <div className="relative">
+                <Avatar className="h-10 w-10">
+                  <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                    {currentConversation.salon_name.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+                <OnlineStatus isOnline={isUserOnline(currentConversation.salon_id)} />
+              </div>
               <div>
                 <h1 className="font-semibold text-foreground">
                   {currentConversation.salon_name}
                 </h1>
                 <p className="text-xs text-muted-foreground">
-                  {isTyping ? 'Typing...' : 'Typically replies within a few hours'}
+                  {isTyping ? 'Typing...' : isUserOnline(currentConversation.salon_id) ? 'Online' : 'Offline'}
                 </p>
               </div>
             </div>

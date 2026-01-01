@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { usePresence } from '@/hooks/usePresence';
 import { format } from 'date-fns';
 
 interface Message {
@@ -44,6 +45,10 @@ const SalonOwnerChatDialog = ({ open, onOpenChange, booking, salonId, onMessages
   const [isCustomerTyping, setIsCustomerTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Presence tracking for customers
+  const { isUserOnline } = usePresence('grumming-presence');
+  const isCustomerOnline = isUserOnline(booking.user_id);
 
   // Scroll to bottom on new messages
   const scrollToBottom = () => {
@@ -234,15 +239,22 @@ const SalonOwnerChatDialog = ({ open, onOpenChange, booking, salonId, onMessages
       <DialogContent className="sm:max-w-md h-[80vh] flex flex-col p-0">
         <DialogHeader className="px-4 py-3 border-b">
           <DialogTitle className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
-              <AvatarFallback className="bg-primary/10 text-primary">
-                <User className="h-5 w-5" />
-              </AvatarFallback>
-            </Avatar>
+            <div className="relative">
+              <Avatar className="h-10 w-10">
+                <AvatarFallback className="bg-primary/10 text-primary">
+                  <User className="h-5 w-5" />
+                </AvatarFallback>
+              </Avatar>
+              <span
+                className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-background ${
+                  isCustomerOnline ? 'bg-green-500' : 'bg-muted-foreground/40'
+                }`}
+              />
+            </div>
             <div>
               <p className="font-medium text-base">{booking.customer_name || 'Customer'}</p>
               <p className="text-xs text-muted-foreground font-normal">
-                {booking.service_name}
+                {isCustomerTyping ? 'Typing...' : isCustomerOnline ? 'Online' : 'Offline'} • {booking.service_name}
               </p>
             </div>
           </DialogTitle>
