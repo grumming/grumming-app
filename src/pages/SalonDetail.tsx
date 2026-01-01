@@ -2155,27 +2155,44 @@ const SalonDetail = () => {
                   )}
                 </div>
 
-                {/* Payment Method Selection */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center">
-                      <CreditCard className="w-4 h-4 text-primary" />
+                {/* Payment Method Selection - Only show if there's amount to pay */}
+                {totalPrice > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center">
+                        <CreditCard className="w-4 h-4 text-primary" />
+                      </div>
+                      <h4 className="font-semibold text-sm">Payment Method</h4>
                     </div>
-                    <h4 className="font-semibold text-sm">Payment Method</h4>
+                    <PaymentMethodSelector
+                      selectedMethod={paymentMethod}
+                      onMethodChange={setPaymentMethod}
+                      totalAmount={totalPrice}
+                      walletBalance={walletBalance}
+                      walletAmountToUse={splitWalletAmount}
+                      onWalletAmountChange={setSplitWalletAmount}
+                      selectedSavedMethodId={selectedSavedPaymentMethod}
+                      onSavedMethodSelect={setSelectedSavedPaymentMethod}
+                      selectedUpiAppId={selectedUpiApp}
+                      onUpiAppSelect={setSelectedUpiApp}
+                    />
                   </div>
-                  <PaymentMethodSelector
-                    selectedMethod={paymentMethod}
-                    onMethodChange={setPaymentMethod}
-                    totalAmount={totalPrice}
-                    walletBalance={walletBalance}
-                    walletAmountToUse={splitWalletAmount}
-                    onWalletAmountChange={setSplitWalletAmount}
-                    selectedSavedMethodId={selectedSavedPaymentMethod}
-                    onSavedMethodSelect={setSelectedSavedPaymentMethod}
-                    selectedUpiAppId={selectedUpiApp}
-                    onUpiAppSelect={setSelectedUpiApp}
-                  />
-                </div>
+                )}
+
+                {/* Show message when fully covered by credits */}
+                {totalPrice === 0 && (
+                  <div className="p-4 rounded-2xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-800/50 flex items-center justify-center">
+                        <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-green-700 dark:text-green-300">Fully covered!</p>
+                        <p className="text-sm text-green-600/80 dark:text-green-400/80">No payment required</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Step 2 Footer */}
                 <div className="sticky bottom-0 bg-background/95 backdrop-blur-sm border-t border-border/50 -mx-6 -mb-6 p-4 mt-6">
