@@ -161,6 +161,11 @@ const SalonDashboard = () => {
   const [selectedBookingForRestore, setSelectedBookingForRestore] = useState<Booking | null>(null);
   const [isRestoring, setIsRestoring] = useState(false);
 
+  // Cancel confirmation dialog state
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [selectedBookingForCancel, setSelectedBookingForCancel] = useState<Booking | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const PULL_THRESHOLD = 80;
 
@@ -461,6 +466,28 @@ const SalonDashboard = () => {
     setIsRestoring(false);
     setIsRestoreDialogOpen(false);
     setSelectedBookingForRestore(null);
+  };
+
+  // Cancel booking handler
+  const handleCancelBooking = async () => {
+    if (!selectedBookingForCancel) return;
+    
+    setIsCancelling(true);
+    const { error } = await supabase
+      .from('bookings')
+      .update({ status: 'cancelled' })
+      .eq('id', selectedBookingForCancel.id);
+
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Booking Cancelled', description: 'The booking has been cancelled' });
+      await fetchSalonData(false);
+    }
+    
+    setIsCancelling(false);
+    setIsCancelDialogOpen(false);
+    setSelectedBookingForCancel(null);
   };
 
   const handleToggleService = async (serviceId: string, isActive: boolean) => {
@@ -1150,7 +1177,10 @@ const SalonDashboard = () => {
                                   size="sm" 
                                   variant="outline"
                                   className="text-destructive hover:text-destructive"
-                                  onClick={() => handleUpdateBookingStatus(booking.id, 'cancelled')}
+                                  onClick={() => {
+                                    setSelectedBookingForCancel(booking);
+                                    setIsCancelDialogOpen(true);
+                                  }}
                                 >
                                   <XCircle className="w-4 h-4 mr-1" />
                                   Cancel
@@ -1805,6 +1835,63 @@ const SalonDashboard = () => {
                 <>
                   <RefreshCw className="w-4 h-4 mr-2" />
                   Restore Booking
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cancel Booking Confirmation Dialog */}
+      <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <XCircle className="w-5 h-5 text-destructive" />
+              Cancel Booking
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to cancel this booking? The customer will be notified.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedBookingForCancel && (
+            <div className="p-3 bg-muted/50 rounded-lg space-y-1">
+              <p className="font-medium">{selectedBookingForCancel.service_name}</p>
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <User className="w-3 h-3" /> {selectedBookingForCancel.customer_name}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {getBookingDateLabel(selectedBookingForCancel.booking_date)} at {selectedBookingForCancel.booking_time}
+              </p>
+              <p className="text-sm font-medium">₹{selectedBookingForCancel.service_price}</p>
+            </div>
+          )}
+          
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsCancelDialogOpen(false);
+                setSelectedBookingForCancel(null);
+              }}
+            >
+              Keep Booking
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={handleCancelBooking} 
+              disabled={isCancelling}
+            >
+              {isCancelling ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Cancelling...
+                </>
+              ) : (
+                <>
+                  <XCircle className="w-4 h-4 mr-2" />
+                  Cancel Booking
                 </>
               )}
             </Button>
