@@ -156,6 +156,11 @@ const SalonDashboard = () => {
   const [isChatDialogOpen, setIsChatDialogOpen] = useState(false);
   const [selectedBookingForChat, setSelectedBookingForChat] = useState<Booking | null>(null);
 
+  // Restore confirmation dialog state
+  const [isRestoreDialogOpen, setIsRestoreDialogOpen] = useState(false);
+  const [selectedBookingForRestore, setSelectedBookingForRestore] = useState<Booking | null>(null);
+  const [isRestoring, setIsRestoring] = useState(false);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const PULL_THRESHOLD = 80;
 
@@ -434,6 +439,28 @@ const SalonDashboard = () => {
     }
     
     setIsPinVerifying(false);
+  };
+
+  // Restore booking handler
+  const handleRestoreBooking = async () => {
+    if (!selectedBookingForRestore) return;
+    
+    setIsRestoring(true);
+    const { error } = await supabase
+      .from('bookings')
+      .update({ status: 'upcoming' })
+      .eq('id', selectedBookingForRestore.id);
+
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Success', description: 'Booking restored to upcoming' });
+      await fetchSalonData(false);
+    }
+    
+    setIsRestoring(false);
+    setIsRestoreDialogOpen(false);
+    setSelectedBookingForRestore(null);
   };
 
   const handleToggleService = async (serviceId: string, isActive: boolean) => {
@@ -1247,7 +1274,10 @@ const SalonDashboard = () => {
                                   size="sm" 
                                   variant="outline"
                                   className="text-primary hover:text-primary"
-                                  onClick={() => handleUpdateBookingStatus(booking.id, 'upcoming')}
+                                  onClick={() => {
+                                    setSelectedBookingForRestore(booking);
+                                    setIsRestoreDialogOpen(true);
+                                  }}
                                 >
                                   <RefreshCw className="w-4 h-4 mr-1" />
                                   Restore
@@ -1726,7 +1756,62 @@ const SalonDashboard = () => {
         />
       )}
 
-      {/* Salon Owner Bottom Navigation */}
+      {/* Restore Booking Confirmation Dialog */}
+      <Dialog open={isRestoreDialogOpen} onOpenChange={setIsRestoreDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RefreshCw className="w-5 h-5 text-primary" />
+              Restore Booking
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to restore this cancelled booking back to upcoming?
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedBookingForRestore && (
+            <div className="p-3 bg-muted/50 rounded-lg space-y-1">
+              <p className="font-medium">{selectedBookingForRestore.service_name}</p>
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <User className="w-3 h-3" /> {selectedBookingForRestore.customer_name}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {getBookingDateLabel(selectedBookingForRestore.booking_date)} at {selectedBookingForRestore.booking_time}
+              </p>
+              <p className="text-sm font-medium">₹{selectedBookingForRestore.service_price}</p>
+            </div>
+          )}
+          
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsRestoreDialogOpen(false);
+                setSelectedBookingForRestore(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleRestoreBooking} 
+              disabled={isRestoring}
+            >
+              {isRestoring ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Restoring...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Restore Booking
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <SalonOwnerBottomNav />
     </div>
   );
