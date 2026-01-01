@@ -940,10 +940,15 @@ const SalonDetail = () => {
     const walletPaymentAmount = splitWalletAmount;
     const remainingAmount = totalPrice - splitWalletAmount;
 
+    // When total is 0 (fully covered by credits), skip payment gateway and confirm directly
+    const isFullyCoveredByCredits = totalPrice === 0;
+
     // Create new booking or update existing one (retry mode)
-    const bookingStatus = paymentMethod === 'online' || paymentMethod === 'upi' 
-      ? 'pending_payment' 
-      : 'upcoming';
+    const bookingStatus = isFullyCoveredByCredits 
+      ? 'upcoming' 
+      : (paymentMethod === 'online' || paymentMethod === 'upi') 
+        ? 'pending_payment' 
+        : 'upcoming';
 
     let bookingData: { id: string } | null = null;
     let bookingError: Error | null = null;
@@ -1002,6 +1007,78 @@ const SalonDetail = () => {
         description: `Wallet payment for booking at ${salon.name}`,
         referenceId: bookingData.id,
       });
+    }
+
+    // Handle fully covered by credits - skip payment gateway entirely
+    if (isFullyCoveredByCredits) {
+      // Mark reward as used if applied
+      if (applyReward && rewardDiscount > 0) {
+        await markRewardAsUsed();
+      }
+
+      // Deduct wallet credits if applied
+      if (applyWalletCredits && walletCreditsDiscount > 0) {
+        await useCredits({
+          amount: walletCreditsDiscount,
+          category: 'booking_discount',
+          description: `Used for booking at ${salon.name}`,
+          referenceId: bookingData.id,
+        });
+      }
+
+      // Record promo code usage
+      if (appliedPromo && user) {
+        await supabase.from('promo_code_usage').insert({
+          promo_code_id: appliedPromo.id,
+          user_id: user.id,
+          booking_id: bookingData.id,
+        });
+      }
+
+      // Mark voucher as used
+      if (appliedVoucher && user) {
+        await supabase
+          .from('user_vouchers')
+          .update({ 
+            is_used: true, 
+            used_at: new Date().toISOString(),
+            booking_id: bookingData.id 
+          })
+          .eq('id', appliedVoucher.id);
+      }
+
+      setIsBooking(false);
+      setShowBookingModal(false);
+      setSelectedServices([]);
+      setApplyReward(false);
+      setApplyWalletCredits(false);
+      setAppliedPromo(null);
+      setAppliedVoucher(null);
+      setIsSplitPayment(false);
+      setSplitWalletAmount(0);
+
+      toast({
+        title: 'Booking Confirmed!',
+        description: `Your booking is fully paid with credits. You saved ₹${totalDiscount}!`,
+      });
+
+      const params = new URLSearchParams({
+        salon: salon.name,
+        service: serviceNames,
+        price: '0',
+        date: format(selectedDate, 'yyyy-MM-dd'),
+        time: selectedTime,
+        paymentId: `CREDITS-${Date.now()}`,
+        paymentMethod: 'credits',
+        discount: totalDiscount.toString(),
+        ...(appliedPromo && { promoCode: appliedPromo.code, promoDiscount: promoDiscount.toString() }),
+        ...(appliedVoucher && { voucherCode: appliedVoucher.code, voucherDiscount: voucherDiscount.toString() }),
+        ...(rewardDiscount > 0 && { rewardDiscount: rewardDiscount.toString() }),
+        ...(walletCreditsDiscount > 0 && { walletDiscount: walletCreditsDiscount.toString() }),
+      });
+      
+      navigate(`/booking-confirmation?${params.toString()}`);
+      return;
     }
 
     // If UPI payment with selected app, use deep link
