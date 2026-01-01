@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           booking_date: string
           booking_time: string
+          completion_pin: string | null
           created_at: string
           id: string
           payment_id: string | null
@@ -33,6 +34,7 @@ export type Database = {
         Insert: {
           booking_date: string
           booking_time: string
+          completion_pin?: string | null
           created_at?: string
           id?: string
           payment_id?: string | null
@@ -48,6 +50,7 @@ export type Database = {
         Update: {
           booking_date?: string
           booking_time?: string
+          completion_pin?: string | null
           created_at?: string
           id?: string
           payment_id?: string | null

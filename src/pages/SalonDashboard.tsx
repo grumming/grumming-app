@@ -5,8 +5,9 @@ import {
   ArrowLeft, Store, Calendar, Clock, Star, Users, TrendingUp,
   Package, MessageSquare, Settings, Bell, Loader2, AlertTriangle,
   CheckCircle, XCircle, Eye, Edit2, ChevronRight, IndianRupee,
-  Send, Reply, Plus, Trash2, LogOut, User, HelpCircle, RefreshCw
+  Send, Reply, Plus, Trash2, LogOut, User, HelpCircle, RefreshCw, KeyRound
 } from 'lucide-react';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -44,6 +45,9 @@ interface Booking {
   booking_time: string;
   status: string;
   created_at: string;
+  completion_pin?: string;
+  customer_name?: string;
+  customer_phone?: string;
 }
 
 interface SalonService {
@@ -139,6 +143,12 @@ const SalonDashboard = () => {
   const [pullDistance, setPullDistance] = useState(0);
   const [isPulling, setIsPulling] = useState(false);
   const pullStartY = useRef(0);
+
+  // PIN verification state for completing bookings
+  const [isPinDialogOpen, setIsPinDialogOpen] = useState(false);
+  const [selectedBookingForPin, setSelectedBookingForPin] = useState<Booking | null>(null);
+  const [enteredPin, setEnteredPin] = useState('');
+  const [isPinVerifying, setIsPinVerifying] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const PULL_THRESHOLD = 80;
 
@@ -196,7 +206,21 @@ const SalonDashboard = () => {
         .order('booking_date', { ascending: false })
         .order('booking_time', { ascending: false });
 
-      setBookings(bookingsData || []);
+      // Fetch customer profiles for bookings
+      const customerIds = bookingsData?.map(b => b.user_id) || [];
+      const { data: customerProfiles } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, phone')
+        .in('user_id', customerIds);
+
+      // Attach customer info to bookings
+      const bookingsWithCustomers = bookingsData?.map(booking => ({
+        ...booking,
+        customer_name: customerProfiles?.find(p => p.user_id === booking.user_id)?.full_name || 'Customer',
+        customer_phone: customerProfiles?.find(p => p.user_id === booking.user_id)?.phone || ''
+      })) || [];
+
+      setBookings(bookingsWithCustomers);
 
       // Calculate stats
       const today = format(new Date(), 'yyyy-MM-dd');
@@ -318,14 +342,57 @@ const SalonDashboard = () => {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } else {
       toast({ title: 'Success', description: `Booking ${newStatus}` });
-      // Refresh bookings
-      const { data } = await supabase
-        .from('bookings')
-        .select('*')
-        .eq('salon_name', selectedSalon?.name)
-        .order('booking_date', { ascending: false });
-      setBookings(data || []);
+      // Refresh bookings with customer info
+      await fetchSalonData(false);
     }
+  };
+
+  // PIN verification handlers
+  const handleOpenPinDialog = (booking: Booking) => {
+    setSelectedBookingForPin(booking);
+    setEnteredPin('');
+    setIsPinDialogOpen(true);
+  };
+
+  const handleVerifyPin = async () => {
+    if (!selectedBookingForPin) return;
+    
+    setIsPinVerifying(true);
+    
+    // Fetch the booking to check PIN
+    const { data: bookingData, error: fetchError } = await supabase
+      .from('bookings')
+      .select('completion_pin')
+      .eq('id', selectedBookingForPin.id)
+      .single();
+
+    if (fetchError || !bookingData) {
+      toast({ title: 'Error', description: 'Could not verify PIN', variant: 'destructive' });
+      setIsPinVerifying(false);
+      return;
+    }
+
+    if (bookingData.completion_pin === enteredPin) {
+      // PIN matches - complete the booking
+      const { error } = await supabase
+        .from('bookings')
+        .update({ status: 'completed' })
+        .eq('id', selectedBookingForPin.id);
+
+      if (error) {
+        toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      } else {
+        toast({ title: 'Success', description: 'Booking completed successfully!' });
+        setIsPinDialogOpen(false);
+        setSelectedBookingForPin(null);
+        setEnteredPin('');
+        await fetchSalonData(false);
+      }
+    } else {
+      toast({ title: 'Invalid PIN', description: 'The PIN entered is incorrect. Ask customer for correct PIN.', variant: 'destructive' });
+    }
+    
+    setIsPinVerifying(false);
   };
 
   const handleToggleService = async (serviceId: string, isActive: boolean) => {
@@ -894,17 +961,22 @@ const SalonDashboard = () => {
                               className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
                             >
                               <div>
-                                <p className="font-medium">{booking.service_name}</p>
+                                <div className="flex items-center gap-2">
+                                  <p className="font-medium">{booking.service_name}</p>
+                                  <Badge variant={
+                                    booking.status === 'completed' ? 'default' :
+                                    booking.status === 'cancelled' ? 'destructive' : 'secondary'
+                                  }>
+                                    {booking.status}
+                                  </Badge>
+                                </div>
+                                <p className="text-sm text-muted-foreground flex items-center gap-1">
+                                  <User className="w-3 h-3" /> {booking.customer_name}
+                                </p>
                                 <p className="text-sm text-muted-foreground">
                                   {booking.booking_time} • ₹{booking.service_price}
                                 </p>
                               </div>
-                              <Badge variant={
-                                booking.status === 'completed' ? 'default' :
-                                booking.status === 'cancelled' ? 'destructive' : 'secondary'
-                              }>
-                                {booking.status}
-                              </Badge>
                             </motion.div>
                           ))}
                       </div>
@@ -943,6 +1015,9 @@ const SalonDashboard = () => {
                                 {booking.status}
                               </Badge>
                             </div>
+                            <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                              <User className="w-3 h-3" /> {booking.customer_name}
+                            </p>
                             <p className="text-sm text-muted-foreground">
                               {getBookingDateLabel(booking.booking_date)} at {booking.booking_time}
                             </p>
@@ -954,9 +1029,9 @@ const SalonDashboard = () => {
                               <Button 
                                 size="sm" 
                                 variant="outline"
-                                onClick={() => handleUpdateBookingStatus(booking.id, 'completed')}
+                                onClick={() => handleOpenPinDialog(booking)}
                               >
-                                <CheckCircle className="w-4 h-4 mr-1" />
+                                <KeyRound className="w-4 h-4 mr-1" />
                                 Complete
                               </Button>
                               <Button 
@@ -1348,6 +1423,77 @@ const SalonDashboard = () => {
         salon={selectedSalon}
         onSalonUpdated={handleSalonUpdated}
       />
+
+      {/* PIN Verification Dialog */}
+      <Dialog open={isPinDialogOpen} onOpenChange={setIsPinDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="w-5 h-5 text-primary" />
+              Enter Customer PIN
+            </DialogTitle>
+            <DialogDescription>
+              Ask the customer for their 4-digit booking PIN to complete this appointment.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedBookingForPin && (
+            <div className="p-3 bg-muted/50 rounded-lg space-y-1">
+              <p className="font-medium">{selectedBookingForPin.service_name}</p>
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <User className="w-3 h-3" /> {selectedBookingForPin.customer_name}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                ₹{selectedBookingForPin.service_price}
+              </p>
+            </div>
+          )}
+          
+          <div className="flex justify-center py-4">
+            <InputOTP
+              maxLength={4}
+              value={enteredPin}
+              onChange={(value) => setEnteredPin(value)}
+            >
+              <InputOTPGroup>
+                <InputOTPSlot index={0} />
+                <InputOTPSlot index={1} />
+                <InputOTPSlot index={2} />
+                <InputOTPSlot index={3} />
+              </InputOTPGroup>
+            </InputOTP>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsPinDialogOpen(false);
+                setSelectedBookingForPin(null);
+                setEnteredPin('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleVerifyPin} 
+              disabled={enteredPin.length !== 4 || isPinVerifying}
+            >
+              {isPinVerifying ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Verifying...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Verify & Complete
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Salon Owner Bottom Navigation */}
       <SalonOwnerBottomNav />
