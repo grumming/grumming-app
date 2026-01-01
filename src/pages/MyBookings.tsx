@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, Calendar, Clock, 
-  Loader2, AlertCircle, CheckCircle2, Star, CreditCard, MessageCircle, Wallet 
+  Loader2, AlertCircle, CheckCircle2, Star, CreditCard, MessageCircle, Wallet, KeyRound 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -28,6 +28,7 @@ interface Booking {
   status: string;
   created_at: string;
   has_review?: boolean;
+  completion_pin?: string;
 }
 
 const MyBookings = () => {
@@ -185,6 +186,14 @@ const MyBookings = () => {
                 </motion.div>
               ) : (
                 <div className="space-y-4">
+                  {/* PIN Info Banner */}
+                  <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 flex items-start gap-3">
+                    <KeyRound className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                    <div className="text-sm">
+                      <p className="font-medium text-foreground">Completion PIN</p>
+                      <p className="text-muted-foreground">Share your PIN with the salon to mark your appointment as complete.</p>
+                    </div>
+                  </div>
                   {upcomingBookings.map((booking, index) => (
                     <motion.div
                       key={booking.id}
@@ -212,6 +221,14 @@ const MyBookings = () => {
                               <Clock className="w-4 h-4" />
                               <span>{booking.booking_time}</span>
                             </div>
+                            {booking.completion_pin && (
+                              <div className="flex items-center gap-1 bg-primary/10 px-2 py-0.5 rounded-md">
+                                <KeyRound className="w-4 h-4 text-primary" />
+                                <span className="font-mono font-bold text-primary tracking-wider">
+                                  {booking.completion_pin}
+                                </span>
+                              </div>
+                            )}
                           </div>
 
                           <div className="flex items-center justify-between pt-3 border-t border-border">
