@@ -69,57 +69,65 @@ export function PaymentMethodSelector({
 
   return (
     <div className="space-y-5">
-      {/* Payment Methods Grid */}
       {/* Wallet Balance Section */}
       {walletBalance > 0 && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="p-4 rounded-2xl bg-gradient-to-br from-primary/5 via-background to-accent/5 border border-primary/20"
+          className="p-4 rounded-2xl bg-gradient-to-br from-primary/5 via-background to-accent/5 border border-primary/10 shadow-sm"
         >
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Wallet className="w-4 h-4 text-primary" />
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center shadow-sm">
+                <Wallet className="w-5 h-5 text-primary" />
               </div>
-              <span className="text-sm font-semibold">Use Wallet Balance</span>
+              <span className="text-sm font-semibold text-foreground">Use Wallet Balance</span>
             </div>
-            <span className="text-xs font-medium px-2 py-1 rounded-full bg-primary/10 text-primary">
-              ₹{walletBalance} available
-            </span>
+            <div className="px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
+              <span className="text-xs font-semibold text-primary">
+                ₹{walletBalance.toFixed(2)} available
+              </span>
+            </div>
           </div>
 
-          <div className="space-y-3">
-            <Slider
-              value={[walletAmountToUse]}
-              onValueChange={(value) => onWalletAmountChange(value[0])}
-              max={maxWalletUsable}
-              min={0}
-              step={10}
-              className="w-full"
-            />
-            <div className="flex justify-between text-xs text-muted-foreground">
+          {/* Slider */}
+          <div className="space-y-2 mb-1">
+            <div className="relative">
+              <Slider
+                value={[walletAmountToUse]}
+                onValueChange={(value) => onWalletAmountChange(value[0])}
+                max={maxWalletUsable}
+                min={0}
+                step={1}
+                className="w-full [&_[role=slider]]:h-5 [&_[role=slider]]:w-5 [&_[role=slider]]:border-2 [&_[role=slider]]:border-primary [&_[role=slider]]:bg-background [&_[role=slider]]:shadow-md [&_.relative]:h-2 [&_.bg-primary]:bg-gradient-to-r [&_.bg-primary]:from-primary/80 [&_.bg-primary]:to-primary"
+              />
+            </div>
+            <div className="flex justify-between text-xs text-muted-foreground font-medium">
               <span>₹0</span>
               <span>₹{maxWalletUsable}</span>
             </div>
           </div>
 
-          {walletAmountToUse > 0 && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              className="mt-3 pt-3 border-t border-border/50"
-            >
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Wallet deduction</span>
-                <span className="font-semibold text-primary">-₹{walletAmountToUse}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm mt-1">
-                <span className="text-muted-foreground">Remaining to pay</span>
-                <span className="font-semibold">₹{totalAmount - walletAmountToUse}</span>
-              </div>
-            </motion.div>
-          )}
+          {/* Deduction Breakdown - Always visible */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="mt-4 pt-3 border-t border-border/30 space-y-2"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Wallet deduction</span>
+              <span className={`text-sm font-bold ${walletAmountToUse > 0 ? 'text-primary' : 'text-muted-foreground'}`}>
+                {walletAmountToUse > 0 ? `-₹${walletAmountToUse}` : '₹0'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Remaining to pay</span>
+              <span className="text-sm font-bold text-foreground">
+                ₹{totalAmount - walletAmountToUse}
+              </span>
+            </div>
+          </motion.div>
         </motion.div>
       )}
 
