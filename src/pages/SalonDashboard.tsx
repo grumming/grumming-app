@@ -49,6 +49,7 @@ interface Booking {
   completion_pin?: string;
   customer_name?: string;
   customer_phone?: string;
+  unread_count?: number;
 }
 
 interface SalonService {
@@ -219,11 +220,45 @@ const SalonDashboard = () => {
         .select('user_id, full_name, phone')
         .in('user_id', customerIds);
 
-      // Attach customer info to bookings
+      // Fetch conversations for bookings to get unread message counts
+      const bookingIds = bookingsData?.map(b => b.id) || [];
+      const { data: conversationsData } = await supabase
+        .from('conversations')
+        .select('id, booking_id')
+        .in('booking_id', bookingIds);
+
+      // Fetch unread message counts for each conversation
+      const conversationIds = conversationsData?.map(c => c.id) || [];
+      let unreadCounts: Record<string, number> = {};
+      
+      if (conversationIds.length > 0) {
+        const { data: unreadMessages } = await supabase
+          .from('messages')
+          .select('conversation_id')
+          .in('conversation_id', conversationIds)
+          .eq('sender_type', 'user')
+          .eq('is_read', false);
+
+        // Count unread messages per conversation
+        unreadMessages?.forEach(msg => {
+          unreadCounts[msg.conversation_id] = (unreadCounts[msg.conversation_id] || 0) + 1;
+        });
+      }
+
+      // Map conversation unread counts to booking ids
+      const bookingUnreadCounts: Record<string, number> = {};
+      conversationsData?.forEach(conv => {
+        if (conv.booking_id && unreadCounts[conv.id]) {
+          bookingUnreadCounts[conv.booking_id] = unreadCounts[conv.id];
+        }
+      });
+
+      // Attach customer info and unread counts to bookings
       const bookingsWithCustomers = bookingsData?.map(booking => ({
         ...booking,
         customer_name: customerProfiles?.find(p => p.user_id === booking.user_id)?.full_name || 'Customer',
-        customer_phone: customerProfiles?.find(p => p.user_id === booking.user_id)?.phone || ''
+        customer_phone: customerProfiles?.find(p => p.user_id === booking.user_id)?.phone || '',
+        unread_count: bookingUnreadCounts[booking.id] || 0
       })) || [];
 
       setBookings(bookingsWithCustomers);
@@ -1035,6 +1070,7 @@ const SalonDashboard = () => {
                             <Button 
                               size="sm" 
                               variant="outline"
+                              className="relative"
                               onClick={() => {
                                 setSelectedBookingForChat(booking);
                                 setIsChatDialogOpen(true);
@@ -1042,6 +1078,11 @@ const SalonDashboard = () => {
                             >
                               <MessageSquare className="w-4 h-4 mr-1" />
                               Message
+                              {booking.unread_count && booking.unread_count > 0 && (
+                                <span className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                                  {booking.unread_count > 9 ? '9+' : booking.unread_count}
+                                </span>
+                              )}
                             </Button>
                             
                             {booking.status === 'upcoming' && (
@@ -1532,6 +1573,7 @@ const SalonDashboard = () => {
             customer_name: selectedBookingForChat.customer_name,
           }}
           salonId={selectedSalonId}
+          onMessagesRead={() => fetchSalonData(false)}
         />
       )}
 

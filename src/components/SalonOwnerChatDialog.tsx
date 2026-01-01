@@ -31,9 +31,10 @@ interface SalonOwnerChatDialogProps {
     customer_name?: string;
   };
   salonId: string;
+  onMessagesRead?: () => void;
 }
 
-const SalonOwnerChatDialog = ({ open, onOpenChange, booking, salonId }: SalonOwnerChatDialogProps) => {
+const SalonOwnerChatDialog = ({ open, onOpenChange, booking, salonId, onMessagesRead }: SalonOwnerChatDialogProps) => {
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -79,12 +80,18 @@ const SalonOwnerChatDialog = ({ open, onOpenChange, booking, salonId }: SalonOwn
           setMessages(messagesData || []);
 
           // Mark user messages as read by salon
-          await supabase
+          const { data: updatedMessages } = await supabase
             .from('messages')
             .update({ is_read: true })
             .eq('conversation_id', existingConv.id)
             .eq('sender_type', 'user')
-            .eq('is_read', false);
+            .eq('is_read', false)
+            .select();
+
+          // Notify parent to refresh unread counts if messages were marked read
+          if (updatedMessages && updatedMessages.length > 0 && onMessagesRead) {
+            onMessagesRead();
+          }
         } else {
           // Create new conversation
           const { data: newConv, error } = await supabase
