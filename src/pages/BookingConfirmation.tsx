@@ -1,6 +1,7 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import confetti from 'canvas-confetti';
 import { 
   CheckCircle, Calendar, Clock, MapPin, 
   CalendarPlus, ArrowLeft, Home, Share2, Gift, Tag, Wallet, Ticket,
@@ -17,7 +18,6 @@ import {
 import { format, parse } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-
 type PaymentStatus = 'pending' | 'verifying' | 'confirmed' | 'failed';
 
 const BookingConfirmation = () => {
@@ -28,7 +28,50 @@ const BookingConfirmation = () => {
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('confirmed');
   const [verificationAttempts, setVerificationAttempts] = useState(0);
   const [autoVerifyCount, setAutoVerifyCount] = useState(0);
-  
+  const hasTriggeredConfetti = useRef(false);
+
+  // Trigger confetti celebration when booking is confirmed
+  const triggerCelebration = useCallback(() => {
+    if (hasTriggeredConfetti.current) return;
+    hasTriggeredConfetti.current = true;
+
+    // First burst
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ['#22c55e', '#10b981', '#34d399', '#6ee7b7', '#fbbf24', '#f59e0b']
+    });
+
+    // Side bursts with delay
+    setTimeout(() => {
+      confetti({
+        particleCount: 50,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0 },
+        colors: ['#22c55e', '#10b981', '#fbbf24']
+      });
+    }, 150);
+
+    setTimeout(() => {
+      confetti({
+        particleCount: 50,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1 },
+        colors: ['#22c55e', '#10b981', '#fbbf24']
+      });
+    }, 300);
+  }, []);
+
+  // Trigger confetti when payment is confirmed
+  useEffect(() => {
+    if (paymentStatus === 'confirmed') {
+      triggerCelebration();
+    }
+  }, [paymentStatus, triggerCelebration]);
+
   const [bookingDetails, setBookingDetails] = useState({
     salonName: '',
     serviceName: '',
@@ -334,10 +377,40 @@ END:VCALENDAR`;
                 key="confirmed"
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 300 }}
-                className="w-24 h-24 rounded-full bg-green-100 flex items-center justify-center"
+                transition={{ type: "spring", stiffness: 300, damping: 15 }}
+                className="relative"
               >
-                <CheckCircle className="w-14 h-14 text-green-600" />
+                {/* Pulsing ring effect */}
+                <motion.div
+                  className="absolute inset-0 rounded-full bg-green-400/30"
+                  initial={{ scale: 1, opacity: 0.8 }}
+                  animate={{ scale: 1.5, opacity: 0 }}
+                  transition={{ 
+                    duration: 1.5, 
+                    repeat: Infinity,
+                    ease: "easeOut"
+                  }}
+                />
+                <motion.div
+                  className="absolute inset-0 rounded-full bg-green-400/20"
+                  initial={{ scale: 1, opacity: 0.6 }}
+                  animate={{ scale: 1.8, opacity: 0 }}
+                  transition={{ 
+                    duration: 1.5, 
+                    repeat: Infinity,
+                    ease: "easeOut",
+                    delay: 0.3
+                  }}
+                />
+                <div className="relative w-24 h-24 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-lg shadow-green-500/30">
+                  <motion.div
+                    initial={{ scale: 0, rotate: -180 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                  >
+                    <CheckCircle className="w-14 h-14 text-white" />
+                  </motion.div>
+                </div>
               </motion.div>
             )}
             {paymentStatus === 'failed' && (
