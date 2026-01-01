@@ -1620,7 +1620,8 @@ const SalonDetail = () => {
       }}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto p-0">
           {/* Step Progress Indicator */}
-          <div className="sticky top-0 z-10 bg-gradient-to-r from-primary/10 via-accent/10 to-primary/5 px-6 py-4 border-b border-border/50">
+          <div className="sticky top-0 z-50 bg-background border-b border-border/50 px-6 py-4">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-accent/10 to-primary/5 -z-10" />
             <div className="flex items-center justify-center gap-3 mb-4">
               {/* Step 1 */}
               <div className="flex items-center gap-2">
