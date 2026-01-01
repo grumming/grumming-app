@@ -1614,105 +1614,164 @@ const SalonDetail = () => {
 
       {/* Booking Modal */}
       <Dialog open={showBookingModal} onOpenChange={setShowBookingModal}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Complete Your Booking</DialogTitle>
-            <DialogDescription>Review your selected services and complete payment</DialogDescription>
-          </DialogHeader>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto p-0">
+          {/* Header with gradient */}
+          <div className="sticky top-0 z-10 bg-gradient-to-r from-primary/10 via-accent/10 to-primary/5 px-6 py-5 border-b border-border/50">
+            <DialogHeader className="space-y-1.5">
+              <DialogTitle className="text-xl font-display flex items-center gap-2">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Calendar className="w-5 h-5 text-primary" />
+                </div>
+                Complete Your Booking
+              </DialogTitle>
+              <DialogDescription className="text-muted-foreground">
+                Review your selected services and complete payment
+              </DialogDescription>
+            </DialogHeader>
+          </div>
 
-          {/* Selected Services Summary */}
-          <div className="space-y-2 mb-4">
-            <h4 className="font-medium text-sm">Selected Services</h4>
-            {selectedServicesData.map((service: any) => (
-              <div key={service.id} className="flex justify-between text-sm">
-                <span>{service.name}</span>
-                <span className="text-muted-foreground">₹{service.price}</span>
+          <div className="px-6 py-5 space-y-5">
+            {/* Selected Services Summary */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center">
+                  <Check className="w-4 h-4 text-primary" />
+                </div>
+                <h4 className="font-semibold text-sm">Selected Services</h4>
+                <Badge variant="secondary" className="ml-auto text-xs">
+                  {selectedServicesData.length} item{selectedServicesData.length > 1 ? 's' : ''}
+                </Badge>
               </div>
-            ))}
-            <div className="flex justify-between text-sm pt-2 border-t">
-              <span>Subtotal</span>
-              <span>₹{subtotalPrice}</span>
+              <div className="bg-muted/30 rounded-xl p-4 space-y-3">
+                {selectedServicesData.map((service: any, idx: number) => (
+                  <div key={service.id} className={`flex justify-between items-center ${idx !== selectedServicesData.length - 1 ? 'pb-3 border-b border-border/50' : ''}`}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-2 h-2 rounded-full bg-primary" />
+                      <span className="text-sm font-medium">{service.name}</span>
+                    </div>
+                    <span className="text-sm font-semibold">₹{service.price}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-between items-center px-1">
+                <span className="text-sm text-muted-foreground">Subtotal</span>
+                <span className="font-semibold">₹{subtotalPrice}</span>
+              </div>
             </div>
 
-            {/* Referral Reward Discount */}
-            {availableReward > 0 && (
-              <div className="space-y-2">
-                {!applyReward ? (
-                  <button
-                    onClick={() => setApplyReward(true)}
-                    className="w-full flex items-center justify-between p-3 rounded-lg border border-dashed border-primary/50 bg-primary/5 hover:bg-primary/10 transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Gift className="w-4 h-4 text-primary" />
-                      <span className="text-sm font-medium text-primary">Apply ₹{availableReward} Reward</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground">Tap to apply</span>
-                  </button>
-                ) : (
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
-                    <div className="flex items-center gap-2">
-                      <Gift className="w-4 h-4 text-green-600 dark:text-green-400" />
-                      <span className="text-sm font-medium text-green-700 dark:text-green-300">Reward Applied!</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-green-600 dark:text-green-400">-₹{rewardDiscount}</span>
-                      <button 
-                        onClick={() => setApplyReward(false)}
-                        className="p-1 hover:bg-green-100 dark:hover:bg-green-800 rounded"
-                      >
-                        <X className="w-4 h-4 text-green-600 dark:text-green-400" />
-                      </button>
-                    </div>
-                  </div>
-                )}
+            {/* Discounts & Rewards Section */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                  <Gift className="w-4 h-4 text-green-600 dark:text-green-400" />
+                </div>
+                <h4 className="font-semibold text-sm">Rewards & Credits</h4>
               </div>
-            )}
 
-            {/* Wallet Credits Section */}
-            {walletBalance > 0 && (
-              <div className="space-y-2">
-                {!applyWalletCredits ? (
-                  <button
-                    onClick={() => setApplyWalletCredits(true)}
-                    className="w-full flex items-center justify-between p-3 rounded-lg border border-dashed border-amber-500/50 bg-amber-50/50 dark:bg-amber-900/10 hover:bg-amber-100/50 dark:hover:bg-amber-900/20 transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Wallet className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                      <span className="text-sm font-medium text-amber-700 dark:text-amber-300">
-                        Use ₹{Math.min(walletBalance, priceAfterReward)} Wallet Credits
-                      </span>
+              {/* Referral Reward Discount */}
+              {availableReward > 0 && (
+                <div>
+                  {!applyReward ? (
+                    <button
+                      onClick={() => setApplyReward(true)}
+                      className="w-full flex items-center justify-between p-4 rounded-xl border-2 border-dashed border-green-300 dark:border-green-700 bg-green-50/50 dark:bg-green-900/10 hover:bg-green-100/50 dark:hover:bg-green-900/20 transition-all hover:scale-[1.01]"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+                          <Gift className="w-5 h-5 text-green-600 dark:text-green-400" />
+                        </div>
+                        <div className="text-left">
+                          <span className="text-sm font-semibold text-green-700 dark:text-green-300 block">Referral Reward</span>
+                          <span className="text-xs text-green-600/70 dark:text-green-400/70">₹{availableReward} available</span>
+                        </div>
+                      </div>
+                      <Badge className="bg-green-600 hover:bg-green-600 text-white">Apply</Badge>
+                    </button>
+                  ) : (
+                    <div className="flex items-center justify-between p-4 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+                          <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
+                        </div>
+                        <div>
+                          <span className="text-sm font-semibold text-green-700 dark:text-green-300 block">Reward Applied!</span>
+                          <span className="text-xs text-green-600/70 dark:text-green-400/70">Referral bonus</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-base font-bold text-green-600 dark:text-green-400">-₹{rewardDiscount}</span>
+                        <button 
+                          onClick={() => setApplyReward(false)}
+                          className="p-1.5 hover:bg-green-100 dark:hover:bg-green-800 rounded-lg transition-colors"
+                        >
+                          <X className="w-4 h-4 text-green-600 dark:text-green-400" />
+                        </button>
+                      </div>
                     </div>
-                    <span className="text-xs text-muted-foreground">Balance: ₹{walletBalance}</span>
-                  </button>
-                ) : (
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-                    <div className="flex items-center gap-2">
-                      <Wallet className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                      <span className="text-sm font-medium text-amber-700 dark:text-amber-300">Credits Applied!</span>
+                  )}
+                </div>
+              )}
+
+              {/* Wallet Credits Section */}
+              {walletBalance > 0 && (
+                <div>
+                  {!applyWalletCredits ? (
+                    <button
+                      onClick={() => setApplyWalletCredits(true)}
+                      className="w-full flex items-center justify-between p-4 rounded-xl border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-900/10 hover:bg-amber-100/50 dark:hover:bg-amber-900/20 transition-all hover:scale-[1.01]"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
+                          <Wallet className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                        </div>
+                        <div className="text-left">
+                          <span className="text-sm font-semibold text-amber-700 dark:text-amber-300 block">Wallet Credits</span>
+                          <span className="text-xs text-amber-600/70 dark:text-amber-400/70">Balance: ₹{walletBalance}</span>
+                        </div>
+                      </div>
+                      <Badge className="bg-amber-600 hover:bg-amber-600 text-white">Use ₹{Math.min(walletBalance, priceAfterReward)}</Badge>
+                    </button>
+                  ) : (
+                    <div className="flex items-center justify-between p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
+                          <Check className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                        </div>
+                        <div>
+                          <span className="text-sm font-semibold text-amber-700 dark:text-amber-300 block">Credits Applied!</span>
+                          <span className="text-xs text-amber-600/70 dark:text-amber-400/70">Wallet balance used</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-base font-bold text-amber-600 dark:text-amber-400">-₹{walletCreditsDiscount}</span>
+                        <button 
+                          onClick={() => setApplyWalletCredits(false)}
+                          className="p-1.5 hover:bg-amber-100 dark:hover:bg-amber-800 rounded-lg transition-colors"
+                        >
+                          <X className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-amber-600 dark:text-amber-400">-₹{walletCreditsDiscount}</span>
-                      <button 
-                        onClick={() => setApplyWalletCredits(false)}
-                        className="p-1 hover:bg-amber-100 dark:hover:bg-amber-800 rounded"
-                      >
-                        <X className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+                  )}
+                </div>
+              )}
+
+              {availableReward === 0 && walletBalance === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-2">No rewards or credits available</p>
+              )}
+            </div>
 
             {/* User Vouchers Section */}
             {userVouchers.length > 0 && !appliedVoucher && !appliedPromo && (
-              <div className="space-y-3 pt-2 border-t">
-                <h4 className="font-medium text-sm flex items-center gap-2">
-                  <Ticket className="w-4 h-4 text-purple-500" />
-                  My Vouchers
-                  <span className="text-xs text-muted-foreground">({userVouchers.length} available)</span>
-                </h4>
-                <div className="space-y-2 max-h-40 overflow-y-auto">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                    <Ticket className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <h4 className="font-semibold text-sm">My Vouchers</h4>
+                  <Badge variant="secondary" className="ml-auto text-xs">{userVouchers.length} available</Badge>
+                </div>
+                <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
                   {userVouchers.map((voucher) => {
                     const discountText = voucher.discount_type === 'percentage'
                       ? `${voucher.discount_value}% OFF`
@@ -1724,13 +1783,13 @@ const SalonDetail = () => {
                         key={voucher.id}
                         onClick={() => applyVoucher(voucher)}
                         disabled={!canApply}
-                        className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-colors text-left ${
+                        className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left ${
                           canApply 
-                            ? 'border-dashed border-purple-300 dark:border-purple-700 bg-purple-50/50 dark:bg-purple-900/10 hover:bg-purple-100 dark:hover:bg-purple-900/30' 
-                            : 'border-border bg-muted/50 opacity-60 cursor-not-allowed'
+                            ? 'border-dashed border-purple-300 dark:border-purple-700 bg-purple-50/50 dark:bg-purple-900/10 hover:bg-purple-100 dark:hover:bg-purple-900/30 hover:scale-[1.01]' 
+                            : 'border-border bg-muted/30 opacity-60 cursor-not-allowed'
                         }`}
                       >
-                        <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
+                        <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
                           <Ticket className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -1738,17 +1797,16 @@ const SalonDetail = () => {
                             <p className="text-sm font-semibold text-purple-700 dark:text-purple-300 truncate">
                               {voucher.title}
                             </p>
-                            <span className="text-xs font-bold text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/50 px-1.5 py-0.5 rounded">
-                              {discountText}
-                            </span>
                           </div>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                          <p className="text-xs text-muted-foreground mt-0.5">
                             {voucher.min_order_value ? `Min ₹${voucher.min_order_value}` : 'No minimum'}
                             {voucher.valid_until && ` • Expires ${format(new Date(voucher.valid_until), 'MMM dd')}`}
                           </p>
                         </div>
-                        {canApply && (
-                          <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">Apply</span>
+                        {canApply ? (
+                          <Badge className="bg-purple-600 hover:bg-purple-600 text-white text-xs">{discountText}</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs">{discountText}</Badge>
                         )}
                       </button>
                     );
@@ -1759,24 +1817,32 @@ const SalonDetail = () => {
 
             {/* Applied Voucher Display */}
             {appliedVoucher && (
-              <div className="pt-2 border-t">
-                <div className="flex items-center justify-between p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800">
-                  <div className="flex items-center gap-2">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
                     <Ticket className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <h4 className="font-semibold text-sm">Applied Voucher</h4>
+                </div>
+                <div className="flex items-center justify-between p-4 rounded-xl bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
+                      <Check className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                    </div>
                     <div>
-                      <span className="text-sm font-medium text-purple-700 dark:text-purple-300">
+                      <span className="text-sm font-semibold text-purple-700 dark:text-purple-300 block">
                         {appliedVoucher.title}
                       </span>
-                      <p className="text-[10px] text-purple-600/70 dark:text-purple-400/70">{appliedVoucher.code}</p>
+                      <span className="text-xs text-purple-600/70 dark:text-purple-400/70">{appliedVoucher.code}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-purple-600 dark:text-purple-400">
+                    <span className="text-base font-bold text-purple-600 dark:text-purple-400">
                       -₹{voucherDiscount.toFixed(0)}
                     </span>
                     <button 
                       onClick={removeVoucher}
-                      className="p-1 hover:bg-purple-100 dark:hover:bg-purple-800 rounded"
+                      className="p-1.5 hover:bg-purple-100 dark:hover:bg-purple-800 rounded-lg transition-colors"
                     >
                       <X className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                     </button>
@@ -1786,28 +1852,31 @@ const SalonDetail = () => {
             )}
 
             {/* Promo Code Section */}
-            <div className="space-y-3 pt-2 border-t">
-              <h4 className="font-medium text-sm flex items-center gap-2">
-                <Tag className="w-4 h-4" />
-                Promo Code
-              </h4>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                  <Tag className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                </div>
+                <h4 className="font-semibold text-sm">Promo Code</h4>
+              </div>
               
               {!appliedPromo ? (
                 <div className="space-y-3">
                   <div className="flex gap-2">
                     <Input
-                      placeholder="Enter promo code"
+                      placeholder="ENTER PROMO CODE"
                       value={promoCodeInput}
                       onChange={(e) => {
                         setPromoCodeInput(e.target.value.toUpperCase());
                         setPromoError('');
                       }}
-                      className="flex-1 uppercase"
+                      className="flex-1 uppercase font-medium tracking-wide h-12 rounded-xl bg-muted/30 border-2 border-dashed focus:border-primary"
                     />
                     <Button 
-                      variant="outline" 
+                      variant="default" 
                       onClick={applyPromoCode}
-                      disabled={isValidatingPromo}
+                      disabled={isValidatingPromo || !promoCodeInput}
+                      className="h-12 px-6 rounded-xl"
                     >
                       {isValidatingPromo ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -1817,19 +1886,22 @@ const SalonDetail = () => {
                     </Button>
                   </div>
                   {promoError && (
-                    <p className="text-xs text-destructive">{promoError}</p>
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      <X className="w-3 h-3" />
+                      {promoError}
+                    </p>
                   )}
                   
                   {/* Available Promo Codes */}
                   {availablePromoCodes.length > 0 && (
                     <div className="space-y-2">
-                      <p className="text-xs text-muted-foreground">Available offers:</p>
-                      <div className="flex flex-wrap gap-2">
+                      <p className="text-xs text-muted-foreground font-medium">Available offers:</p>
+                      <div className="flex gap-2 overflow-x-auto pb-1">
                         {availablePromoCodes.map((promo) => {
                           const discountText = promo.discount_type === 'percentage' 
                             ? `${promo.discount_value}% OFF${promo.max_discount ? ` (Max ₹${promo.max_discount})` : ''}`
                             : `₹${promo.discount_value} OFF`;
-                          const minOrderText = promo.min_order_value ? ` • Min ₹${promo.min_order_value}` : '';
+                          const minOrderText = promo.min_order_value ? `Min ₹${promo.min_order_value}` : '';
                           
                           return (
                             <button
@@ -1838,13 +1910,13 @@ const SalonDetail = () => {
                                 setPromoCodeInput(promo.code);
                                 setPromoError('');
                               }}
-                              className="group flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-blue-300 dark:border-blue-700 bg-blue-50/50 dark:bg-blue-900/10 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                              className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed border-blue-300 dark:border-blue-700 bg-blue-50/50 dark:bg-blue-900/10 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all hover:scale-[1.02]"
                             >
-                              <Tag className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                              <Tag className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                               <div className="text-left">
-                                <p className="text-xs font-semibold text-blue-700 dark:text-blue-300">{promo.code}</p>
+                                <p className="text-sm font-bold text-blue-700 dark:text-blue-300">{promo.code}</p>
                                 <p className="text-[10px] text-blue-600/70 dark:text-blue-400/70">
-                                  {discountText}{minOrderText}
+                                  {discountText} {minOrderText && `• ${minOrderText}`}
                                 </p>
                               </div>
                             </button>
@@ -1855,20 +1927,25 @@ const SalonDetail = () => {
                   )}
                 </div>
               ) : (
-                <div className="flex items-center justify-between p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                  <div className="flex items-center gap-2">
-                    <Tag className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                      {appliedPromo.code}
-                    </span>
+                <div className="flex items-center justify-between p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                      <Check className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                      <span className="text-sm font-semibold text-blue-700 dark:text-blue-300 block">
+                        {appliedPromo.code}
+                      </span>
+                      <span className="text-xs text-blue-600/70 dark:text-blue-400/70">Promo applied</span>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                    <span className="text-base font-bold text-blue-600 dark:text-blue-400">
                       -₹{promoDiscount.toFixed(0)}
                     </span>
                     <button 
                       onClick={removePromoCode}
-                      className="p-1 hover:bg-blue-100 dark:hover:bg-blue-800 rounded"
+                      className="p-1.5 hover:bg-blue-100 dark:hover:bg-blue-800 rounded-lg transition-colors"
                     >
                       <X className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                     </button>
@@ -1877,97 +1954,167 @@ const SalonDetail = () => {
               )}
             </div>
 
-            <div className="flex justify-between font-semibold pt-2 border-t">
-              <span>Total</span>
+            {/* Total Section */}
+            <div className="bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5 rounded-xl p-4 space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Subtotal</span>
+                <span className="text-sm">₹{subtotalPrice}</span>
+              </div>
+              {totalDiscount > 0 && (
+                <div className="flex justify-between items-center text-green-600 dark:text-green-400">
+                  <span className="text-sm">Total Savings</span>
+                  <span className="text-sm font-semibold">-₹{totalDiscount}</span>
+                </div>
+              )}
+              <div className="flex justify-between items-center pt-2 border-t border-border/50">
+                <span className="font-semibold">Total Amount</span>
+                <div className="flex items-center gap-2">
+                  {totalDiscount > 0 && (
+                    <span className="text-sm text-muted-foreground line-through">₹{subtotalPrice}</span>
+                  )}
+                  <span className="text-xl font-bold text-primary">₹{totalPrice}</span>
+                </div>
+              </div>
+              {totalDiscount > 0 && (
+                <div className="flex items-center justify-center gap-2 pt-2">
+                  <div className="w-6 h-6 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                    <Check className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
+                  </div>
+                  <p className="text-sm font-medium text-green-600 dark:text-green-400">
+                    You're saving ₹{totalDiscount} on this booking!
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Divider */}
+            <div className="flex items-center gap-3">
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-xs text-muted-foreground font-medium">SELECT DATE & TIME</span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+
+            {/* Date Selection */}
+            <div className="space-y-3">
               <div className="flex items-center gap-2">
-                {totalDiscount > 0 && (
-                  <span className="text-sm text-muted-foreground line-through">₹{subtotalPrice}</span>
-                )}
-                <span className="text-primary">₹{totalPrice}</span>
+                <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center">
+                  <Calendar className="w-4 h-4 text-primary" />
+                </div>
+                <h4 className="font-semibold text-sm">Select Date</h4>
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+                {next7Days.map((date, idx) => (
+                  <button
+                    key={date.toISOString()}
+                    onClick={() => setSelectedDate(date)}
+                    className={`flex flex-col items-center min-w-[68px] p-3 rounded-xl border-2 transition-all hover:scale-[1.02] ${
+                      selectedDate?.toDateString() === date.toDateString()
+                        ? 'bg-primary text-primary-foreground border-primary shadow-md'
+                        : 'border-border hover:border-primary bg-muted/20'
+                    } ${idx === 0 ? 'ring-2 ring-primary/20' : ''}`}
+                  >
+                    <span className="text-[10px] font-medium uppercase tracking-wide opacity-80">{format(date, 'EEE')}</span>
+                    <span className="text-xl font-bold">{format(date, 'd')}</span>
+                    <span className="text-[10px] opacity-80">{format(date, 'MMM')}</span>
+                    {idx === 0 && (
+                      <span className="text-[8px] font-medium bg-primary/20 rounded-full px-1.5 py-0.5 mt-1">Today</span>
+                    )}
+                  </button>
+                ))}
               </div>
             </div>
-            {totalDiscount > 0 && (
-              <p className="text-xs text-green-600 dark:text-green-400 text-center">
-                🎉 You're saving ₹{totalDiscount} on this booking!
+
+            {/* Time Selection */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center">
+                  <Clock className="w-4 h-4 text-primary" />
+                </div>
+                <h4 className="font-semibold text-sm">Select Time</h4>
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                {timeSlots.map((time) => (
+                  <button
+                    key={time}
+                    onClick={() => setSelectedTime(time)}
+                    className={`p-2.5 rounded-xl text-sm font-medium border-2 transition-all hover:scale-[1.02] ${
+                      selectedTime === time
+                        ? 'bg-primary text-primary-foreground border-primary shadow-md'
+                        : 'border-border hover:border-primary bg-muted/20'
+                    }`}
+                  >
+                    {time}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Payment Method Selection */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center">
+                  <CreditCard className="w-4 h-4 text-primary" />
+                </div>
+                <h4 className="font-semibold text-sm">Payment Method</h4>
+              </div>
+              <PaymentMethodSelector
+                selectedMethod={paymentMethod}
+                onMethodChange={setPaymentMethod}
+                totalAmount={totalPrice}
+                walletBalance={walletBalance}
+                walletAmountToUse={splitWalletAmount}
+                onWalletAmountChange={setSplitWalletAmount}
+                isSplitPayment={isSplitPayment}
+                onSplitToggle={setIsSplitPayment}
+                selectedSavedMethodId={selectedSavedPaymentMethod}
+                onSavedMethodSelect={setSelectedSavedPaymentMethod}
+                selectedUpiAppId={selectedUpiApp}
+                onUpiAppSelect={setSelectedUpiApp}
+              />
+            </div>
+          </div>
+
+          {/* Sticky Footer */}
+          <div className="sticky bottom-0 bg-background/95 backdrop-blur-sm border-t border-border/50 p-4">
+            <Button
+              className="w-full h-14 text-base font-semibold rounded-xl shadow-lg"
+              size="lg"
+              onClick={handleBooking}
+              disabled={!selectedDate || !selectedTime || isBooking || isPaymentLoading || isUpiProcessing}
+            >
+              {isBooking || isPaymentLoading || isUpiProcessing ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Processing...
+                </div>
+              ) : paymentMethod === 'upi' && selectedUpiApp ? (
+                <div className="flex items-center gap-2">
+                  <CreditCard className="w-5 h-5" />
+                  Pay ₹{totalPrice} with {getUpiAppName(selectedUpiApp)}
+                </div>
+              ) : paymentMethod === 'online' || paymentMethod === 'upi' ? (
+                <div className="flex items-center gap-2">
+                  <CreditCard className="w-5 h-5" />
+                  Pay ₹{totalPrice}
+                </div>
+              ) : paymentMethod === 'split' ? (
+                <div className="flex items-center gap-2">
+                  <Wallet className="w-5 h-5" />
+                  Pay ₹{splitWalletAmount} + ₹{totalPrice - splitWalletAmount}
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Check className="w-5 h-5" />
+                  Confirm Booking • ₹{totalPrice}
+                </div>
+              )}
+            </Button>
+            {(!selectedDate || !selectedTime) && (
+              <p className="text-xs text-muted-foreground text-center mt-2">
+                {!selectedDate ? 'Please select a date' : 'Please select a time'}
               </p>
             )}
           </div>
-
-          {/* Date Selection */}
-          <div className="space-y-3">
-            <h4 className="font-medium text-sm">Select Date</h4>
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {next7Days.map((date) => (
-                <button
-                  key={date.toISOString()}
-                  onClick={() => setSelectedDate(date)}
-                  className={`flex flex-col items-center min-w-[60px] p-3 rounded-xl border transition-colors ${
-                    selectedDate?.toDateString() === date.toDateString()
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'border-border hover:border-primary'
-                  }`}
-                >
-                  <span className="text-xs">{format(date, 'EEE')}</span>
-                  <span className="text-lg font-semibold">{format(date, 'd')}</span>
-                  <span className="text-xs">{format(date, 'MMM')}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Time Selection */}
-          <div className="space-y-3">
-            <h4 className="font-medium text-sm">Select Time</h4>
-            <div className="grid grid-cols-4 gap-2">
-              {timeSlots.map((time) => (
-                <button
-                  key={time}
-                  onClick={() => setSelectedTime(time)}
-                  className={`p-2 rounded-lg text-sm border transition-colors ${
-                    selectedTime === time
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'border-border hover:border-primary'
-                  }`}
-                >
-                  {time}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Payment Method Selection */}
-          <PaymentMethodSelector
-            selectedMethod={paymentMethod}
-            onMethodChange={setPaymentMethod}
-            totalAmount={totalPrice}
-            walletBalance={walletBalance}
-            walletAmountToUse={splitWalletAmount}
-            onWalletAmountChange={setSplitWalletAmount}
-            isSplitPayment={isSplitPayment}
-            onSplitToggle={setIsSplitPayment}
-            selectedSavedMethodId={selectedSavedPaymentMethod}
-            onSavedMethodSelect={setSelectedSavedPaymentMethod}
-            selectedUpiAppId={selectedUpiApp}
-            onUpiAppSelect={setSelectedUpiApp}
-          />
-
-          <Button
-            className="w-full mt-4"
-            size="lg"
-            onClick={handleBooking}
-            disabled={!selectedDate || !selectedTime || isBooking || isPaymentLoading || isUpiProcessing}
-          >
-            {isBooking || isPaymentLoading || isUpiProcessing
-              ? 'Processing...' 
-              : paymentMethod === 'upi' && selectedUpiApp
-                ? `Pay ₹${totalPrice} with ${getUpiAppName(selectedUpiApp)}`
-                : paymentMethod === 'online' || paymentMethod === 'upi'
-                  ? `Pay ₹${totalPrice}` 
-                  : paymentMethod === 'split'
-                    ? `Pay ₹${splitWalletAmount} + ₹${totalPrice - splitWalletAmount}`
-                    : `Confirm Booking - ₹${totalPrice}`
-            }
-          </Button>
         </DialogContent>
       </Dialog>
       <BackToTop />
