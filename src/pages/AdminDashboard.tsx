@@ -34,6 +34,7 @@ import TestPhoneWhitelist from '@/components/admin/TestPhoneWhitelist';
 import RefundManagement from '@/components/admin/RefundManagement';
 import SupportTicketManagement from '@/components/admin/SupportTicketManagement';
 import UserManagement from '@/components/admin/UserManagement';
+import PromoCodeManagement from '@/components/admin/PromoCodeManagement';
 import { getDisplayContact } from '@/utils/displayUtils';
 
 interface UserProfile {
@@ -302,7 +303,7 @@ const AdminDashboard = () => {
           </div>
         ) : (
           <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-7">
+            <TabsList className="grid w-full grid-cols-8">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="salons" className="relative">
                 Salons
@@ -317,6 +318,7 @@ const AdminDashboard = () => {
               </TabsTrigger>
               <TabsTrigger value="support">Support</TabsTrigger>
               <TabsTrigger value="refunds">Refunds</TabsTrigger>
+              <TabsTrigger value="promos">Promos</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
               <TabsTrigger value="users">Users</TabsTrigger>
               <TabsTrigger value="tools">Tools</TabsTrigger>
@@ -525,6 +527,11 @@ const AdminDashboard = () => {
               <RefundManagement />
             </TabsContent>
 
+            {/* Promo Codes Tab */}
+            <TabsContent value="promos" className="space-y-6">
+              <PromoCodeManagement />
+            </TabsContent>
+
             {/* Analytics Tab */}
             <TabsContent value="analytics" className="space-y-6">
               <RevenueAnalytics />
@@ -547,24 +554,6 @@ const AdminDashboard = () => {
               <div className="border-t pt-6">
                 <h3 className="font-semibold mb-4">Other Tools</h3>
                 <div className="grid gap-4">
-                  <Card 
-                    className="cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => navigate('/admin/promo-codes')}
-                  >
-                    <CardContent className="p-4 flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                          <Tag className="w-6 h-6 text-primary" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold">Promo Codes</h3>
-                          <p className="text-sm text-muted-foreground">Create and manage discount codes</p>
-                        </div>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                    </CardContent>
-                  </Card>
-
                   <Card className="opacity-60">
                     <CardContent className="p-4 flex items-center justify-between">
                       <div className="flex items-center gap-4">
