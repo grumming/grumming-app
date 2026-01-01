@@ -69,6 +69,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     const resend = new Resend(resendApiKey);
     const customerName = profile.full_name || 'Valued Customer';
+    const completionPin = booking.completion_pin || '----';
     
     // Format booking date
     const bookingDateFormatted = new Date(booking.booking_date).toLocaleDateString('en-IN', {
@@ -177,13 +178,30 @@ const handler = async (req: Request): Promise<Response> => {
                   </td>
                 </tr>
                 
-                <!-- Reminder Note -->
+                <!-- Completion PIN Card -->
                 <tr>
                   <td style="padding: 24px 32px;">
-                    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fef3c7; border-radius: 8px; padding: 16px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 12px; padding: 20px; border: 1px solid #fcd34d;">
+                      <tr>
+                        <td align="center">
+                          <p style="margin: 0; color: #92400e; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">🔐 Your Completion PIN</p>
+                          <p style="margin: 8px 0 0; color: #78350f; font-size: 36px; font-weight: 800; letter-spacing: 8px; font-family: monospace;">${completionPin}</p>
+                          <p style="margin: 12px 0 0; color: #92400e; font-size: 13px;">
+                            Share this PIN with the salon to mark your appointment as complete.
+                          </p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                
+                <!-- Reminder Note -->
+                <tr>
+                  <td style="padding: 0 32px 24px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f0fdf4; border-radius: 8px; padding: 16px;">
                       <tr>
                         <td>
-                          <p style="margin: 0; color: #92400e; font-size: 14px;">
+                          <p style="margin: 0; color: #166534; font-size: 14px;">
                             💡 <strong>Reminder:</strong> Please arrive 5-10 minutes before your appointment time.
                           </p>
                         </td>
