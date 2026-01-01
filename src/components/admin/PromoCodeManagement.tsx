@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
-  ArrowLeft, Plus, Tag, Pencil, Trash2, Check, X, 
-  Loader2, ToggleLeft, ToggleRight, Search, AlertTriangle
+  Plus, Tag, Pencil, Trash2, Check, 
+  Loader2, ToggleLeft, ToggleRight, Search
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -22,8 +21,6 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
-import { useAdmin } from '@/hooks/useAdmin';
 import { supabase } from '@/integrations/supabase/client';
 
 interface PromoCode {
@@ -53,11 +50,8 @@ const emptyPromo = {
   is_active: true,
 };
 
-const AdminPromoCodes = () => {
-  const navigate = useNavigate();
+const PromoCodeManagement = () => {
   const { toast } = useToast();
-  const { user } = useAuth();
-  const { isAdmin, isLoading: isAdminLoading } = useAdmin();
   
   const [promoCodes, setPromoCodes] = useState<PromoCode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -86,10 +80,8 @@ const AdminPromoCodes = () => {
   };
 
   useEffect(() => {
-    if (isAdmin) {
-      fetchPromoCodes();
-    }
-  }, [isAdmin]);
+    fetchPromoCodes();
+  }, []);
 
   // Filter promo codes based on search
   const filteredPromoCodes = promoCodes.filter(promo =>
@@ -215,177 +207,123 @@ const AdminPromoCodes = () => {
     setDeletePromo(null);
   };
 
-  // Show loading while checking admin status
-  if (isAdminLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  // Access denied for non-admins
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="max-w-md w-full">
-          <CardContent className="pt-6 text-center">
-            <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Login Required</h2>
-            <p className="text-muted-foreground mb-4">Please log in to access this page.</p>
-            <Button onClick={() => navigate('/auth')}>Go to Login</Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="max-w-md w-full">
-          <CardContent className="pt-6 text-center">
-            <AlertTriangle className="w-12 h-12 text-destructive mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
-            <p className="text-muted-foreground mb-4">
-              You don't have permission to access the admin panel.
-            </p>
-            <Button onClick={() => navigate('/')}>Go Home</Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-background">
+    <div className="space-y-4">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate(-1)}
-              className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors"
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold">Promo Codes</h2>
+          <p className="text-sm text-muted-foreground">Create and manage discount codes</p>
+        </div>
+        <Button onClick={handleAddNew} size="sm">
+          <Plus className="w-4 h-4 mr-2" />
+          Add New
+        </Button>
+      </div>
+
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          placeholder="Search promo codes..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10"
+        />
+      </div>
+
+      {/* Promo Codes List */}
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      ) : filteredPromoCodes.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Tag className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="font-semibold mb-2">No promo codes found</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              {searchQuery ? 'Try a different search term' : 'Create your first promo code'}
+            </p>
+            {!searchQuery && (
+              <Button onClick={handleAddNew}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Promo Code
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {filteredPromoCodes.map((promo) => (
+            <motion.div
+              key={promo.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
             >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="font-display text-xl font-bold">Promo Codes</h1>
-              <p className="text-xs text-muted-foreground">Admin Panel</p>
-            </div>
-          </div>
-          <Button onClick={handleAddNew} size="sm">
-            <Plus className="w-4 h-4 mr-2" />
-            Add New
-          </Button>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-6">
-        {/* Search */}
-        <div className="relative mb-6">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search promo codes..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-
-        {/* Promo Codes List */}
-        {isLoading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          </div>
-        ) : filteredPromoCodes.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Tag className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="font-semibold mb-2">No promo codes found</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                {searchQuery ? 'Try a different search term' : 'Create your first promo code'}
-              </p>
-              {!searchQuery && (
-                <Button onClick={handleAddNew}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Promo Code
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {filteredPromoCodes.map((promo) => (
-              <motion.div
-                key={promo.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
-                <Card className={!promo.is_active ? 'opacity-60' : ''}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Tag className="w-4 h-4 text-primary flex-shrink-0" />
-                          <span className="font-mono font-semibold text-lg">{promo.code}</span>
-                          <Badge variant={promo.is_active ? 'default' : 'secondary'}>
-                            {promo.is_active ? 'Active' : 'Inactive'}
-                          </Badge>
-                        </div>
-                        
-                        <p className="text-sm text-muted-foreground mb-2">
-                          {promo.discount_type === 'percentage' 
-                            ? `${promo.discount_value}% off${promo.max_discount ? ` (Max ₹${promo.max_discount})` : ''}`
-                            : `₹${promo.discount_value} off`}
-                          {promo.min_order_value ? ` • Min order ₹${promo.min_order_value}` : ''}
-                        </p>
-                        
-                        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                          <span>Used: {promo.used_count}{promo.usage_limit ? `/${promo.usage_limit}` : ''}</span>
-                          {promo.valid_until && (
-                            <span>• Expires: {new Date(promo.valid_until).toLocaleDateString()}</span>
-                          )}
-                        </div>
+              <Card className={!promo.is_active ? 'opacity-60' : ''}>
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Tag className="w-4 h-4 text-primary flex-shrink-0" />
+                        <span className="font-mono font-semibold text-lg">{promo.code}</span>
+                        <Badge variant={promo.is_active ? 'default' : 'secondary'}>
+                          {promo.is_active ? 'Active' : 'Inactive'}
+                        </Badge>
                       </div>
                       
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleToggleActive(promo)}
-                          title={promo.is_active ? 'Deactivate' : 'Activate'}
-                        >
-                          {promo.is_active ? (
-                            <ToggleRight className="w-5 h-5 text-green-600" />
-                          ) : (
-                            <ToggleLeft className="w-5 h-5 text-muted-foreground" />
-                          )}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(promo)}
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setDeletePromo(promo)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        {promo.discount_type === 'percentage' 
+                          ? `${promo.discount_value}% off${promo.max_discount ? ` (Max ₹${promo.max_discount})` : ''}`
+                          : `₹${promo.discount_value} off`}
+                        {promo.min_order_value ? ` • Min order ₹${promo.min_order_value}` : ''}
+                      </p>
+                      
+                      <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                        <span>Used: {promo.used_count}{promo.usage_limit ? `/${promo.usage_limit}` : ''}</span>
+                        {promo.valid_until && (
+                          <span>• Expires: {new Date(promo.valid_until).toLocaleDateString()}</span>
+                        )}
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        )}
-      </main>
+                    
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleToggleActive(promo)}
+                        title={promo.is_active ? 'Deactivate' : 'Activate'}
+                      >
+                        {promo.is_active ? (
+                          <ToggleRight className="w-5 h-5 text-green-600" />
+                        ) : (
+                          <ToggleLeft className="w-5 h-5 text-muted-foreground" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEdit(promo)}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setDeletePromo(promo)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      )}
 
       {/* Add/Edit Modal */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
@@ -572,4 +510,4 @@ const AdminPromoCodes = () => {
   );
 };
 
-export default AdminPromoCodes;
+export default PromoCodeManagement;
