@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { LocationProvider } from "@/contexts/LocationContext";
 import { FavoritesProvider } from "@/contexts/FavoritesContext";
+import { WalletProvider } from "@/contexts/WalletContext";
 import { PushNotificationSetup } from "@/components/PushNotificationSetup";
 import { ReferralRewardListener } from "@/components/ReferralRewardListener";
 import { DeepLinkHandler } from "@/components/DeepLinkHandler";
@@ -121,53 +122,55 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <FavoritesProvider>
-          <LocationProvider>
-            <TooltipProvider>
-              <PushNotificationSetup />
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
-                <ReferralRewardListener />
-                <DeepLinkHandler />
-                
-                <Routes>
-                  <Route path="/" element={<SalonOwnerRouteGuard><Index /></SalonOwnerRouteGuard>} />
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/edit-profile" element={<EditProfile />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/privacy-security" element={<PrivacySecurity />} />
-                  <Route path="/salon/:id" element={<SalonDetail />} />
-                  <Route path="/booking-confirmation" element={<BookingConfirmation />} />
-                  <Route path="/notification-settings" element={<NotificationSettings />} />
-                  <Route path="/my-bookings" element={<SalonOwnerRouteGuard><MyBookings /></SalonOwnerRouteGuard>} />
-                  <Route path="/my-vouchers" element={<SalonOwnerRouteGuard><MyVouchers /></SalonOwnerRouteGuard>} />
-                  <Route path="/saved-addresses" element={<SavedAddresses />} />
-                  <Route path="/search" element={<SalonOwnerRouteGuard><SearchSalons /></SalonOwnerRouteGuard>} />
-                  <Route path="/referrals" element={<SalonOwnerRouteGuard><Referrals /></SalonOwnerRouteGuard>} />
-                  <Route path="/wallet" element={<Wallet />} />
-                  <Route path="/favorites" element={<SalonOwnerRouteGuard><Favorites /></SalonOwnerRouteGuard>} />
-                  <Route path="/payment-methods" element={<PaymentMethods />} />
-                  <Route path="/payment-history" element={<PaymentHistory />} />
-                  <Route path="/admin" element={<AdminDashboard />} />
-                  <Route path="/admin/promo-codes" element={<AdminPromoCodes />} />
-                  <Route path="/salon-dashboard" element={<SalonDashboard />} />
-                  <Route path="/salon-registration" element={<SalonRegistration />} />
-                  <Route path="/salon-owner-auth" element={<SalonOwnerAuth />} />
-                  <Route path="/terms" element={<Terms />} />
-                  <Route path="/privacy" element={<Privacy />} />
-                  <Route path="/refund-policy" element={<RefundPolicy />} />
-                  <Route path="/contact-support" element={<ContactSupport />} />
-                  <Route path="/chat" element={<Chat />} />
-                  <Route path="/chat/:conversationId" element={<Chat />} />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </BrowserRouter>
-            </TooltipProvider>
-          </LocationProvider>
-        </FavoritesProvider>
+        <WalletProvider>
+          <FavoritesProvider>
+            <LocationProvider>
+              <TooltipProvider>
+                <PushNotificationSetup />
+                <Toaster />
+                <Sonner />
+                <BrowserRouter>
+                  <ReferralRewardListener />
+                  <DeepLinkHandler />
+                  
+                  <Routes>
+                    <Route path="/" element={<SalonOwnerRouteGuard><Index /></SalonOwnerRouteGuard>} />
+                    <Route path="/auth" element={<Auth />} />
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/edit-profile" element={<EditProfile />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/privacy-security" element={<PrivacySecurity />} />
+                    <Route path="/salon/:id" element={<SalonDetail />} />
+                    <Route path="/booking-confirmation" element={<BookingConfirmation />} />
+                    <Route path="/notification-settings" element={<NotificationSettings />} />
+                    <Route path="/my-bookings" element={<SalonOwnerRouteGuard><MyBookings /></SalonOwnerRouteGuard>} />
+                    <Route path="/my-vouchers" element={<SalonOwnerRouteGuard><MyVouchers /></SalonOwnerRouteGuard>} />
+                    <Route path="/saved-addresses" element={<SavedAddresses />} />
+                    <Route path="/search" element={<SalonOwnerRouteGuard><SearchSalons /></SalonOwnerRouteGuard>} />
+                    <Route path="/referrals" element={<SalonOwnerRouteGuard><Referrals /></SalonOwnerRouteGuard>} />
+                    <Route path="/wallet" element={<Wallet />} />
+                    <Route path="/favorites" element={<SalonOwnerRouteGuard><Favorites /></SalonOwnerRouteGuard>} />
+                    <Route path="/payment-methods" element={<PaymentMethods />} />
+                    <Route path="/payment-history" element={<PaymentHistory />} />
+                    <Route path="/admin" element={<AdminDashboard />} />
+                    <Route path="/admin/promo-codes" element={<AdminPromoCodes />} />
+                    <Route path="/salon-dashboard" element={<SalonDashboard />} />
+                    <Route path="/salon-registration" element={<SalonRegistration />} />
+                    <Route path="/salon-owner-auth" element={<SalonOwnerAuth />} />
+                    <Route path="/terms" element={<Terms />} />
+                    <Route path="/privacy" element={<Privacy />} />
+                    <Route path="/refund-policy" element={<RefundPolicy />} />
+                    <Route path="/contact-support" element={<ContactSupport />} />
+                    <Route path="/chat" element={<Chat />} />
+                    <Route path="/chat/:conversationId" element={<Chat />} />
+                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </BrowserRouter>
+              </TooltipProvider>
+            </LocationProvider>
+          </FavoritesProvider>
+        </WalletProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
