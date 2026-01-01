@@ -513,7 +513,7 @@ const SalonDetail = () => {
   const { initiatePayment, isLoading: isPaymentLoading } = useRazorpay();
   const { initiateUpiPayment, isProcessing: isUpiProcessing } = useUpiPayment();
   const { userReward } = useReferral();
-  const { wallet, useCredits } = useWallet();
+  const { wallet, useCredits, isLoading: isWalletLoading } = useWallet();
   const { isFavorite: checkIsFavorite, toggleFavorite } = useFavorites();
   const { addRecentSearch } = useRecentSearches();
   
@@ -1917,8 +1917,15 @@ const SalonDetail = () => {
                     </div>
                   )}
 
-                  {availableReward === 0 && walletBalance === 0 && (
+                  {availableReward === 0 && walletBalance === 0 && !isWalletLoading && (
                     <p className="text-sm text-muted-foreground text-center py-2">No rewards or credits available</p>
+                  )}
+
+                  {isWalletLoading && availableReward === 0 && (
+                    <div className="flex items-center justify-center py-2 gap-2">
+                      <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                      <span className="text-sm text-muted-foreground">Loading wallet...</span>
+                    </div>
                   )}
                 </div>
 
