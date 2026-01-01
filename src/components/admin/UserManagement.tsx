@@ -5,7 +5,7 @@ import {
   Calendar, ChevronDown, ChevronUp, IndianRupee,
   ShoppingBag, Wallet, Clock, CheckCircle, XCircle,
   Star, ArrowUpCircle, ArrowDownCircle,
-  Activity, UserPlus, Shield, Store, Crown, User
+  Activity, UserPlus, Shield, Store, Crown, User, Users, Filter
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -110,12 +110,21 @@ const AVAILABLE_ROLES: { role: AppRole; label: string; description: string; icon
   { role: 'user', label: 'User', description: 'Standard user', icon: User, color: 'text-muted-foreground' },
 ];
 
+const ROLE_FILTERS: { value: AppRole | 'all'; label: string; icon: any }[] = [
+  { value: 'all', label: 'All Users', icon: Users },
+  { value: 'admin', label: 'Admins', icon: Crown },
+  { value: 'moderator', label: 'Moderators', icon: Shield },
+  { value: 'salon_owner', label: 'Salon Owners', icon: Store },
+  { value: 'user', label: 'Users', icon: User },
+];
+
 const UserManagement = () => {
   const { toast } = useToast();
   const [users, setUsers] = useState<UserWithStats[]>([]);
   const [userRolesMap, setUserRolesMap] = useState<Map<string, AppRole[]>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState<AppRole | 'all'>('all');
   const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
   const [loadingUserData, setLoadingUserData] = useState<Set<string>>(new Set());
   const [updatingRole, setUpdatingRole] = useState<string | null>(null);
@@ -318,12 +327,26 @@ const UserManagement = () => {
 
   const filteredUsers = users.filter(u => {
     const searchLower = searchQuery.toLowerCase();
-    return (
+    const matchesSearch = (
       u.full_name?.toLowerCase().includes(searchLower) ||
       u.email?.toLowerCase().includes(searchLower) ||
       u.phone?.includes(searchQuery)
     );
+    
+    // Apply role filter
+    const matchesRole = roleFilter === 'all' || u.roles.includes(roleFilter);
+    
+    return matchesSearch && matchesRole;
   });
+
+  // Count users per role for badges
+  const roleCounts = {
+    all: users.length,
+    admin: users.filter(u => u.roles.includes('admin')).length,
+    moderator: users.filter(u => u.roles.includes('moderator')).length,
+    salon_owner: users.filter(u => u.roles.includes('salon_owner')).length,
+    user: users.filter(u => u.roles.includes('user')).length,
+  };
 
   const toggleRole = async (userId: string, role: AppRole, hasRole: boolean) => {
     const roleKey = `${userId}-${role}`;
@@ -471,19 +494,47 @@ const UserManagement = () => {
 
   return (
     <div className="space-y-4">
-      {/* Search Header */}
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        <div className="relative flex-1 w-full sm:max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search users by name, email, or phone..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
+      {/* Search and Filter Header */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+          <div className="relative flex-1 w-full sm:max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search users by name, email, or phone..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''} found
+          </div>
         </div>
-        <div className="text-sm text-muted-foreground">
-          {filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''} found
+        
+        {/* Role Filter */}
+        <div className="flex flex-wrap gap-2">
+          {ROLE_FILTERS.map(({ value, label, icon: Icon }) => {
+            const count = roleCounts[value as keyof typeof roleCounts];
+            const isActive = roleFilter === value;
+            return (
+              <Button
+                key={value}
+                variant={isActive ? "default" : "outline"}
+                size="sm"
+                onClick={() => setRoleFilter(value)}
+                className="gap-2"
+              >
+                <Icon className="w-4 h-4" />
+                {label}
+                <Badge 
+                  variant={isActive ? "secondary" : "outline"} 
+                  className={`ml-1 text-[10px] h-5 min-w-5 ${isActive ? 'bg-background/20' : ''}`}
+                >
+                  {count}
+                </Badge>
+              </Button>
+            );
+          })}
         </div>
       </div>
 
