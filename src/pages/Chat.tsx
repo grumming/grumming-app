@@ -61,7 +61,10 @@ const Chat = () => {
     isTyping,
     addReaction,
     getMessageReactions,
+    broadcastTyping,
   } = useChat(conversationId);
+
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [activeConversation, setActiveConversation] = useState<string | undefined>(conversationId);
 
@@ -108,6 +111,12 @@ const Chat = () => {
 
   const handleSend = () => {
     if ((!message.trim() && !pendingImageUrl) || !activeConversation) return;
+
+    // Clear typing indicator when sending
+    broadcastTyping(activeConversation, false);
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
 
     sendMessage.mutate({
       conversationId: activeConversation,
@@ -368,7 +377,21 @@ const Chat = () => {
               />
               <Input
                 value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                onChange={(e) => {
+                  setMessage(e.target.value);
+                  // Broadcast typing status
+                  if (activeConversation) {
+                    broadcastTyping(activeConversation, true);
+                    // Clear previous timeout
+                    if (typingTimeoutRef.current) {
+                      clearTimeout(typingTimeoutRef.current);
+                    }
+                    // Set timeout to stop typing indicator after 2 seconds of no input
+                    typingTimeoutRef.current = setTimeout(() => {
+                      broadcastTyping(activeConversation, false);
+                    }, 2000);
+                  }
+                }}
                 onKeyPress={handleKeyPress}
                 placeholder="Type a message..."
                 className="flex-1"

@@ -41,6 +41,8 @@ const SalonOwnerChatDialog = ({ open, onOpenChange, booking, salonId, onMessages
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [isCustomerTyping, setIsCustomerTyping] = useState(false);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Scroll to bottom on new messages
@@ -144,12 +146,50 @@ const SalonOwnerChatDialog = ({ open, onOpenChange, booking, salonId, onMessages
             if (prev.some(m => m.id === newMsg.id)) return prev;
             return [...prev, newMsg];
           });
+          // Clear typing indicator when a message is received from customer
+          if (newMsg.sender_type === 'user') {
+            setIsCustomerTyping(false);
+          }
         }
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
+    };
+  }, [conversationId]);
+
+  // Subscribe to typing indicator broadcasts
+  useEffect(() => {
+    if (!conversationId) return;
+
+    const typingChannel = supabase
+      .channel(`typing:${conversationId}`)
+      .on('broadcast', { event: 'typing' }, (payload) => {
+        const { senderType, isTyping } = payload.payload;
+        
+        // Only show typing indicator for customer messages
+        if (senderType === 'user') {
+          setIsCustomerTyping(isTyping);
+          
+          // Clear typing indicator after 3 seconds if no update
+          if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+          }
+          if (isTyping) {
+            typingTimeoutRef.current = setTimeout(() => {
+              setIsCustomerTyping(false);
+            }, 3000);
+          }
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(typingChannel);
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
     };
   }, [conversationId]);
 
@@ -263,6 +303,25 @@ const SalonOwnerChatDialog = ({ open, onOpenChange, booking, salonId, onMessages
                   );
                 })}
               </AnimatePresence>
+              
+              {/* Typing Indicator */}
+              <AnimatePresence>
+                {isCustomerTyping && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="flex justify-start"
+                  >
+                    <div className="bg-muted rounded-2xl rounded-bl-sm px-4 py-2 flex items-center gap-1">
+                      <span className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <span className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <span className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              
               <div ref={messagesEndRef} />
             </div>
           )}
