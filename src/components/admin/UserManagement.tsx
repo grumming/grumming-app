@@ -5,7 +5,8 @@ import {
   Calendar, ChevronDown, ChevronUp, IndianRupee,
   ShoppingBag, Wallet, Clock, CheckCircle, XCircle,
   Star, ArrowUpCircle, ArrowDownCircle,
-  Activity, UserPlus, Shield, Store, Crown, User, Users, Filter
+  Activity, UserPlus, Shield, Store, Crown, User, Users, Filter,
+  Ban, Trash2, AlertTriangle, Edit
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +23,27 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { format, formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -38,6 +60,9 @@ interface UserProfile {
   avatar_url: string | null;
   created_at: string;
   email_verified: boolean | null;
+  is_banned?: boolean;
+  banned_at?: string | null;
+  banned_reason?: string | null;
 }
 
 interface UserBooking {
@@ -128,6 +153,15 @@ const UserManagement = () => {
   const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
   const [loadingUserData, setLoadingUserData] = useState<Set<string>>(new Set());
   const [updatingRole, setUpdatingRole] = useState<string | null>(null);
+  const [banDialogOpen, setBanDialogOpen] = useState(false);
+  const [selectedUserForBan, setSelectedUserForBan] = useState<UserWithStats | null>(null);
+  const [banReason, setBanReason] = useState('');
+  const [isBanning, setIsBanning] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedUserForEdit, setSelectedUserForEdit] = useState<UserWithStats | null>(null);
+  const [editForm, setEditForm] = useState({ full_name: '', email: '', phone: '' });
+  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -406,6 +440,160 @@ const UserManagement = () => {
     setUpdatingRole(null);
   };
 
+  const openBanDialog = (user: UserWithStats) => {
+    setSelectedUserForBan(user);
+    setBanReason('');
+    setBanDialogOpen(true);
+  };
+
+  const handleBanUser = async () => {
+    if (!selectedUserForBan) return;
+    
+    setIsBanning(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          is_banned: true,
+          banned_at: new Date().toISOString(),
+          banned_reason: banReason || 'Banned by admin',
+        })
+        .eq('user_id', selectedUserForBan.user_id);
+
+      if (error) throw error;
+
+      setUsers(prev => prev.map(user =>
+        user.user_id === selectedUserForBan.user_id
+          ? { ...user, is_banned: true, banned_at: new Date().toISOString(), banned_reason: banReason }
+          : user
+      ));
+
+      toast({
+        title: 'User banned',
+        description: `${selectedUserForBan.full_name || 'User'} has been banned.`,
+      });
+      setBanDialogOpen(false);
+    } catch (error: any) {
+      console.error('Error banning user:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to ban user',
+        variant: 'destructive',
+      });
+    }
+    setIsBanning(false);
+  };
+
+  const handleUnbanUser = async (user: UserWithStats) => {
+    setIsBanning(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          is_banned: false,
+          banned_at: null,
+          banned_reason: null,
+        })
+        .eq('user_id', user.user_id);
+
+      if (error) throw error;
+
+      setUsers(prev => prev.map(u =>
+        u.user_id === user.user_id
+          ? { ...u, is_banned: false, banned_at: null, banned_reason: null }
+          : u
+      ));
+
+      toast({
+        title: 'User unbanned',
+        description: `${user.full_name || 'User'} has been unbanned.`,
+      });
+    } catch (error: any) {
+      console.error('Error unbanning user:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to unban user',
+        variant: 'destructive',
+      });
+    }
+    setIsBanning(false);
+  };
+
+  const handleDeleteUser = async (user: UserWithStats) => {
+    setIsDeleting(user.user_id);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('user_id', user.user_id);
+
+      if (error) throw error;
+
+      setUsers(prev => prev.filter(u => u.user_id !== user.user_id));
+
+      toast({
+        title: 'User deleted',
+        description: `${user.full_name || 'User'} profile has been deleted.`,
+      });
+    } catch (error: any) {
+      console.error('Error deleting user:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete user',
+        variant: 'destructive',
+      });
+    }
+    setIsDeleting(null);
+  };
+
+  const openEditDialog = (user: UserWithStats) => {
+    setSelectedUserForEdit(user);
+    setEditForm({
+      full_name: user.full_name || '',
+      email: user.email || '',
+      phone: user.phone || '',
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdateUser = async () => {
+    if (!selectedUserForEdit) return;
+    
+    setIsUpdating(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: editForm.full_name || null,
+          email: editForm.email || null,
+          phone: editForm.phone || null,
+        })
+        .eq('user_id', selectedUserForEdit.user_id);
+
+      if (error) throw error;
+
+      setUsers(prev => prev.map(user =>
+        user.user_id === selectedUserForEdit.user_id
+          ? { ...user, ...editForm }
+          : user
+      ));
+
+      toast({
+        title: 'Profile updated',
+        description: `${editForm.full_name || 'User'}'s profile has been updated.`,
+      });
+      setEditDialogOpen(false);
+    } catch (error: any) {
+      console.error('Error updating user:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update profile',
+        variant: 'destructive',
+      });
+    }
+    setIsUpdating(false);
+  };
+
   const getRoleBadge = (role: AppRole) => {
     const roleConfig = AVAILABLE_ROLES.find(r => r.role === role);
     if (!roleConfig) return null;
@@ -579,6 +767,11 @@ const UserManagement = () => {
                                 <><UserX className="w-3 h-3 mr-1" /> Unverified</>
                               )}
                             </Badge>
+                            {user.is_banned && (
+                              <Badge variant="destructive" className="text-[10px] shrink-0">
+                                <Ban className="w-3 h-3 mr-1" /> Banned
+                              </Badge>
+                            )}
                             {user.roles.map(role => getRoleBadge(role))}
                           </div>
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground mt-1">
@@ -660,7 +853,7 @@ const UserManagement = () => {
                       ) : (
                         <Tabs defaultValue="activity" className="w-full">
                           <div className="px-4 pt-4">
-                            <TabsList className="grid w-full grid-cols-5">
+                            <TabsList className="grid w-full grid-cols-6">
                               <TabsTrigger value="activity" className="text-xs">
                                 <Activity className="w-3 h-3 mr-1" />
                                 Activity
@@ -680,6 +873,10 @@ const UserManagement = () => {
                               <TabsTrigger value="roles" className="text-xs">
                                 <Shield className="w-3 h-3 mr-1" />
                                 Roles
+                              </TabsTrigger>
+                              <TabsTrigger value="actions" className="text-xs">
+                                <AlertTriangle className="w-3 h-3 mr-1" />
+                                Actions
                               </TabsTrigger>
                             </TabsList>
                           </div>
@@ -972,6 +1169,132 @@ const UserManagement = () => {
                               )}
                             </div>
                           </TabsContent>
+
+                          {/* Actions Tab */}
+                          <TabsContent value="actions" className="p-4 pt-2">
+                            <div className="space-y-4">
+                              <div className="text-sm text-muted-foreground mb-4">
+                                Manage user account status and perform administrative actions.
+                              </div>
+
+                              {/* Ban Status */}
+                              <div className={`p-4 rounded-lg border ${user.is_banned ? 'bg-destructive/10 border-destructive/30' : 'bg-muted/30'}`}>
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${user.is_banned ? 'bg-destructive/20' : 'bg-muted'}`}>
+                                      <Ban className={`w-5 h-5 ${user.is_banned ? 'text-destructive' : 'text-muted-foreground'}`} />
+                                    </div>
+                                    <div>
+                                      <p className="font-medium">Account Status</p>
+                                      {user.is_banned ? (
+                                        <div>
+                                          <p className="text-xs text-destructive">Banned on {user.banned_at ? format(new Date(user.banned_at), 'MMM d, yyyy') : 'Unknown'}</p>
+                                          {user.banned_reason && (
+                                            <p className="text-xs text-muted-foreground mt-1">Reason: {user.banned_reason}</p>
+                                          )}
+                                        </div>
+                                      ) : (
+                                        <p className="text-xs text-muted-foreground">Account is active</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                  
+                                  {user.is_banned ? (
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={() => handleUnbanUser(user)}
+                                      disabled={isBanning}
+                                    >
+                                      {isBanning ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+                                      Unban User
+                                    </Button>
+                                  ) : (
+                                    <Button 
+                                      variant="destructive" 
+                                      size="sm"
+                                      onClick={() => openBanDialog(user)}
+                                    >
+                                      <Ban className="w-4 h-4 mr-1" />
+                                      Ban User
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Edit Profile */}
+                              <div className="p-4 rounded-lg border bg-muted/30">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-muted">
+                                      <Edit className="w-5 h-5 text-muted-foreground" />
+                                    </div>
+                                    <div>
+                                      <p className="font-medium">Edit Profile</p>
+                                      <p className="text-xs text-muted-foreground">Update user's name, email, or phone</p>
+                                    </div>
+                                  </div>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => openEditDialog(user)}
+                                  >
+                                    <Edit className="w-4 h-4 mr-1" />
+                                    Edit
+                                  </Button>
+                                </div>
+                              </div>
+
+                              {/* Delete Account */}
+                              <div className="p-4 rounded-lg border border-destructive/30 bg-destructive/5">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-destructive/20">
+                                      <Trash2 className="w-5 h-5 text-destructive" />
+                                    </div>
+                                    <div>
+                                      <p className="font-medium text-destructive">Delete Account</p>
+                                      <p className="text-xs text-muted-foreground">Permanently remove user profile</p>
+                                    </div>
+                                  </div>
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button 
+                                        variant="destructive" 
+                                        size="sm"
+                                        disabled={isDeleting === user.user_id}
+                                      >
+                                        {isDeleting === user.user_id ? (
+                                          <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                                        ) : (
+                                          <Trash2 className="w-4 h-4 mr-1" />
+                                        )}
+                                        Delete
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Delete User Profile</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Are you sure you want to delete {user.full_name || 'this user'}'s profile? 
+                                          This action cannot be undone.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction
+                                          onClick={() => handleDeleteUser(user)}
+                                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                        >
+                                          Delete
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </div>
+                              </div>
+                            </div>
+                          </TabsContent>
                         </Tabs>
                       )}
                     </div>
@@ -994,6 +1317,90 @@ const UserManagement = () => {
           </Card>
         )}
       </div>
+
+      {/* Ban Dialog */}
+      <Dialog open={banDialogOpen} onOpenChange={setBanDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ban User</DialogTitle>
+            <DialogDescription>
+              Ban {selectedUserForBan?.full_name || 'this user'} from the platform. They will not be able to access their account.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="ban-reason">Reason for ban (optional)</Label>
+              <Textarea
+                id="ban-reason"
+                placeholder="Enter a reason for banning this user..."
+                value={banReason}
+                onChange={(e) => setBanReason(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBanDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleBanUser}
+              disabled={isBanning}
+            >
+              {isBanning ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Ban className="w-4 h-4 mr-1" />}
+              Ban User
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Profile</DialogTitle>
+            <DialogDescription>
+              Update {selectedUserForEdit?.full_name || 'user'}'s profile information.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Full Name</Label>
+              <Input
+                id="edit-name"
+                value={editForm.full_name}
+                onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-email">Email</Label>
+              <Input
+                id="edit-email"
+                type="email"
+                value={editForm.email}
+                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-phone">Phone</Label>
+              <Input
+                id="edit-phone"
+                value={editForm.phone}
+                onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateUser} disabled={isUpdating}>
+              {isUpdating ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
