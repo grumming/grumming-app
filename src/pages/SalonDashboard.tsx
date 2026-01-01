@@ -1243,6 +1243,15 @@ const SalonDashboard = () => {
                                   <MessageSquare className="w-4 h-4 mr-1" />
                                   Message
                                 </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  className="text-primary hover:text-primary"
+                                  onClick={() => handleUpdateBookingStatus(booking.id, 'upcoming')}
+                                >
+                                  <RefreshCw className="w-4 h-4 mr-1" />
+                                  Restore
+                                </Button>
                               </div>
                             </motion.div>
                           ))}
