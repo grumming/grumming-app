@@ -191,7 +191,7 @@ const PaymentManagement = () => {
         <div className="flex items-start justify-between">
           <div>
             <p className="text-sm text-muted-foreground">{title}</p>
-            <h3 className="text-2xl font-bold mt-1">{value}</h3>
+            <h3 className="text-2xl font-bold mt-1 font-sans">{value}</h3>
             {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
           </div>
           <div className={`w-10 h-10 rounded-full ${color} flex items-center justify-center`}>
