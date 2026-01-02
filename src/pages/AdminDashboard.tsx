@@ -412,57 +412,6 @@ const AdminDashboard = () => {
                 />
               </div>
 
-              {/* Booking Stats */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Booking Status</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="text-center p-4 bg-muted/50 rounded-lg">
-                      <Clock className="w-6 h-6 mx-auto text-yellow-600 mb-2" />
-                      <p className="text-2xl font-bold">{bookingStats.upcoming}</p>
-                      <p className="text-xs text-muted-foreground">Upcoming</p>
-                    </div>
-                    <div className="text-center p-4 bg-muted/50 rounded-lg">
-                      <CheckCircle className="w-6 h-6 mx-auto text-green-600 mb-2" />
-                      <p className="text-2xl font-bold">{bookingStats.completed}</p>
-                      <p className="text-xs text-muted-foreground">Completed</p>
-                    </div>
-                    <div className="text-center p-4 bg-muted/50 rounded-lg">
-                      <XCircle className="w-6 h-6 mx-auto text-destructive mb-2" />
-                      <p className="text-2xl font-bold">{bookingStats.cancelled}</p>
-                      <p className="text-xs text-muted-foreground">Cancelled</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Weekly Chart */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Last 7 Days</CardTitle>
-                  <CardDescription>Booking activity this week</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-end justify-between gap-2 h-32">
-                    {dailyStats.map((day, i) => {
-                      const maxBookings = Math.max(...dailyStats.map(d => d.bookings), 1);
-                      const height = (day.bookings / maxBookings) * 100;
-                      return (
-                        <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                          <span className="text-xs font-medium">{day.bookings}</span>
-                          <div 
-                            className="w-full bg-primary/80 rounded-t transition-all"
-                            style={{ height: `${Math.max(height, 4)}%` }}
-                          />
-                          <span className="text-[10px] text-muted-foreground">{day.date}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
             </TabsContent>
 
             {/* Payments Tab */}
@@ -527,6 +476,61 @@ const AdminDashboard = () => {
 
             {/* Tools Tab */}
             <TabsContent value="tools" className="space-y-6">
+              {/* Booking Status & Last 7 Days */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Booking Stats */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Booking Status</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="text-center p-4 bg-muted/50 rounded-lg">
+                        <Clock className="w-6 h-6 mx-auto text-yellow-600 mb-2" />
+                        <p className="text-2xl font-bold">{bookingStats.upcoming}</p>
+                        <p className="text-xs text-muted-foreground">Upcoming</p>
+                      </div>
+                      <div className="text-center p-4 bg-muted/50 rounded-lg">
+                        <CheckCircle className="w-6 h-6 mx-auto text-green-600 mb-2" />
+                        <p className="text-2xl font-bold">{bookingStats.completed}</p>
+                        <p className="text-xs text-muted-foreground">Completed</p>
+                      </div>
+                      <div className="text-center p-4 bg-muted/50 rounded-lg">
+                        <XCircle className="w-6 h-6 mx-auto text-destructive mb-2" />
+                        <p className="text-2xl font-bold">{bookingStats.cancelled}</p>
+                        <p className="text-xs text-muted-foreground">Cancelled</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Weekly Chart */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Last 7 Days</CardTitle>
+                    <CardDescription>Booking activity this week</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-end justify-between gap-2 h-32">
+                      {dailyStats.map((day, i) => {
+                        const maxBookings = Math.max(...dailyStats.map(d => d.bookings), 1);
+                        const height = (day.bookings / maxBookings) * 100;
+                        return (
+                          <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                            <span className="text-xs font-medium">{day.bookings}</span>
+                            <div 
+                              className="w-full bg-primary/80 rounded-t transition-all"
+                              style={{ height: `${Math.max(height, 4)}%` }}
+                            />
+                            <span className="text-[10px] text-muted-foreground">{day.date}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
               {/* Live Activity & Recent Users */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <LiveActivityFeed />
