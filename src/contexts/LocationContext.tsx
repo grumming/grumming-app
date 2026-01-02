@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { getCityCoordinates } from '@/data/cityCoordinates';
 import { Geolocation } from '@capacitor/geolocation';
 import { Capacitor } from '@capacitor/core';
+import { supabase } from '@/integrations/supabase/client';
 
 type DetectLocationOptions = {
   showToast?: boolean;
@@ -55,7 +56,7 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
       const position = await Geolocation.getCurrentPosition({
         enableHighAccuracy: true,
         timeout: forceFresh ? 30000 : 15000,
-        maximumAge: forceFresh ? 0 : 60000, // 1 minute cache for non-fresh
+        maximumAge: forceFresh ? 0 : 60000,
       });
 
       return {
@@ -87,6 +88,25 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  // Use Mapbox for reverse geocoding
+  const reverseGeocode = async (latitude: number, longitude: number): Promise<string> => {
+    try {
+      const { data, error } = await supabase.functions.invoke('reverse-geocode', {
+        body: { latitude, longitude },
+      });
+
+      if (error) {
+        console.error('Mapbox geocoding error:', error);
+        throw error;
+      }
+
+      return data?.locationName || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+    } catch (err) {
+      console.error('Reverse geocode failed, using fallback:', err);
+      return `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+    }
+  };
+
   const detectLocation = async (options: DetectLocationOptions = {}): Promise<string | null> => {
     const { showToast = true, forceFresh = false } = options;
 
@@ -106,50 +126,18 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
         toast.info("GPS signal weak. For better accuracy, go outdoors or enable GPS.", { duration: 4000 });
       }
 
-      try {
-        // Use reverse geocoding to get location name with higher zoom for accuracy
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
-        );
-        const data = await response.json();
+      // Use Mapbox for reverse geocoding
+      const locationName = await reverseGeocode(latitude, longitude);
 
-        const road = data.address?.road || "";
-        const neighborhood = data.address?.neighbourhood || data.address?.suburb || "";
-        const city = data.address?.city || data.address?.town || data.address?.state_district || "";
-        const state = data.address?.state || "";
+      setSelectedCityInternal(locationName);
+      setIsDetecting(false);
+      setHasAutoDetected(true);
 
-        // Build a precise, user-friendly location string
-        let locationName = "";
-        if (road && neighborhood) {
-          locationName = `${road}, ${neighborhood}`;
-          if (city && city !== neighborhood) locationName = `${locationName}, ${city}`;
-        } else if (neighborhood) {
-          locationName = city && city !== neighborhood ? `${neighborhood}, ${city}` : neighborhood;
-        } else if (city) {
-          locationName = state && state !== city ? `${city}, ${state}` : city;
-        } else {
-          locationName = "Unknown Location";
-        }
-
-        setSelectedCityInternal(locationName);
-        setIsDetecting(false);
-        setHasAutoDetected(true);
-
-        if (showToast) {
-          const accuracyLabel = typeof accuracy === 'number' ? ` (±${Math.round(accuracy)}m)` : '';
-          toast.success(`Location detected: ${locationName}${accuracyLabel}`);
-        }
-        return locationName;
-      } catch {
-        // Fallback if geocoding fails
-        const fallbackLocation = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-        setSelectedCityInternal(fallbackLocation);
-        setIsDetecting(false);
-        setHasAutoDetected(true);
-
-        if (showToast) toast.success("Location detected");
-        return fallbackLocation;
+      if (showToast) {
+        const accuracyLabel = typeof accuracy === 'number' ? ` (±${Math.round(accuracy)}m)` : '';
+        toast.success(`Location detected: ${locationName}${accuracyLabel}`);
       }
+      return locationName;
     } catch (error: any) {
       setIsDetecting(false);
 
