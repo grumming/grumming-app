@@ -351,7 +351,7 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                 <Wallet className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Total Pending</p>
+                <p className="text-sm text-muted-foreground">Total Balance</p>
                 <p className="text-2xl font-bold">₹{pendingBalance.total.toLocaleString('en-IN')}</p>
               </div>
             </div>
