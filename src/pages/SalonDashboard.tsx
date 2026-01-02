@@ -37,6 +37,7 @@ import SalonSettingsDialog from '@/components/SalonSettingsDialog';
 import SalonOwnerChatDialog from '@/components/SalonOwnerChatDialog';
 import { SalonEarnings } from '@/components/SalonEarnings';
 import { SalonBankAccountManager } from '@/components/SalonBankAccountManager';
+import SalonPayoutRequest from '@/components/SalonPayoutRequest';
 
 interface Booking {
   id: string;
@@ -1526,6 +1527,10 @@ const SalonDashboard = () => {
                   <SalonEarnings 
                     salonId={selectedSalonId} 
                     salonName={selectedSalon.name} 
+                  />
+                  <SalonPayoutRequest
+                    salonId={selectedSalonId}
+                    salonName={selectedSalon.name}
                   />
                   <SalonBankAccountManager
                     salonId={selectedSalonId}
