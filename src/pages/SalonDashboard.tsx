@@ -36,6 +36,7 @@ import SalonOwnerBottomNav from '@/components/SalonOwnerBottomNav';
 import SalonSettingsDialog from '@/components/SalonSettingsDialog';
 import SalonOwnerChatDialog from '@/components/SalonOwnerChatDialog';
 import { SalonEarnings } from '@/components/SalonEarnings';
+import { SalonBankAccountManager } from '@/components/SalonBankAccountManager';
 
 interface Booking {
   id: string;
@@ -1521,10 +1522,16 @@ const SalonDashboard = () => {
             {/* Earnings Tab */}
             <TabsContent value="earnings" className="space-y-6">
               {selectedSalonId && selectedSalon && (
-                <SalonEarnings 
-                  salonId={selectedSalonId} 
-                  salonName={selectedSalon.name} 
-                />
+                <>
+                  <SalonEarnings 
+                    salonId={selectedSalonId} 
+                    salonName={selectedSalon.name} 
+                  />
+                  <SalonBankAccountManager
+                    salonId={selectedSalonId}
+                    salonName={selectedSalon.name}
+                  />
+                </>
               )}
             </TabsContent>
           </Tabs>
