@@ -114,7 +114,7 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
       // Calculate pending balance from payments
       const { data: payments, error: paymentsError } = await supabase
         .from('payments')
-        .select('salon_amount, status, settled_at')
+        .select('salon_amount, status, settled_at, captured_at')
         .eq('salon_id', salonId)
         .eq('status', 'captured');
 
@@ -133,9 +133,18 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
       const totalPaidOut = completedPayouts?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
       const pendingRequests = requests?.reduce((sum, r) => sum + Number(r.amount), 0) || 0;
       
-      // Settled payments are available for payout
-      const settledAmount = payments?.filter(p => p.settled_at).reduce((sum, p) => sum + Number(p.salon_amount), 0) || 0;
-      const pendingSettlement = payments?.filter(p => !p.settled_at).reduce((sum, p) => sum + Number(p.salon_amount), 0) || 0;
+      // Captured payments are available for payout (since the money has been captured)
+      // Only payments captured more than 2 days ago are considered settled for conservative estimate
+      const twoDaysAgo = new Date();
+      twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+      
+      const settledAmount = payments?.filter(p => 
+        p.settled_at || (p.captured_at && new Date(p.captured_at) < twoDaysAgo)
+      ).reduce((sum, p) => sum + Number(p.salon_amount), 0) || 0;
+      
+      const pendingSettlement = payments?.filter(p => 
+        !p.settled_at && (!p.captured_at || new Date(p.captured_at) >= twoDaysAgo)
+      ).reduce((sum, p) => sum + Number(p.salon_amount), 0) || 0;
       
       setPendingBalance({
         total: totalEarned - totalPaidOut,
