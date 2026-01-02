@@ -58,6 +58,9 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
   const [dialogOpen, setDialogOpen] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successAmount, setSuccessAmount] = useState(0);
+  const [showProcessing, setShowProcessing] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const [processingStage, setProcessingStage] = useState<'initiating' | 'verifying' | 'transferring' | 'complete'>('initiating');
   const [requestAmount, setRequestAmount] = useState('');
   const [selectedBankAccount, setSelectedBankAccount] = useState('');
   const [requestNote, setRequestNote] = useState('');
@@ -105,6 +108,14 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
     }
     return amount;
   };
+
+  // Countdown timer effect
+  useEffect(() => {
+    if (showProcessing && countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [showProcessing, countdown]);
 
   useEffect(() => {
     if (salonId) {
@@ -252,21 +263,50 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
 
       if (error) throw error;
 
-      // Show success animation
-      setSuccessAmount(netAmount);
-      setShowSuccess(true);
-      triggerConfetti();
-      
-      // Reset after showing success
-      setTimeout(() => {
-        setShowSuccess(false);
-        setDialogOpen(false);
-        setRequestAmount('');
-        setRequestNote('');
-        setCustomUpiId('');
-        toast.success('Payout request submitted successfully!');
-        fetchData();
-      }, 2500);
+      // Show processing animation for instant UPI
+      if (payoutMethod === 'instant_upi') {
+        setSuccessAmount(netAmount);
+        setShowProcessing(true);
+        setCountdown(10);
+        setProcessingStage('initiating');
+        
+        // Simulate processing stages
+        setTimeout(() => setProcessingStage('verifying'), 2000);
+        setTimeout(() => setProcessingStage('transferring'), 5000);
+        setTimeout(() => {
+          setProcessingStage('complete');
+          setShowProcessing(false);
+          setShowSuccess(true);
+          triggerConfetti();
+        }, 8000);
+        
+        // Reset after showing success
+        setTimeout(() => {
+          setShowSuccess(false);
+          setDialogOpen(false);
+          setRequestAmount('');
+          setRequestNote('');
+          setCustomUpiId('');
+          toast.success('Instant payout completed successfully!');
+          fetchData();
+        }, 10500);
+      } else {
+        // Show success animation immediately for non-instant
+        setSuccessAmount(netAmount);
+        setShowSuccess(true);
+        triggerConfetti();
+        
+        // Reset after showing success
+        setTimeout(() => {
+          setShowSuccess(false);
+          setDialogOpen(false);
+          setRequestAmount('');
+          setRequestNote('');
+          setCustomUpiId('');
+          toast.success('Payout request submitted successfully!');
+          fetchData();
+        }, 2500);
+      }
     } catch (error) {
       console.error('Error requesting payout:', error);
       toast.error('Failed to submit payout request');
@@ -396,7 +436,118 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                 </DialogTrigger>
                 <DialogContent className="max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
                   <AnimatePresence mode="wait">
-                    {showSuccess ? (
+                    {showProcessing ? (
+                      <motion.div
+                        key="processing"
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        className="flex flex-col items-center justify-center py-10 px-4 text-center"
+                      >
+                        {/* Countdown Circle */}
+                        <motion.div className="relative w-28 h-28 mb-6">
+                          <svg className="w-28 h-28 transform -rotate-90" viewBox="0 0 100 100">
+                            <circle
+                              cx="50"
+                              cy="50"
+                              r="42"
+                              fill="none"
+                              stroke="hsl(var(--muted))"
+                              strokeWidth="6"
+                            />
+                            <motion.circle
+                              cx="50"
+                              cy="50"
+                              r="42"
+                              fill="none"
+                              stroke="url(#gradientGreen)"
+                              strokeWidth="6"
+                              strokeLinecap="round"
+                              strokeDasharray={264}
+                              initial={{ strokeDashoffset: 0 }}
+                              animate={{ strokeDashoffset: 264 - (264 * (10 - countdown) / 10) }}
+                              transition={{ duration: 0.5, ease: "easeOut" }}
+                            />
+                            <defs>
+                              <linearGradient id="gradientGreen" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stopColor="#22c55e" />
+                                <stop offset="100%" stopColor="#10b981" />
+                              </linearGradient>
+                            </defs>
+                          </svg>
+                          <div className="absolute inset-0 flex flex-col items-center justify-center">
+                            <motion.span 
+                              key={countdown}
+                              initial={{ scale: 1.2, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              className="text-3xl font-bold text-green-600"
+                            >
+                              {countdown}
+                            </motion.span>
+                            <span className="text-xs text-muted-foreground">seconds</span>
+                          </div>
+                        </motion.div>
+
+                        {/* Processing Stages */}
+                        <div className="space-y-3 w-full max-w-xs">
+                          {[
+                            { key: 'initiating', label: 'Initiating transfer', icon: Zap },
+                            { key: 'verifying', label: 'Verifying UPI ID', icon: CheckCircle },
+                            { key: 'transferring', label: 'Transferring funds', icon: ArrowUpRight },
+                          ].map((stage, index) => {
+                            const isActive = processingStage === stage.key;
+                            const isPast = ['initiating', 'verifying', 'transferring', 'complete'].indexOf(processingStage) > 
+                                           ['initiating', 'verifying', 'transferring', 'complete'].indexOf(stage.key);
+                            const Icon = stage.icon;
+                            
+                            return (
+                              <motion.div
+                                key={stage.key}
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: index * 0.1 }}
+                                className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-300 ${
+                                  isActive ? 'bg-green-100 dark:bg-green-950/50 border border-green-200 dark:border-green-800' : 
+                                  isPast ? 'bg-green-50/50 dark:bg-green-950/20' : 'bg-muted/30'
+                                }`}
+                              >
+                                <div className={`p-1.5 rounded-full ${
+                                  isPast ? 'bg-green-500 text-white' :
+                                  isActive ? 'bg-green-100 dark:bg-green-900' : 'bg-muted'
+                                }`}>
+                                  {isPast ? (
+                                    <Check className="h-3.5 w-3.5" />
+                                  ) : isActive ? (
+                                    <Loader2 className="h-3.5 w-3.5 text-green-600 animate-spin" />
+                                  ) : (
+                                    <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                                  )}
+                                </div>
+                                <span className={`text-sm font-medium ${
+                                  isActive ? 'text-green-700 dark:text-green-400' : 
+                                  isPast ? 'text-green-600 dark:text-green-500' : 'text-muted-foreground'
+                                }`}>
+                                  {stage.label}
+                                </span>
+                              </motion.div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Amount being transferred */}
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: 0.3 }}
+                          className="mt-6 text-center"
+                        >
+                          <p className="text-sm text-muted-foreground">Transferring</p>
+                          <p className="text-2xl font-bold text-green-600">
+                            ₹{successAmount.toLocaleString('en-IN')}
+                          </p>
+                        </motion.div>
+                      </motion.div>
+                    ) : showSuccess ? (
                       <motion.div
                         key="success"
                         initial={{ opacity: 0, scale: 0.9 }}
