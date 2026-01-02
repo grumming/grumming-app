@@ -35,6 +35,7 @@ import { format, subDays, isToday, isTomorrow, parseISO } from 'date-fns';
 import SalonOwnerBottomNav from '@/components/SalonOwnerBottomNav';
 import SalonSettingsDialog from '@/components/SalonSettingsDialog';
 import SalonOwnerChatDialog from '@/components/SalonOwnerChatDialog';
+import { SalonEarnings } from '@/components/SalonEarnings';
 
 interface Booking {
   id: string;
@@ -935,9 +936,10 @@ const SalonDashboard = () => {
           </div>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="bookings">Bookings</TabsTrigger>
+              <TabsTrigger value="earnings">Earnings</TabsTrigger>
               <TabsTrigger value="manage">Manage</TabsTrigger>
             </TabsList>
 
@@ -1514,6 +1516,16 @@ const SalonDashboard = () => {
                   </Card>
                 </TabsContent>
               </Tabs>
+            </TabsContent>
+
+            {/* Earnings Tab */}
+            <TabsContent value="earnings" className="space-y-6">
+              {selectedSalonId && selectedSalon && (
+                <SalonEarnings 
+                  salonId={selectedSalonId} 
+                  salonName={selectedSalon.name} 
+                />
+              )}
             </TabsContent>
           </Tabs>
         )}
