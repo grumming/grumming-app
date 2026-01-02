@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Wallet, ArrowUpRight, Clock, CheckCircle, AlertCircle, Building2, Loader2, Smartphone } from 'lucide-react';
+import { Wallet, ArrowUpRight, Clock, CheckCircle, AlertCircle, Building2, Loader2, Smartphone, Zap, Info } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -25,6 +25,7 @@ interface BankAccount {
   ifsc_code: string;
   is_primary: boolean;
   upi_id: string | null;
+  account_type: string | null;
 }
 
 interface PayoutRequest {
@@ -42,6 +43,8 @@ interface PendingBalance {
   pendingSettlement: number;
 }
 
+const INSTANT_PAYOUT_FEE_PERCENT = 1; // 1% convenience fee for instant payouts
+
 export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRequestProps) {
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [payoutRequests, setPayoutRequests] = useState<PayoutRequest[]>([]);
@@ -52,8 +55,23 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
   const [requestAmount, setRequestAmount] = useState('');
   const [selectedBankAccount, setSelectedBankAccount] = useState('');
   const [requestNote, setRequestNote] = useState('');
-  const [payoutMethod, setPayoutMethod] = useState<'bank' | 'upi'>('bank');
+  const [payoutMethod, setPayoutMethod] = useState<'bank' | 'upi' | 'instant_upi'>('bank');
   const [customUpiId, setCustomUpiId] = useState('');
+
+  // Get UPI accounts for instant payout
+  const upiAccounts = bankAccounts.filter(a => a.account_type === 'upi' || a.upi_id);
+
+  // Calculate instant payout fee and net amount
+  const calculateInstantFee = (amount: number) => {
+    return Math.round(amount * INSTANT_PAYOUT_FEE_PERCENT / 100);
+  };
+
+  const getNetAmount = (amount: number) => {
+    if (payoutMethod === 'instant_upi') {
+      return amount - calculateInstantFee(amount);
+    }
+    return amount;
+  };
 
   useEffect(() => {
     if (salonId) {
@@ -156,7 +174,7 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
       return;
     }
 
-    if (payoutMethod === 'upi') {
+    if (payoutMethod === 'upi' || payoutMethod === 'instant_upi') {
       const upiId = customUpiId || bankAccounts.find(a => a.id === selectedBankAccount)?.upi_id;
       if (!upiId) {
         toast.error('Please enter a UPI ID');
@@ -167,18 +185,31 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
     setIsSubmitting(true);
     try {
       const selectedAccount = bankAccounts.find(a => a.id === selectedBankAccount);
-      const upiId = payoutMethod === 'upi' ? (customUpiId || selectedAccount?.upi_id) : null;
+      const upiId = (payoutMethod === 'upi' || payoutMethod === 'instant_upi') 
+        ? (customUpiId || selectedAccount?.upi_id) 
+        : null;
+      
+      const payoutMethodValue = payoutMethod === 'instant_upi' 
+        ? 'instant_upi' 
+        : payoutMethod === 'upi' 
+          ? 'upi' 
+          : 'bank_transfer';
+
+      const instantFee = payoutMethod === 'instant_upi' ? calculateInstantFee(amount) : 0;
+      const netAmount = amount - instantFee;
 
       const { error } = await supabase
         .from('salon_payouts')
         .insert({
           salon_id: salonId,
-          amount: amount,
+          amount: netAmount,
           status: 'pending',
-          payout_method: payoutMethod === 'upi' ? 'upi' : 'bank_transfer',
+          payout_method: payoutMethodValue,
           bank_account_id: payoutMethod === 'bank' ? selectedBankAccount : null,
           upi_id: upiId,
-          notes: requestNote || `Early payout request for ${salonName}`,
+          notes: payoutMethod === 'instant_upi' 
+            ? `Instant payout request (Fee: ₹${instantFee}) - ${requestNote || salonName}`
+            : requestNote || `Early payout request for ${salonName}`,
           period_start: new Date().toISOString().split('T')[0],
           period_end: new Date().toISOString().split('T')[0]
         });
@@ -344,7 +375,7 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                     {/* Payout Method Selection */}
                     <div className="space-y-3">
                       <Label>Payout Method</Label>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 gap-3">
                         <button
                           type="button"
                           onClick={() => setPayoutMethod('bank')}
@@ -354,9 +385,13 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                               : 'hover:bg-muted'
                           }`}
                         >
-                          <Building2 className="h-5 w-5 mb-1" />
-                          <p className="font-medium text-sm">Bank Transfer</p>
-                          <p className="text-xs text-muted-foreground">1-2 business days</p>
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-5 w-5" />
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">Bank Transfer</p>
+                              <p className="text-xs text-muted-foreground">1-2 business days • No fee</p>
+                            </div>
+                          </div>
                         </button>
                         <button
                           type="button"
@@ -367,15 +402,42 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                               : 'hover:bg-muted'
                           }`}
                         >
-                          <Smartphone className="h-5 w-5 mb-1" />
-                          <p className="font-medium text-sm">UPI</p>
-                          <p className="text-xs text-muted-foreground">Instant transfer</p>
+                          <div className="flex items-center gap-2">
+                            <Smartphone className="h-5 w-5" />
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">UPI Transfer</p>
+                              <p className="text-xs text-muted-foreground">Within 24 hours • No fee</p>
+                            </div>
+                          </div>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPayoutMethod('instant_upi')}
+                          className={`p-3 border rounded-lg text-left transition-colors relative overflow-hidden ${
+                            payoutMethod === 'instant_upi' 
+                              ? 'border-green-500 bg-green-500/5' 
+                              : 'hover:bg-muted'
+                          }`}
+                        >
+                          <div className="absolute top-0 right-0 bg-green-500 text-white text-[10px] font-medium px-2 py-0.5 rounded-bl-lg">
+                            INSTANT
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="relative">
+                              <Smartphone className="h-5 w-5 text-green-600" />
+                              <Zap className="h-3 w-3 text-yellow-500 absolute -top-1 -right-1" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-medium text-sm text-green-600">Instant UPI Payout</p>
+                              <p className="text-xs text-muted-foreground">Within seconds • {INSTANT_PAYOUT_FEE_PERCENT}% convenience fee</p>
+                            </div>
+                          </div>
                         </button>
                       </div>
                     </div>
 
                     {/* UPI ID Input */}
-                    {payoutMethod === 'upi' && (
+                    {(payoutMethod === 'upi' || payoutMethod === 'instant_upi') && (
                       <div className="space-y-2">
                         <Label htmlFor="upi">UPI ID</Label>
                         <Input
@@ -384,6 +446,20 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                           value={customUpiId || bankAccounts.find(a => a.id === selectedBankAccount)?.upi_id || ''}
                           onChange={(e) => setCustomUpiId(e.target.value)}
                         />
+                        {upiAccounts.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {upiAccounts.map(acc => (
+                              <button
+                                key={acc.id}
+                                type="button"
+                                onClick={() => setCustomUpiId(acc.upi_id || '')}
+                                className="text-xs px-2 py-1 rounded-full bg-muted hover:bg-muted/80 transition-colors"
+                              >
+                                {acc.upi_id}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -397,15 +473,45 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                       />
                     </div>
 
+                    {/* Instant Payout Fee Breakdown */}
+                    {payoutMethod === 'instant_upi' && requestAmount && parseFloat(requestAmount) > 0 && (
+                      <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg space-y-2">
+                        <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
+                          <Zap className="h-4 w-4" />
+                          Instant Payout Breakdown
+                        </div>
+                        <div className="text-sm space-y-1">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Payout Amount</span>
+                            <span>₹{parseFloat(requestAmount).toLocaleString('en-IN')}</span>
+                          </div>
+                          <div className="flex justify-between text-orange-600">
+                            <span>Convenience Fee ({INSTANT_PAYOUT_FEE_PERCENT}%)</span>
+                            <span>-₹{calculateInstantFee(parseFloat(requestAmount)).toLocaleString('en-IN')}</span>
+                          </div>
+                          <div className="flex justify-between font-medium text-green-600 pt-1 border-t border-green-500/20">
+                            <span>You'll Receive</span>
+                            <span>₹{getNetAmount(parseFloat(requestAmount)).toLocaleString('en-IN')}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="p-3 bg-muted rounded-lg">
                       <p className="text-sm font-medium">Payout to:</p>
                       <p className="text-sm text-muted-foreground">
-                        {payoutMethod === 'upi' ? (
+                        {(payoutMethod === 'upi' || payoutMethod === 'instant_upi') ? (
                           <>UPI: {customUpiId || bankAccounts.find(a => a.id === selectedBankAccount)?.upi_id || 'Enter UPI ID'}</>
                         ) : (
                           <>{bankAccounts.find(a => a.id === selectedBankAccount)?.bank_name || 'Bank'} - ****{bankAccounts.find(a => a.id === selectedBankAccount)?.account_number.slice(-4)}</>
                         )}
                       </p>
+                      {payoutMethod === 'instant_upi' && (
+                        <div className="flex items-center gap-1 mt-2 text-xs text-green-600">
+                          <Zap className="h-3 w-3" />
+                          Instant transfer within seconds
+                        </div>
+                      )}
                     </div>
                   </div>
 
