@@ -511,6 +511,42 @@ export type Database = {
           },
         ]
       }
+      payout_schedule_settings: {
+        Row: {
+          auto_approve_threshold: number | null
+          created_at: string
+          day_of_week: number
+          id: string
+          is_enabled: boolean
+          last_run_at: string | null
+          minimum_payout_amount: number
+          next_run_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          auto_approve_threshold?: number | null
+          created_at?: string
+          day_of_week?: number
+          id?: string
+          is_enabled?: boolean
+          last_run_at?: string | null
+          minimum_payout_amount?: number
+          next_run_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          auto_approve_threshold?: number | null
+          created_at?: string
+          day_of_week?: number
+          id?: string
+          is_enabled?: boolean
+          last_run_at?: string | null
+          minimum_payout_amount?: number
+          next_run_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       phone_otps: {
         Row: {
           created_at: string
