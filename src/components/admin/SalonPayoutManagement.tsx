@@ -798,19 +798,42 @@ const SalonPayoutManagement = () => {
                 </div>
               )}
 
-              {/* Requested Amount */}
-              <div className="p-4 bg-muted rounded-lg">
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Requested Amount</span>
-                  <span className="text-2xl font-bold">₹{selectedPayout.amount.toLocaleString()}</span>
-                </div>
-                {payoutBreakdown && selectedPayout.amount > payoutBreakdown.pendingAmount && (
-                  <div className="mt-2 flex items-center gap-2 text-amber-600 text-xs">
-                    <AlertCircle className="w-4 h-4" />
-                    Requested amount exceeds available balance
+              {/* Requested Amount with Warning */}
+              {payoutBreakdown && selectedPayout.amount > payoutBreakdown.pendingAmount ? (
+                <div className="p-4 bg-destructive/10 border-2 border-destructive/50 rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <span className="text-destructive font-medium">Requested Amount</span>
+                    <span className="text-2xl font-bold text-destructive">₹{selectedPayout.amount.toLocaleString()}</span>
                   </div>
-                )}
-              </div>
+                  <div className="mt-3 p-3 bg-destructive/20 rounded-md">
+                    <div className="flex items-start gap-2 text-destructive">
+                      <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-sm">Exceeds Available Balance!</p>
+                        <p className="text-xs mt-1">
+                          Requested ₹{selectedPayout.amount.toLocaleString()} but only ₹{payoutBreakdown.pendingAmount.toLocaleString()} is available.
+                        </p>
+                        <p className="text-xs mt-1 font-medium">
+                          Overage: ₹{(selectedPayout.amount - payoutBreakdown.pendingAmount).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 bg-muted rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Requested Amount</span>
+                    <span className="text-2xl font-bold">₹{selectedPayout.amount.toLocaleString()}</span>
+                  </div>
+                  {payoutBreakdown && selectedPayout.amount === payoutBreakdown.pendingAmount && (
+                    <div className="mt-2 flex items-center gap-2 text-green-600 text-xs">
+                      <CheckCircle className="w-4 h-4" />
+                      Matches available balance
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Payout Method Selection */}
               <div className="space-y-3">
