@@ -180,14 +180,13 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
       // All captured payments are immediately available for payout
       const availableAmount = totalEarned;
       
-      // Only payments with settled_at are "fully settled", others are technically pending but available
-      const settledAmount = payments?.filter(p => p.settled_at).reduce((sum, p) => sum + Number(p.salon_amount), 0) || 0;
-      const pendingSettlement = totalEarned - settledAmount;
+      // Pending settlement = payout requests that are pending (not yet approved)
+      const pendingPayoutAmount = requests?.filter(r => r.status === 'pending').reduce((sum, r) => sum + Number(r.amount), 0) || 0;
       
       setPendingBalance({
         total: totalEarned - totalPaidOut,
         availableForPayout: Math.max(0, availableAmount - totalPaidOut - pendingRequests),
-        pendingSettlement: pendingSettlement
+        pendingSettlement: pendingPayoutAmount
       });
 
     } catch (error) {
