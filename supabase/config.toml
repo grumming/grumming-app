@@ -65,6 +65,3 @@ verify_jwt = false
 
 [functions.lookup-ifsc]
 verify_jwt = false
-
-[functions.verify-bank-account]
-verify_jwt = false

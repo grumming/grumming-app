@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Building2, Plus, Trash2, Check, Loader2, 
   AlertCircle, Shield, Smartphone, Zap, Star, ChevronDown, Save, X,
-  BadgeCheck, RefreshCw, CheckCircle2, XCircle
+  CheckCircle2, XCircle
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -94,8 +94,6 @@ export function SalonBankAccountManager({ salonId, salonName }: SalonBankAccount
   const [ifscDetails, setIfscDetails] = useState<IFSCDetails | null>(null);
   const [isLookingUpIFSC, setIsLookingUpIFSC] = useState(false);
   const [ifscError, setIfscError] = useState<string | null>(null);
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [verifyingAccountId, setVerifyingAccountId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchBankAccounts();
@@ -314,43 +312,6 @@ export function SalonBankAccountManager({ salonId, salonName }: SalonBankAccount
     setIfscError(null);
   };
 
-  const handleVerifyAccount = async (account: BankAccount) => {
-    if (account.account_type === 'upi') {
-      toast.info('UPI verification is automatic');
-      return;
-    }
-
-    setIsVerifying(true);
-    setVerifyingAccountId(account.id);
-
-    try {
-      const { data, error } = await supabase.functions.invoke('verify-bank-account', {
-        body: {
-          account_number: account.account_number,
-          ifsc_code: account.ifsc_code,
-          account_holder_name: account.account_holder_name,
-          bank_account_id: account.id,
-        },
-      });
-
-      if (error) throw error;
-
-      if (data.verified) {
-        toast.success('Bank account verified successfully!');
-        fetchBankAccounts();
-      } else if (data.status === 'pending') {
-        toast.info('Verification in progress. Check back in a few minutes.');
-      } else {
-        toast.error(data.error || 'Verification failed');
-      }
-    } catch (error) {
-      console.error('Verification error:', error);
-      toast.error('Failed to verify bank account');
-    } finally {
-      setIsVerifying(false);
-      setVerifyingAccountId(null);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -819,28 +780,6 @@ export function SalonBankAccountManager({ salonId, salonName }: SalonBankAccount
                       </div>
 
                       <div className="flex items-center gap-2 flex-wrap">
-                        {/* Verify Button for unverified bank accounts */}
-                        {!isUpiOnly && !account.is_verified && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleVerifyAccount(account)}
-                            disabled={isVerifying && verifyingAccountId === account.id}
-                            className="text-xs h-8 px-3 gap-1.5 border-amber-500/50 text-amber-600 hover:bg-amber-500/10"
-                          >
-                            {isVerifying && verifyingAccountId === account.id ? (
-                              <>
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                                Verifying...
-                              </>
-                            ) : (
-                              <>
-                                <BadgeCheck className="w-3 h-3" />
-                                Verify
-                              </>
-                            )}
-                          </Button>
-                        )}
                         {!account.is_primary && (
                           <Button
                             variant="ghost"
