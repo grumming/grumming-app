@@ -1216,6 +1216,35 @@ const SalonRegistration = () => {
                       </div>
                     </div>
 
+                    {/* Platform Commission Info */}
+                    <div className="p-4 bg-primary/5 rounded-xl border border-primary/20">
+                      <div className="flex items-center gap-2 mb-3">
+                        <IndianRupee className="w-4 h-4 text-primary" />
+                        <h3 className="font-medium">Platform Commission</h3>
+                        <span className="ml-auto bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full font-medium">8%</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        A flat 8% commission is deducted from each completed booking. No hidden fees for customers.
+                      </p>
+                      <div className="bg-background rounded-lg p-3 border border-border/50">
+                        <p className="text-xs font-medium text-muted-foreground mb-2">Example:</p>
+                        <div className="space-y-1 text-xs">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Service Price</span>
+                            <span>₹1,000</span>
+                          </div>
+                          <div className="flex justify-between text-red-500">
+                            <span>Platform Fee (8%)</span>
+                            <span>-₹80</span>
+                          </div>
+                          <div className="flex justify-between font-medium text-green-600 pt-1 border-t border-border/50">
+                            <span>You Receive</span>
+                            <span>₹920</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
                     {/* Note */}
                     <div className="p-4 bg-green-50 dark:bg-green-950/30 rounded-xl border border-green-200 dark:border-green-900/50">
                       <div className="flex items-start gap-3">

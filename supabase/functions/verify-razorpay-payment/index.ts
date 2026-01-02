@@ -74,7 +74,7 @@ serve(async (req) => {
       }
 
       const amount = booking.service_price;
-      const feePercentage = 2; // Platform takes 2% commission
+      const feePercentage = 8; // Platform takes 8% commission
       const platformFee = Math.round(amount * feePercentage) / 100;
       const salonAmount = amount - platformFee;
 

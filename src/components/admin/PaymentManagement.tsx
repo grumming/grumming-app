@@ -203,7 +203,7 @@ const PaymentManagement = () => {
         <StatCard
           title="Platform Earnings"
           value={`₹${stats.platformEarnings.toLocaleString()}`}
-          subtitle="2% commission"
+          subtitle="8% commission"
           icon={TrendingUp}
           color="bg-green-500"
         />
@@ -228,7 +228,7 @@ const PaymentManagement = () => {
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-green-600" />
-            Platform Commission Summary (2%)
+            Platform Commission Summary (8%)
           </CardTitle>
           <CardDescription>Breakdown of commission earnings by payment type</CardDescription>
         </CardHeader>
