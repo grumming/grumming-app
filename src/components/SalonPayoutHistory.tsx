@@ -3,7 +3,7 @@ import { format, subDays, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { 
   Download, Filter, Calendar, IndianRupee, Clock, 
   CheckCircle, XCircle, Loader2, AlertCircle, FileText,
-  ChevronDown, Search, RefreshCw
+  ChevronDown, Search, RefreshCw, Building2, Smartphone, Zap
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -53,6 +53,40 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.R
   completed: { label: 'Completed', color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400', icon: <CheckCircle className="w-3 h-3" /> },
   failed: { label: 'Failed', color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400', icon: <XCircle className="w-3 h-3" /> },
   rejected: { label: 'Rejected', color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400', icon: <XCircle className="w-3 h-3" /> },
+};
+
+const getPayoutMethodDisplay = (method: string | null) => {
+  switch (method?.toLowerCase()) {
+    case 'instant_upi':
+      return {
+        label: 'Instant UPI',
+        icon: <Zap className="w-3 h-3" />,
+        color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+        isInstant: true
+      };
+    case 'upi':
+      return {
+        label: 'UPI',
+        icon: <Smartphone className="w-3 h-3" />,
+        color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
+        isInstant: false
+      };
+    case 'bank_transfer':
+    case 'bank':
+      return {
+        label: 'Bank',
+        icon: <Building2 className="w-3 h-3" />,
+        color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+        isInstant: false
+      };
+    default:
+      return {
+        label: method || '-',
+        icon: null,
+        color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400',
+        isInstant: false
+      };
+  }
 };
 
 export const SalonPayoutHistory = ({ salonId, salonName }: SalonPayoutHistoryProps) => {
@@ -534,9 +568,23 @@ export const SalonPayoutHistory = ({ salonId, salonName }: SalonPayoutHistoryPro
                           </Badge>
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
-                          <span className="uppercase text-sm">
-                            {payout.payout_method || '-'}
-                          </span>
+                          {(() => {
+                            const methodInfo = getPayoutMethodDisplay(payout.payout_method);
+                            return (
+                              <div className="flex items-center gap-2">
+                                <Badge className={`${methodInfo.color} gap-1`}>
+                                  {methodInfo.icon}
+                                  {methodInfo.label}
+                                </Badge>
+                                {methodInfo.isInstant && (
+                                  <Badge className="bg-green-500/10 text-green-600 border-green-500/20 text-xs gap-0.5">
+                                    <Zap className="w-2.5 h-2.5" />
+                                    Instant
+                                  </Badge>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
                           {payout.period_start && payout.period_end ? (

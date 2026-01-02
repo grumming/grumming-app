@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   IndianRupee, TrendingUp, Wallet, Calendar, ArrowUpRight, 
-  ArrowDownRight, Clock, CheckCircle, XCircle, Loader2, Building
+  ArrowDownRight, Clock, CheckCircle, XCircle, Loader2, Building, Smartphone, Zap, Building2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -148,6 +148,35 @@ export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
         return <Badge className="bg-red-500/10 text-red-600 border-red-500/20">Failed</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
+
+  const getPayoutMethodBadge = (method: string | null) => {
+    switch (method?.toLowerCase()) {
+      case 'instant_upi':
+        return (
+          <Badge className="bg-green-500/10 text-green-600 border-green-500/20 text-xs gap-1">
+            <Zap className="w-3 h-3" />
+            Instant UPI
+          </Badge>
+        );
+      case 'upi':
+        return (
+          <Badge className="bg-purple-500/10 text-purple-600 border-purple-500/20 text-xs gap-1">
+            <Smartphone className="w-3 h-3" />
+            UPI
+          </Badge>
+        );
+      case 'bank_transfer':
+      case 'bank':
+        return (
+          <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20 text-xs gap-1">
+            <Building2 className="w-3 h-3" />
+            Bank
+          </Badge>
+        );
+      default:
+        return null;
     }
   };
 
@@ -400,7 +429,10 @@ export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
                         </div>
                       </div>
                       <div className="text-right">
-                        {getStatusBadge(payout.status)}
+                        <div className="flex flex-col items-end gap-1">
+                          {getStatusBadge(payout.status)}
+                          {getPayoutMethodBadge(payout.payout_method)}
+                        </div>
                         <p className="text-xs text-muted-foreground mt-1">
                           {payout.processed_at 
                             ? format(new Date(payout.processed_at), 'MMM d, yyyy')
