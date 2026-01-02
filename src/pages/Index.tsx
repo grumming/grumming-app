@@ -8,7 +8,6 @@ import WelcomeBanner from "@/components/WelcomeBanner";
 import SalonApprovalBanner from "@/components/SalonApprovalBanner";
 import Footer from "@/components/Footer";
 import BackToTop from "@/components/BackToTop";
-import HowItWorksSection from "@/components/HowItWorksSection";
 import { usePendingProfile } from "@/hooks/usePendingProfile";
 
 const Index = () => {
@@ -29,7 +28,6 @@ const Index = () => {
         <FirstBookingBanner />
         <CashbackBanner />
         <FeaturedSalons />
-        <HowItWorksSection />
       </main>
       <Footer />
       <BackToTop />
