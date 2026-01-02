@@ -16,6 +16,12 @@ export interface DbSalon {
   opening_time: string | null;
   closing_time: string | null;
   created_at: string;
+  latitude: number | null;
+  longitude: number | null;
+}
+
+export interface SalonWithDistance extends DbSalon {
+  distance?: number; // in km
 }
 
 export interface DbSalonService {

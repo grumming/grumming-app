@@ -856,7 +856,9 @@ export type Database = {
           id: string
           image_url: string | null
           is_active: boolean | null
+          latitude: number | null
           location: string
+          longitude: number | null
           name: string
           opening_time: string | null
           phone: string | null
@@ -875,7 +877,9 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean | null
+          latitude?: number | null
           location: string
+          longitude?: number | null
           name: string
           opening_time?: string | null
           phone?: string | null
@@ -894,7 +898,9 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean | null
+          latitude?: number | null
           location?: string
+          longitude?: number | null
           name?: string
           opening_time?: string | null
           phone?: string | null

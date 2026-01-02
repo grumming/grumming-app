@@ -1,22 +1,12 @@
 import { motion } from "framer-motion";
-import { Star, MapPin, Clock, Heart, SlidersHorizontal, Loader2 } from "lucide-react";
+import { Star, MapPin, Clock, Heart, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "@/contexts/LocationContext";
 import { useFavorites } from "@/contexts/FavoritesContext";
-import { useSalons, DbSalon } from "@/hooks/useSalons";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-const distanceFilters = [
-  { value: "all", label: "All salons" },
-];
+import { useSalons, SalonWithDistance } from "@/hooks/useSalons";
+import { calculateDistance, formatDistance } from "@/lib/distance";
 
 const formatTime = (time: string | null): string => {
   if (!time) return '';
@@ -29,14 +19,33 @@ const formatTime = (time: string | null): string => {
 
 const FeaturedSalons = () => {
   const navigate = useNavigate();
-  const { selectedCity } = useLocation();
+  const { selectedCity, coordinates } = useLocation();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { salons, isLoading, error } = useSalons();
-  const [distanceFilter, setDistanceFilter] = useState<string>("all");
 
-  // Filter salons by selected city, but show all if no matches found
+  // Filter salons by selected city and calculate distance, then sort
   const filteredSalons = useMemo(() => {
-    if (!selectedCity) return salons;
+    if (!selectedCity) {
+      // If no city selected, just add distance if we have coordinates
+      return salons.map(salon => {
+        const salonWithDistance: SalonWithDistance = { ...salon };
+        if (coordinates && salon.latitude && salon.longitude) {
+          salonWithDistance.distance = calculateDistance(
+            coordinates.lat,
+            coordinates.lng,
+            salon.latitude,
+            salon.longitude
+          );
+        }
+        return salonWithDistance;
+      }).sort((a, b) => {
+        // Sort by distance if available, otherwise by rating
+        if (a.distance !== undefined && b.distance !== undefined) {
+          return a.distance - b.distance;
+        }
+        return (b.rating || 0) - (a.rating || 0);
+      });
+    }
     
     const cityName = selectedCity.split(',')[0].trim().toLowerCase();
     const cityMatches = salons.filter(salon => 
@@ -44,9 +53,29 @@ const FeaturedSalons = () => {
       cityName.includes(salon.city.toLowerCase())
     );
     
-    // If no salons match the city, show all salons instead of empty
-    return cityMatches.length > 0 ? cityMatches : salons;
-  }, [salons, selectedCity]);
+    // Use matched salons or all if no matches
+    const baseSalons = cityMatches.length > 0 ? cityMatches : salons;
+    
+    // Calculate distance and sort
+    return baseSalons.map(salon => {
+      const salonWithDistance: SalonWithDistance = { ...salon };
+      if (coordinates && salon.latitude && salon.longitude) {
+        salonWithDistance.distance = calculateDistance(
+          coordinates.lat,
+          coordinates.lng,
+          salon.latitude,
+          salon.longitude
+        );
+      }
+      return salonWithDistance;
+    }).sort((a, b) => {
+      // Sort by distance if available, otherwise by rating
+      if (a.distance !== undefined && b.distance !== undefined) {
+        return a.distance - b.distance;
+      }
+      return (b.rating || 0) - (a.rating || 0);
+    });
+  }, [salons, selectedCity, coordinates]);
 
   const handleSalonClick = (id: string) => {
     navigate(`/salon/${id}`);
@@ -166,11 +195,16 @@ const FeaturedSalons = () => {
                     </span>
                   </div>
                   
-                  <div className="flex flex-col gap-1 text-sm text-muted-foreground mb-4">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4 flex-shrink-0" />
-                      <span className="truncate">{salon.location}, {salon.city}</span>
-                    </div>
+                    <div className="flex flex-col gap-1 text-sm text-muted-foreground mb-4">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4 flex-shrink-0" />
+                        <span className="truncate">
+                          {salon.distance !== undefined 
+                            ? `${formatDistance(salon.distance)} · ${salon.location}`
+                            : `${salon.location}, ${salon.city}`
+                          }
+                        </span>
+                      </div>
                     {salon.opening_time && salon.closing_time && (
                       <div className="flex items-center gap-2">
                         <Clock className="w-4 h-4" />
