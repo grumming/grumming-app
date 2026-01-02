@@ -31,8 +31,9 @@ serve(async (req) => {
     }
 
     // Use Mapbox Geocoding API for place search
+    // Note: limit parameter cannot be used with multiple types, so we fetch more and slice
     const encodedQuery = encodeURIComponent(query);
-    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodedQuery}.json?access_token=${mapboxToken}&country=${country}&types=place,locality,neighborhood,district&limit=${limit}&language=en`;
+    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodedQuery}.json?access_token=${mapboxToken}&country=${country}&types=place,locality,neighborhood,district&language=en`;
 
     const response = await fetch(url);
     
@@ -46,8 +47,9 @@ serve(async (req) => {
 
     const data = await response.json();
 
-    // Transform Mapbox response to our format
-    const suggestions = data.features.map((feature: any) => {
+    // Transform Mapbox response to our format (slice to respect limit since we can't use it in API)
+    const features = data.features.slice(0, limit);
+    const suggestions = features.map((feature: any) => {
       // Extract city and state from context
       let city = feature.text;
       let state = "";
