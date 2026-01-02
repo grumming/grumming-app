@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Building2, Plus, Trash2, Check, Loader2, 
-  AlertCircle, Shield, Smartphone, Zap, Star, ChevronDown, Save, X
+  AlertCircle, Shield, Smartphone, Zap, Star, ChevronDown, Save, X,
+  BadgeCheck, RefreshCw, CheckCircle2, XCircle
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -63,6 +64,13 @@ interface BankAccountForm {
   upi_id: string;
 }
 
+interface IFSCDetails {
+  bank: string;
+  branch: string;
+  city: string;
+  state: string;
+}
+
 const initialFormState: BankAccountForm = {
   account_holder_name: '',
   account_number: '',
@@ -83,10 +91,64 @@ export function SalonBankAccountManager({ salonId, salonName }: SalonBankAccount
   const [formData, setFormData] = useState<BankAccountForm>(initialFormState);
   const [formErrors, setFormErrors] = useState<Partial<BankAccountForm>>({});
   const [accountMode, setAccountMode] = useState<AccountMode>('bank');
+  const [ifscDetails, setIfscDetails] = useState<IFSCDetails | null>(null);
+  const [isLookingUpIFSC, setIsLookingUpIFSC] = useState(false);
+  const [ifscError, setIfscError] = useState<string | null>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verifyingAccountId, setVerifyingAccountId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchBankAccounts();
   }, [salonId]);
+
+  // Auto-fetch bank details when IFSC code is valid
+  const lookupIFSC = useCallback(async (ifsc: string) => {
+    if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc)) {
+      setIfscDetails(null);
+      setIfscError(null);
+      return;
+    }
+
+    setIsLookingUpIFSC(true);
+    setIfscError(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('lookup-ifsc', {
+        body: { ifsc },
+      });
+
+      if (error) throw error;
+
+      if (data.valid) {
+        setIfscDetails({
+          bank: data.bank,
+          branch: data.branch,
+          city: data.city,
+          state: data.state,
+        });
+        setFormData(prev => ({ ...prev, bank_name: data.bank }));
+      } else {
+        setIfscError('Invalid IFSC code');
+        setIfscDetails(null);
+      }
+    } catch (error) {
+      console.error('IFSC lookup error:', error);
+      setIfscError('Could not verify IFSC code');
+      setIfscDetails(null);
+    } finally {
+      setIsLookingUpIFSC(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (formData.ifsc_code.length === 11) {
+        lookupIFSC(formData.ifsc_code);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [formData.ifsc_code, lookupIFSC]);
 
   const fetchBankAccounts = async () => {
     setIsLoading(true);
@@ -248,6 +310,46 @@ export function SalonBankAccountManager({ salonId, salonName }: SalonBankAccount
     setFormErrors({});
     setAccountMode('bank');
     setIsFormOpen(false);
+    setIfscDetails(null);
+    setIfscError(null);
+  };
+
+  const handleVerifyAccount = async (account: BankAccount) => {
+    if (account.account_type === 'upi') {
+      toast.info('UPI verification is automatic');
+      return;
+    }
+
+    setIsVerifying(true);
+    setVerifyingAccountId(account.id);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('verify-bank-account', {
+        body: {
+          account_number: account.account_number,
+          ifsc_code: account.ifsc_code,
+          account_holder_name: account.account_holder_name,
+          bank_account_id: account.id,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data.verified) {
+        toast.success('Bank account verified successfully!');
+        fetchBankAccounts();
+      } else if (data.status === 'pending') {
+        toast.info('Verification in progress. Check back in a few minutes.');
+      } else {
+        toast.error(data.error || 'Verification failed');
+      }
+    } catch (error) {
+      console.error('Verification error:', error);
+      toast.error('Failed to verify bank account');
+    } finally {
+      setIsVerifying(false);
+      setVerifyingAccountId(null);
+    }
   };
 
   if (isLoading) {
@@ -476,18 +578,37 @@ export function SalonBankAccountManager({ salonId, salonName }: SalonBankAccount
                           <Label htmlFor="ifsc_code" className="text-sm font-medium">
                             IFSC Code <span className="text-destructive">*</span>
                           </Label>
-                          <Input
-                            id="ifsc_code"
-                            placeholder="e.g., HDFC0001234"
-                            value={formData.ifsc_code}
-                            onChange={(e) => setFormData({ ...formData, ifsc_code: e.target.value.toUpperCase() })}
-                            className={`h-12 text-base font-mono uppercase ${formErrors.ifsc_code ? 'border-destructive focus-visible:ring-destructive' : ''}`}
-                            maxLength={11}
-                          />
+                          <div className="relative">
+                            <Input
+                              id="ifsc_code"
+                              placeholder="e.g., HDFC0001234"
+                              value={formData.ifsc_code}
+                              onChange={(e) => setFormData({ ...formData, ifsc_code: e.target.value.toUpperCase() })}
+                              className={`h-12 text-base font-mono uppercase pr-10 ${formErrors.ifsc_code || ifscError ? 'border-destructive focus-visible:ring-destructive' : ifscDetails ? 'border-emerald-500 focus-visible:ring-emerald-500' : ''}`}
+                              maxLength={11}
+                            />
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                              {isLookingUpIFSC && (
+                                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                              )}
+                              {!isLookingUpIFSC && ifscDetails && (
+                                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                              )}
+                              {!isLookingUpIFSC && ifscError && (
+                                <XCircle className="w-5 h-5 text-destructive" />
+                              )}
+                            </div>
+                          </div>
                           {formErrors.ifsc_code && (
                             <p className="text-xs text-destructive flex items-center gap-1">
                               <AlertCircle className="w-3 h-3" />
                               {formErrors.ifsc_code}
+                            </p>
+                          )}
+                          {ifscError && !formErrors.ifsc_code && (
+                            <p className="text-xs text-destructive flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3" />
+                              {ifscError}
                             </p>
                           )}
                         </div>
@@ -511,9 +632,38 @@ export function SalonBankAccountManager({ salonId, salonName }: SalonBankAccount
                         </div>
                       </div>
 
+                      {/* Auto-fetched Bank Details */}
+                      <AnimatePresence>
+                        {ifscDetails && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="flex items-start gap-3 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                              <CheckCircle2 className="w-5 h-5 text-emerald-600 mt-0.5 flex-shrink-0" />
+                              <div className="space-y-1">
+                                <p className="font-semibold text-emerald-700 dark:text-emerald-400">
+                                  {ifscDetails.bank}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  {ifscDetails.branch}, {ifscDetails.city}, {ifscDetails.state}
+                                </p>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
                       <div className="space-y-2">
-                        <Label htmlFor="bank_name" className="text-sm font-medium">
+                        <Label htmlFor="bank_name" className="text-sm font-medium flex items-center gap-2">
                           Bank Name
+                          {ifscDetails && (
+                            <Badge variant="outline" className="text-xs border-emerald-500/50 text-emerald-600">
+                              Auto-filled
+                            </Badge>
+                          )}
                         </Label>
                         <Input
                           id="bank_name"
@@ -521,6 +671,7 @@ export function SalonBankAccountManager({ salonId, salonName }: SalonBankAccount
                           value={formData.bank_name}
                           onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })}
                           className="h-12 text-base"
+                          disabled={!!ifscDetails}
                         />
                       </div>
 
@@ -667,7 +818,29 @@ export function SalonBankAccountManager({ salonId, salonName }: SalonBankAccount
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {/* Verify Button for unverified bank accounts */}
+                        {!isUpiOnly && !account.is_verified && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleVerifyAccount(account)}
+                            disabled={isVerifying && verifyingAccountId === account.id}
+                            className="text-xs h-8 px-3 gap-1.5 border-amber-500/50 text-amber-600 hover:bg-amber-500/10"
+                          >
+                            {isVerifying && verifyingAccountId === account.id ? (
+                              <>
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                                Verifying...
+                              </>
+                            ) : (
+                              <>
+                                <BadgeCheck className="w-3 h-3" />
+                                Verify
+                              </>
+                            )}
+                          </Button>
+                        )}
                         {!account.is_primary && (
                           <Button
                             variant="ghost"
