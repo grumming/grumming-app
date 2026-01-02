@@ -670,245 +670,245 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                             <p className="text-xs text-muted-foreground px-1">Minimum: <span className="font-sans">₹100</span></p>
                           </div>
 
-                    <Separator />
+                          <Separator />
 
-                    {/* Payout Method Selection - Enhanced */}
-                    <div className="space-y-3">
-                      <Label className="text-sm font-medium">Payout Method</Label>
-                      <div className="grid grid-cols-1 gap-2">
-                        <motion.button
-                          type="button"
-                          onClick={() => setPayoutMethod('bank')}
-                          whileTap={{ scale: 0.98 }}
-                          className={`p-4 border-2 rounded-xl text-left transition-all duration-200 ${
-                            payoutMethod === 'bank' 
-                              ? 'border-primary bg-primary/5 shadow-sm' 
-                              : 'border-border hover:border-primary/50 hover:bg-muted/50'
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className={`p-2 rounded-lg ${payoutMethod === 'bank' ? 'bg-primary/10' : 'bg-muted'}`}>
-                              <Building2 className={`h-5 w-5 ${payoutMethod === 'bank' ? 'text-primary' : 'text-muted-foreground'}`} />
-                            </div>
-                            <div className="flex-1">
-                              <p className="font-medium">Bank Transfer</p>
-                              <p className="text-xs text-muted-foreground">1-2 business days • Free</p>
-                            </div>
-                            {payoutMethod === 'bank' && (
-                              <div className="p-1 rounded-full bg-primary text-primary-foreground">
-                                <Check className="h-3 w-3" />
-                              </div>
-                            )}
-                          </div>
-                        </motion.button>
+                          {/* Payout Method Selection - Enhanced */}
+                          <div className="space-y-3">
+                            <Label className="text-sm font-medium">Payout Method</Label>
+                            <div className="grid grid-cols-1 gap-2">
+                              <motion.button
+                                type="button"
+                                onClick={() => setPayoutMethod('bank')}
+                                whileTap={{ scale: 0.98 }}
+                                className={`p-4 border-2 rounded-xl text-left transition-all duration-200 ${
+                                  payoutMethod === 'bank' 
+                                    ? 'border-primary bg-primary/5 shadow-sm' 
+                                    : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                                }`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className={`p-2 rounded-lg ${payoutMethod === 'bank' ? 'bg-primary/10' : 'bg-muted'}`}>
+                                    <Building2 className={`h-5 w-5 ${payoutMethod === 'bank' ? 'text-primary' : 'text-muted-foreground'}`} />
+                                  </div>
+                                  <div className="flex-1">
+                                    <p className="font-medium">Bank Transfer</p>
+                                    <p className="text-xs text-muted-foreground">1-2 business days • Free</p>
+                                  </div>
+                                  {payoutMethod === 'bank' && (
+                                    <div className="p-1 rounded-full bg-primary text-primary-foreground">
+                                      <Check className="h-3 w-3" />
+                                    </div>
+                                  )}
+                                </div>
+                              </motion.button>
 
-                        <motion.button
-                          type="button"
-                          onClick={() => setPayoutMethod('upi')}
-                          whileTap={{ scale: 0.98 }}
-                          className={`p-4 border-2 rounded-xl text-left transition-all duration-200 ${
-                            payoutMethod === 'upi' 
-                              ? 'border-primary bg-primary/5 shadow-sm' 
-                              : 'border-border hover:border-primary/50 hover:bg-muted/50'
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className={`p-2 rounded-lg ${payoutMethod === 'upi' ? 'bg-primary/10' : 'bg-muted'}`}>
-                              <Smartphone className={`h-5 w-5 ${payoutMethod === 'upi' ? 'text-primary' : 'text-muted-foreground'}`} />
-                            </div>
-                            <div className="flex-1">
-                              <p className="font-medium">UPI Transfer</p>
-                              <p className="text-xs text-muted-foreground">Within 24 hours • Free</p>
-                            </div>
-                            {payoutMethod === 'upi' && (
-                              <div className="p-1 rounded-full bg-primary text-primary-foreground">
-                                <Check className="h-3 w-3" />
-                              </div>
-                            )}
-                          </div>
-                        </motion.button>
+                              <motion.button
+                                type="button"
+                                onClick={() => setPayoutMethod('upi')}
+                                whileTap={{ scale: 0.98 }}
+                                className={`p-4 border-2 rounded-xl text-left transition-all duration-200 ${
+                                  payoutMethod === 'upi' 
+                                    ? 'border-primary bg-primary/5 shadow-sm' 
+                                    : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                                }`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className={`p-2 rounded-lg ${payoutMethod === 'upi' ? 'bg-primary/10' : 'bg-muted'}`}>
+                                    <Smartphone className={`h-5 w-5 ${payoutMethod === 'upi' ? 'text-primary' : 'text-muted-foreground'}`} />
+                                  </div>
+                                  <div className="flex-1">
+                                    <p className="font-medium">UPI Transfer</p>
+                                    <p className="text-xs text-muted-foreground">Within 24 hours • Free</p>
+                                  </div>
+                                  {payoutMethod === 'upi' && (
+                                    <div className="p-1 rounded-full bg-primary text-primary-foreground">
+                                      <Check className="h-3 w-3" />
+                                    </div>
+                                  )}
+                                </div>
+                              </motion.button>
 
-                        <motion.button
-                          type="button"
-                          onClick={() => setPayoutMethod('instant_upi')}
-                          whileTap={{ scale: 0.98 }}
-                          className={`p-4 border-2 rounded-xl text-left transition-all duration-200 relative overflow-hidden ${
-                            payoutMethod === 'instant_upi' 
-                              ? 'border-green-500 bg-gradient-to-r from-green-500/10 to-emerald-500/5 shadow-sm' 
-                              : 'border-border hover:border-green-500/50 hover:bg-green-50/50 dark:hover:bg-green-950/20'
-                          }`}
-                        >
-                          <Badge className="absolute top-2 right-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0 text-[10px] px-2">
-                            <Zap className="h-3 w-3 mr-0.5" />
-                            INSTANT
-                          </Badge>
-                          <div className="flex items-center gap-3">
-                            <div className={`p-2 rounded-lg ${payoutMethod === 'instant_upi' ? 'bg-green-500/20' : 'bg-muted'}`}>
-                              <div className="relative">
-                                <Smartphone className={`h-5 w-5 ${payoutMethod === 'instant_upi' ? 'text-green-600' : 'text-muted-foreground'}`} />
-                                <Sparkles className="h-3 w-3 text-yellow-500 absolute -top-1 -right-1" />
-                              </div>
-                            </div>
-                            <div className="flex-1">
-                              <p className={`font-medium ${payoutMethod === 'instant_upi' ? 'text-green-700 dark:text-green-400' : ''}`}>Instant UPI</p>
-                              <p className="text-xs text-muted-foreground">Within seconds • {INSTANT_PAYOUT_FEE_PERCENT}% fee</p>
-                            </div>
-                            {payoutMethod === 'instant_upi' && (
-                              <div className="p-1 rounded-full bg-green-500 text-white">
-                                <Check className="h-3 w-3" />
-                              </div>
-                            )}
-                          </div>
-                        </motion.button>
-                      </div>
-                    </div>
-
-                    {/* UPI ID Section - Enhanced */}
-                    <AnimatePresence mode="wait">
-                      {(payoutMethod === 'upi' || payoutMethod === 'instant_upi') && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="space-y-3 overflow-hidden"
-                        >
-                          <Label htmlFor="upi" className="text-sm font-medium">UPI ID</Label>
-                          <Input
-                            id="upi"
-                            placeholder="username@bankname"
-                            className="h-11"
-                            value={customUpiId || bankAccounts.find(a => a.id === selectedBankAccount)?.upi_id || ''}
-                            onChange={(e) => setCustomUpiId(e.target.value)}
-                          />
-                          {upiAccounts.length > 0 && (
-                            <div className="space-y-2">
-                              <p className="text-xs text-muted-foreground">Saved UPI IDs:</p>
-                              <div className="flex flex-wrap gap-2">
-                                {upiAccounts.map(acc => (
-                                  <button
-                                    key={acc.id}
-                                    type="button"
-                                    onClick={() => setCustomUpiId(acc.upi_id || '')}
-                                    className={`text-xs px-3 py-1.5 rounded-full transition-all duration-200 flex items-center gap-1.5 ${
-                                      customUpiId === acc.upi_id 
-                                        ? 'bg-primary text-primary-foreground shadow-sm' 
-                                        : 'bg-muted hover:bg-muted/80 text-foreground'
-                                    }`}
-                                  >
-                                    {customUpiId === acc.upi_id && <Check className="h-3 w-3" />}
-                                    {acc.upi_id}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-
-                    {/* Note Field */}
-                    <div className="space-y-2">
-                      <Label htmlFor="note" className="text-sm font-medium text-muted-foreground">Note (Optional)</Label>
-                      <Input
-                        id="note"
-                        placeholder="Add a note for this request"
-                        className="h-10"
-                        value={requestNote}
-                        onChange={(e) => setRequestNote(e.target.value)}
-                      />
-                    </div>
-
-                    {/* Payout Summary Card - Enhanced */}
-                    <AnimatePresence mode="wait">
-                      {requestAmount && parseFloat(requestAmount) > 0 && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                          className={`p-4 rounded-xl border-2 ${
-                            payoutMethod === 'instant_upi' 
-                              ? 'bg-gradient-to-br from-green-50 to-emerald-50/50 dark:from-green-950/30 dark:to-emerald-950/20 border-green-200 dark:border-green-800' 
-                              : 'bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2 mb-3">
-                            {payoutMethod === 'instant_upi' ? (
-                              <Zap className="h-4 w-4 text-green-600" />
-                            ) : (
-                              <IndianRupee className="h-4 w-4 text-primary" />
-                            )}
-                            <span className={`text-sm font-semibold ${payoutMethod === 'instant_upi' ? 'text-green-700 dark:text-green-400' : 'text-primary'}`}>
-                              {payoutMethod === 'instant_upi' ? 'Instant Payout Summary' : 'Payout Summary'}
-                            </span>
-                          </div>
-                          <div className="space-y-2 text-sm">
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Payout Amount</span>
-                              <span className="font-medium font-sans">₹{parseFloat(requestAmount).toLocaleString('en-IN')}</span>
-                            </div>
-                            {payoutMethod === 'instant_upi' && (
-                              <div className="flex justify-between text-orange-600">
-                                <span>Convenience Fee ({INSTANT_PAYOUT_FEE_PERCENT}%)</span>
-                                <span className="font-medium font-sans">-₹{calculateInstantFee(parseFloat(requestAmount)).toLocaleString('en-IN')}</span>
-                              </div>
-                            )}
-                            <Separator className={payoutMethod === 'instant_upi' ? 'bg-green-200 dark:bg-green-800' : ''} />
-                            <div className="flex justify-between pt-1">
-                              <span className={`font-semibold ${payoutMethod === 'instant_upi' ? 'text-green-700 dark:text-green-400' : 'text-primary'}`}>
-                                You'll Receive
-                              </span>
-                              <span className={`font-bold text-lg font-sans ${payoutMethod === 'instant_upi' ? 'text-green-700 dark:text-green-400' : 'text-primary'}`}>
-                                ₹{getNetAmount(parseFloat(requestAmount)).toLocaleString('en-IN')}
-                              </span>
+                              <motion.button
+                                type="button"
+                                onClick={() => setPayoutMethod('instant_upi')}
+                                whileTap={{ scale: 0.98 }}
+                                className={`p-4 border-2 rounded-xl text-left transition-all duration-200 relative overflow-hidden ${
+                                  payoutMethod === 'instant_upi' 
+                                    ? 'border-green-500 bg-gradient-to-r from-green-500/10 to-emerald-500/5 shadow-sm' 
+                                    : 'border-border hover:border-green-500/50 hover:bg-green-50/50 dark:hover:bg-green-950/20'
+                                }`}
+                              >
+                                <Badge className="absolute top-2 right-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0 text-[10px] px-2">
+                                  <Zap className="h-3 w-3 mr-0.5" />
+                                  INSTANT
+                                </Badge>
+                                <div className="flex items-center gap-3">
+                                  <div className={`p-2 rounded-lg ${payoutMethod === 'instant_upi' ? 'bg-green-500/20' : 'bg-muted'}`}>
+                                    <div className="relative">
+                                      <Smartphone className={`h-5 w-5 ${payoutMethod === 'instant_upi' ? 'text-green-600' : 'text-muted-foreground'}`} />
+                                      <Sparkles className="h-3 w-3 text-yellow-500 absolute -top-1 -right-1" />
+                                    </div>
+                                  </div>
+                                  <div className="flex-1">
+                                    <p className={`font-medium ${payoutMethod === 'instant_upi' ? 'text-green-700 dark:text-green-400' : ''}`}>Instant UPI</p>
+                                    <p className="text-xs text-muted-foreground">Within seconds • {INSTANT_PAYOUT_FEE_PERCENT}% fee</p>
+                                  </div>
+                                  {payoutMethod === 'instant_upi' && (
+                                    <div className="p-1 rounded-full bg-green-500 text-white">
+                                      <Check className="h-3 w-3" />
+                                    </div>
+                                  )}
+                                </div>
+                              </motion.button>
                             </div>
                           </div>
-                          
-                          {/* Estimated Arrival Time */}
-                          <div className="mt-3 pt-3 border-t border-dashed space-y-2">
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="text-muted-foreground flex items-center gap-1.5">
-                                <Clock className="h-3 w-3" />
-                                Estimated Arrival
-                              </span>
-                              <span className={`font-semibold flex items-center gap-1 ${
-                                payoutMethod === 'instant_upi' ? 'text-green-600' : payoutMethod === 'upi' ? 'text-blue-600' : 'text-amber-600'
-                              }`}>
-                                {payoutMethod === 'instant_upi' ? (
-                                  <>
-                                    <Zap className="h-3 w-3" />
-                                    Within seconds
-                                  </>
-                                ) : payoutMethod === 'upi' ? (
-                                  <>Within 24 hours</>
-                                ) : (
-                                  <>1-2 business days</>
+
+                          {/* UPI ID Section - Enhanced */}
+                          <AnimatePresence mode="wait">
+                            {(payoutMethod === 'upi' || payoutMethod === 'instant_upi') && (
+                              <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                transition={{ duration: 0.2 }}
+                                className="space-y-3 overflow-hidden"
+                              >
+                                <Label htmlFor="upi" className="text-sm font-medium">UPI ID</Label>
+                                <Input
+                                  id="upi"
+                                  placeholder="username@bankname"
+                                  className="h-11"
+                                  value={customUpiId || bankAccounts.find(a => a.id === selectedBankAccount)?.upi_id || ''}
+                                  onChange={(e) => setCustomUpiId(e.target.value)}
+                                />
+                                {upiAccounts.length > 0 && (
+                                  <div className="space-y-2">
+                                    <p className="text-xs text-muted-foreground">Saved UPI IDs:</p>
+                                    <div className="flex flex-wrap gap-2">
+                                      {upiAccounts.map(acc => (
+                                        <button
+                                          key={acc.id}
+                                          type="button"
+                                          onClick={() => setCustomUpiId(acc.upi_id || '')}
+                                          className={`text-xs px-3 py-1.5 rounded-full transition-all duration-200 flex items-center gap-1.5 ${
+                                            customUpiId === acc.upi_id 
+                                              ? 'bg-primary text-primary-foreground shadow-sm' 
+                                              : 'bg-muted hover:bg-muted/80 text-foreground'
+                                          }`}
+                                        >
+                                          {customUpiId === acc.upi_id && <Check className="h-3 w-3" />}
+                                          {acc.upi_id}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
                                 )}
-                              </span>
-                            </div>
-                            
-                            {/* Destination */}
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="text-muted-foreground">Payout to:</span>
-                              <span className="font-medium flex items-center gap-1">
-                                {(payoutMethod === 'upi' || payoutMethod === 'instant_upi') ? (
-                                  <>
-                                    <Smartphone className="h-3 w-3" />
-                                    {customUpiId || bankAccounts.find(a => a.id === selectedBankAccount)?.upi_id || 'Enter UPI ID'}
-                                  </>
-                                ) : (
-                                  <>
-                                    <Building2 className="h-3 w-3" />
-                                    {bankAccounts.find(a => a.id === selectedBankAccount)?.bank_name || 'Bank'} ****{bankAccounts.find(a => a.id === selectedBankAccount)?.account_number.slice(-4)}
-                                  </>
-                                )}
-                              </span>
-                            </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+
+                          {/* Note Field */}
+                          <div className="space-y-2">
+                            <Label htmlFor="note" className="text-sm font-medium text-muted-foreground">Note (Optional)</Label>
+                            <Input
+                              id="note"
+                              placeholder="Add a note for this request"
+                              className="h-10"
+                              value={requestNote}
+                              onChange={(e) => setRequestNote(e.target.value)}
+                            />
                           </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
+
+                          {/* Payout Summary Card - Enhanced */}
+                          <AnimatePresence mode="wait">
+                            {requestAmount && parseFloat(requestAmount) > 0 && (
+                              <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className={`p-4 rounded-xl border-2 ${
+                                  payoutMethod === 'instant_upi' 
+                                    ? 'bg-gradient-to-br from-green-50 to-emerald-50/50 dark:from-green-950/30 dark:to-emerald-950/20 border-green-200 dark:border-green-800' 
+                                    : 'bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 mb-3">
+                                  {payoutMethod === 'instant_upi' ? (
+                                    <Zap className="h-4 w-4 text-green-600" />
+                                  ) : (
+                                    <IndianRupee className="h-4 w-4 text-primary" />
+                                  )}
+                                  <span className={`text-sm font-semibold ${payoutMethod === 'instant_upi' ? 'text-green-700 dark:text-green-400' : 'text-primary'}`}>
+                                    {payoutMethod === 'instant_upi' ? 'Instant Payout Summary' : 'Payout Summary'}
+                                  </span>
+                                </div>
+                                <div className="space-y-2 text-sm">
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Payout Amount</span>
+                                    <span className="font-medium font-sans">₹{parseFloat(requestAmount).toLocaleString('en-IN')}</span>
+                                  </div>
+                                  {payoutMethod === 'instant_upi' && (
+                                    <div className="flex justify-between text-orange-600">
+                                      <span>Convenience Fee ({INSTANT_PAYOUT_FEE_PERCENT}%)</span>
+                                      <span className="font-medium font-sans">-₹{calculateInstantFee(parseFloat(requestAmount)).toLocaleString('en-IN')}</span>
+                                    </div>
+                                  )}
+                                  <Separator className={payoutMethod === 'instant_upi' ? 'bg-green-200 dark:bg-green-800' : ''} />
+                                  <div className="flex justify-between pt-1">
+                                    <span className={`font-semibold ${payoutMethod === 'instant_upi' ? 'text-green-700 dark:text-green-400' : 'text-primary'}`}>
+                                      You'll Receive
+                                    </span>
+                                    <span className={`font-bold text-lg font-sans ${payoutMethod === 'instant_upi' ? 'text-green-700 dark:text-green-400' : 'text-primary'}`}>
+                                      ₹{getNetAmount(parseFloat(requestAmount)).toLocaleString('en-IN')}
+                                    </span>
+                                  </div>
+                                </div>
+                                
+                                {/* Estimated Arrival Time */}
+                                <div className="mt-3 pt-3 border-t border-dashed space-y-2">
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span className="text-muted-foreground flex items-center gap-1.5">
+                                      <Clock className="h-3 w-3" />
+                                      Estimated Arrival
+                                    </span>
+                                    <span className={`font-semibold flex items-center gap-1 ${
+                                      payoutMethod === 'instant_upi' ? 'text-green-600' : payoutMethod === 'upi' ? 'text-blue-600' : 'text-amber-600'
+                                    }`}>
+                                      {payoutMethod === 'instant_upi' ? (
+                                        <>
+                                          <Zap className="h-3 w-3" />
+                                          Within seconds
+                                        </>
+                                      ) : payoutMethod === 'upi' ? (
+                                        <>Within 24 hours</>
+                                      ) : (
+                                        <>1-2 business days</>
+                                      )}
+                                    </span>
+                                  </div>
+                                  
+                                  {/* Destination */}
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span className="text-muted-foreground">Payout to:</span>
+                                    <span className="font-medium flex items-center gap-1">
+                                      {(payoutMethod === 'upi' || payoutMethod === 'instant_upi') ? (
+                                        <>
+                                          <Smartphone className="h-3 w-3" />
+                                          {customUpiId || bankAccounts.find(a => a.id === selectedBankAccount)?.upi_id || 'Enter UPI ID'}
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Building2 className="h-3 w-3" />
+                                          {bankAccounts.find(a => a.id === selectedBankAccount)?.bank_name || 'Bank'} ****{bankAccounts.find(a => a.id === selectedBankAccount)?.account_number.slice(-4)}
+                                        </>
+                                      )}
+                                    </span>
+                                  </div>
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
 
                   <DialogFooter className="pt-4 border-t gap-2 sm:gap-2">
                     <Button variant="outline" onClick={() => setDialogOpen(false)} className="flex-1 sm:flex-none">
