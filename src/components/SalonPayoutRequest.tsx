@@ -601,22 +601,46 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                             </div>
                           </div>
                           
-                          {/* Destination */}
-                          <div className="mt-3 pt-3 border-t border-dashed flex items-center justify-between text-xs">
-                            <span className="text-muted-foreground">Payout to:</span>
-                            <span className="font-medium flex items-center gap-1">
-                              {(payoutMethod === 'upi' || payoutMethod === 'instant_upi') ? (
-                                <>
-                                  <Smartphone className="h-3 w-3" />
-                                  {customUpiId || bankAccounts.find(a => a.id === selectedBankAccount)?.upi_id || 'Enter UPI ID'}
-                                </>
-                              ) : (
-                                <>
-                                  <Building2 className="h-3 w-3" />
-                                  {bankAccounts.find(a => a.id === selectedBankAccount)?.bank_name || 'Bank'} ****{bankAccounts.find(a => a.id === selectedBankAccount)?.account_number.slice(-4)}
-                                </>
-                              )}
-                            </span>
+                          {/* Estimated Arrival Time */}
+                          <div className="mt-3 pt-3 border-t border-dashed space-y-2">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-muted-foreground flex items-center gap-1.5">
+                                <Clock className="h-3 w-3" />
+                                Estimated Arrival
+                              </span>
+                              <span className={`font-semibold flex items-center gap-1 ${
+                                payoutMethod === 'instant_upi' ? 'text-green-600' : payoutMethod === 'upi' ? 'text-blue-600' : 'text-amber-600'
+                              }`}>
+                                {payoutMethod === 'instant_upi' ? (
+                                  <>
+                                    <Zap className="h-3 w-3" />
+                                    Within seconds
+                                  </>
+                                ) : payoutMethod === 'upi' ? (
+                                  <>Within 24 hours</>
+                                ) : (
+                                  <>1-2 business days</>
+                                )}
+                              </span>
+                            </div>
+                            
+                            {/* Destination */}
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-muted-foreground">Payout to:</span>
+                              <span className="font-medium flex items-center gap-1">
+                                {(payoutMethod === 'upi' || payoutMethod === 'instant_upi') ? (
+                                  <>
+                                    <Smartphone className="h-3 w-3" />
+                                    {customUpiId || bankAccounts.find(a => a.id === selectedBankAccount)?.upi_id || 'Enter UPI ID'}
+                                  </>
+                                ) : (
+                                  <>
+                                    <Building2 className="h-3 w-3" />
+                                    {bankAccounts.find(a => a.id === selectedBankAccount)?.bank_name || 'Bank'} ****{bankAccounts.find(a => a.id === selectedBankAccount)?.account_number.slice(-4)}
+                                  </>
+                                )}
+                              </span>
+                            </div>
                           </div>
                         </motion.div>
                       )}
