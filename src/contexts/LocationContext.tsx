@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { toast } from 'sonner';
 import { getCityCoordinates } from '@/data/cityCoordinates';
+import { Geolocation } from '@capacitor/geolocation';
+import { Capacitor } from '@capacitor/core';
 
 type DetectLocationOptions = {
   showToast?: boolean;
@@ -35,95 +37,136 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
+  // Use Capacitor Geolocation for native apps, browser API for web
+  const getPosition = async (forceFresh: boolean): Promise<{ latitude: number; longitude: number; accuracy: number }> => {
+    const isNative = Capacitor.isNativePlatform();
+
+    if (isNative) {
+      // Request permissions first on native
+      const permStatus = await Geolocation.checkPermissions();
+      if (permStatus.location !== 'granted') {
+        const reqStatus = await Geolocation.requestPermissions();
+        if (reqStatus.location !== 'granted') {
+          throw new Error('Location permission denied');
+        }
+      }
+
+      // Use Capacitor for better GPS accuracy on native
+      const position = await Geolocation.getCurrentPosition({
+        enableHighAccuracy: true,
+        timeout: forceFresh ? 30000 : 15000,
+        maximumAge: forceFresh ? 0 : 60000, // 1 minute cache for non-fresh
+      });
+
+      return {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracy: position.coords.accuracy,
+      };
+    }
+
+    // Browser geolocation fallback
+    return new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+          });
+        },
+        (error) => {
+          reject(error);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: forceFresh ? 30000 : 15000,
+          maximumAge: forceFresh ? 0 : 60000,
+        }
+      );
+    });
+  };
+
   const detectLocation = async (options: DetectLocationOptions = {}): Promise<string | null> => {
     const { showToast = true, forceFresh = false } = options;
 
-    if (!navigator.geolocation) {
+    if (!navigator.geolocation && !Capacitor.isNativePlatform()) {
       if (showToast) toast.error("Geolocation is not supported by your browser");
       return null;
     }
 
     setIsDetecting(true);
 
-    return new Promise<string | null>((resolve) => {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const { latitude, longitude, accuracy } = position.coords;
-          setCoordinates({ lat: latitude, lng: longitude });
+    try {
+      const { latitude, longitude, accuracy } = await getPosition(forceFresh);
+      setCoordinates({ lat: latitude, lng: longitude });
 
-          try {
-            // Use reverse geocoding to get location name with higher zoom for accuracy
-            const response = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
-            );
-            const data = await response.json();
+      // Warn if accuracy is poor (> 1km)
+      if (accuracy > 1000 && showToast) {
+        toast.info("GPS signal weak. For better accuracy, go outdoors or enable GPS.", { duration: 4000 });
+      }
 
-            const road = data.address?.road || "";
-            const neighborhood = data.address?.neighbourhood || data.address?.suburb || "";
-            const city = data.address?.city || data.address?.town || data.address?.state_district || "";
-            const state = data.address?.state || "";
+      try {
+        // Use reverse geocoding to get location name with higher zoom for accuracy
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
+        );
+        const data = await response.json();
 
-            // Build a precise, user-friendly location string
-            let locationName = "";
-            if (road && neighborhood) {
-              locationName = `${road}, ${neighborhood}`;
-              if (city && city !== neighborhood) locationName = `${locationName}, ${city}`;
-            } else if (neighborhood) {
-              locationName = city && city !== neighborhood ? `${neighborhood}, ${city}` : neighborhood;
-            } else if (city) {
-              locationName = state && state !== city ? `${city}, ${state}` : city;
-            } else {
-              locationName = "Unknown Location";
-            }
+        const road = data.address?.road || "";
+        const neighborhood = data.address?.neighbourhood || data.address?.suburb || "";
+        const city = data.address?.city || data.address?.town || data.address?.state_district || "";
+        const state = data.address?.state || "";
 
-            setSelectedCityInternal(locationName);
-            setIsDetecting(false);
-            setHasAutoDetected(true);
-
-            if (showToast) {
-              const accuracyLabel = typeof accuracy === 'number' ? ` (±${Math.round(accuracy)}m)` : '';
-              toast.success(`Location detected: ${locationName}${accuracyLabel}`);
-            }
-            resolve(locationName);
-          } catch {
-            // Fallback if geocoding fails
-            const fallbackLocation = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-            setSelectedCityInternal(fallbackLocation);
-            setIsDetecting(false);
-            setHasAutoDetected(true);
-
-            if (showToast) toast.success("Location detected");
-            resolve(fallbackLocation);
-          }
-        },
-        (error) => {
-          setIsDetecting(false);
-
-          if (showToast) {
-            let errorMessage = "Failed to detect location";
-            switch (error.code) {
-              case error.PERMISSION_DENIED:
-                errorMessage = "Location permission denied";
-                break;
-              case error.POSITION_UNAVAILABLE:
-                errorMessage = "Location unavailable";
-                break;
-              case error.TIMEOUT:
-                errorMessage = "Location request timed out";
-                break;
-            }
-            toast.error(errorMessage);
-          }
-
-          resolve(null);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: forceFresh ? 20000 : 10000,
-          maximumAge: forceFresh ? 0 : 300000,
+        // Build a precise, user-friendly location string
+        let locationName = "";
+        if (road && neighborhood) {
+          locationName = `${road}, ${neighborhood}`;
+          if (city && city !== neighborhood) locationName = `${locationName}, ${city}`;
+        } else if (neighborhood) {
+          locationName = city && city !== neighborhood ? `${neighborhood}, ${city}` : neighborhood;
+        } else if (city) {
+          locationName = state && state !== city ? `${city}, ${state}` : city;
+        } else {
+          locationName = "Unknown Location";
         }
-      );
-    });
+
+        setSelectedCityInternal(locationName);
+        setIsDetecting(false);
+        setHasAutoDetected(true);
+
+        if (showToast) {
+          const accuracyLabel = typeof accuracy === 'number' ? ` (±${Math.round(accuracy)}m)` : '';
+          toast.success(`Location detected: ${locationName}${accuracyLabel}`);
+        }
+        return locationName;
+      } catch {
+        // Fallback if geocoding fails
+        const fallbackLocation = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+        setSelectedCityInternal(fallbackLocation);
+        setIsDetecting(false);
+        setHasAutoDetected(true);
+
+        if (showToast) toast.success("Location detected");
+        return fallbackLocation;
+      }
+    } catch (error: any) {
+      setIsDetecting(false);
+
+      if (showToast) {
+        let errorMessage = "Failed to detect location";
+        if (error?.code === 1 || error?.message?.includes('denied')) {
+          errorMessage = "Location permission denied. Please enable location access in settings.";
+        } else if (error?.code === 2) {
+          errorMessage = "Location unavailable. Please check if GPS is enabled.";
+        } else if (error?.code === 3) {
+          errorMessage = "Location request timed out. Try again outdoors.";
+        }
+        toast.error(errorMessage);
+      }
+
+      return null;
+    }
   };
 
   // Auto-detect location on mount (only once)
