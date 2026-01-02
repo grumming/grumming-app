@@ -83,7 +83,13 @@ const SalonPayoutManagement = () => {
   const [payoutBankAccount, setPayoutBankAccount] = useState<BankAccount | null>(null);
   const [selectedPayoutMethod, setSelectedPayoutMethod] = useState<'bank' | 'upi'>('bank');
   const [customUpiId, setCustomUpiId] = useState('');
-
+  const [payoutBreakdown, setPayoutBreakdown] = useState<{
+    grossEarnings: number;
+    platformFee: number;
+    netAmount: number;
+    totalPaid: number;
+    pendingAmount: number;
+  } | null>(null);
   const fetchData = async () => {
     setIsLoading(true);
     try {
@@ -206,6 +212,38 @@ const SalonPayoutManagement = () => {
       setCustomUpiId(payout.upi_id || bankAccount?.upi_id || '');
     } else {
       setSelectedPayoutMethod('bank');
+    }
+
+    // Fetch commission breakdown for this salon
+    try {
+      const { data: paymentsData } = await supabase
+        .from('payments')
+        .select('amount, salon_amount, platform_fee, fee_percentage')
+        .eq('salon_id', payout.salon_id)
+        .in('status', ['captured', 'settled']);
+
+      const { data: completedPayouts } = await supabase
+        .from('salon_payouts')
+        .select('amount')
+        .eq('salon_id', payout.salon_id)
+        .eq('status', 'completed');
+
+      const grossEarnings = (paymentsData || []).reduce((sum, p) => sum + (p.amount || 0), 0);
+      const platformFee = (paymentsData || []).reduce((sum, p) => sum + (p.platform_fee || 0), 0);
+      const netAmount = (paymentsData || []).reduce((sum, p) => sum + (p.salon_amount || 0), 0);
+      const totalPaid = (completedPayouts || []).reduce((sum, p) => sum + (p.amount || 0), 0);
+      const pendingAmount = Math.max(0, netAmount - totalPaid);
+
+      setPayoutBreakdown({
+        grossEarnings,
+        platformFee,
+        netAmount,
+        totalPaid,
+        pendingAmount
+      });
+    } catch (err) {
+      console.error('Error fetching breakdown:', err);
+      setPayoutBreakdown(null);
     }
     
     setShowApprovalDialog(true);
@@ -724,12 +762,54 @@ const SalonPayoutManagement = () => {
           
           {selectedPayout && (
             <div className="space-y-4">
-              {/* Amount */}
+              {/* Commission Breakdown */}
+              {payoutBreakdown && (
+                <div className="p-4 bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl border border-primary/20">
+                  <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    Commission Breakdown
+                  </h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Gross Earnings</span>
+                      <span className="font-medium">₹{payoutBreakdown.grossEarnings.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-sm text-orange-600">
+                      <span className="flex items-center gap-1">
+                        Platform Fee (8%)
+                      </span>
+                      <span className="font-medium">- ₹{payoutBreakdown.platformFee.toLocaleString()}</span>
+                    </div>
+                    <Separator className="my-2" />
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Net Earnings</span>
+                      <span className="font-medium">₹{payoutBreakdown.netAmount.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-sm text-green-600">
+                      <span>Already Paid</span>
+                      <span className="font-medium">₹{payoutBreakdown.totalPaid.toLocaleString()}</span>
+                    </div>
+                    <Separator className="my-2" />
+                    <div className="flex justify-between text-sm font-semibold">
+                      <span>Available for Payout</span>
+                      <span className="text-primary">₹{payoutBreakdown.pendingAmount.toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Requested Amount */}
               <div className="p-4 bg-muted rounded-lg">
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Payout Amount</span>
+                  <span className="text-muted-foreground">Requested Amount</span>
                   <span className="text-2xl font-bold">₹{selectedPayout.amount.toLocaleString()}</span>
                 </div>
+                {payoutBreakdown && selectedPayout.amount > payoutBreakdown.pendingAmount && (
+                  <div className="mt-2 flex items-center gap-2 text-amber-600 text-xs">
+                    <AlertCircle className="w-4 h-4" />
+                    Requested amount exceeds available balance
+                  </div>
+                )}
               </div>
 
               {/* Payout Method Selection */}
