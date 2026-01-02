@@ -38,6 +38,7 @@ import SalonOwnerChatDialog from '@/components/SalonOwnerChatDialog';
 import { SalonEarnings } from '@/components/SalonEarnings';
 import { SalonBankAccountManager } from '@/components/SalonBankAccountManager';
 import SalonPayoutRequest from '@/components/SalonPayoutRequest';
+import { SalonPayoutHistory } from '@/components/SalonPayoutHistory';
 
 interface Booking {
   id: string;
@@ -1523,20 +1524,42 @@ const SalonDashboard = () => {
             {/* Earnings Tab */}
             <TabsContent value="earnings" className="space-y-6">
               {selectedSalonId && selectedSalon && (
-                <>
-                  <SalonEarnings 
-                    salonId={selectedSalonId} 
-                    salonName={selectedSalon.name} 
-                  />
-                  <SalonPayoutRequest
-                    salonId={selectedSalonId}
-                    salonName={selectedSalon.name}
-                  />
-                  <SalonBankAccountManager
-                    salonId={selectedSalonId}
-                    salonName={selectedSalon.name}
-                  />
-                </>
+                <Tabs defaultValue="overview" className="space-y-4">
+                  <TabsList className="grid w-full grid-cols-4">
+                    <TabsTrigger value="overview">Overview</TabsTrigger>
+                    <TabsTrigger value="payouts">Payout History</TabsTrigger>
+                    <TabsTrigger value="request">Request Payout</TabsTrigger>
+                    <TabsTrigger value="bank">Bank Account</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="overview">
+                    <SalonEarnings 
+                      salonId={selectedSalonId} 
+                      salonName={selectedSalon.name} 
+                    />
+                  </TabsContent>
+                  
+                  <TabsContent value="payouts">
+                    <SalonPayoutHistory
+                      salonId={selectedSalonId}
+                      salonName={selectedSalon.name}
+                    />
+                  </TabsContent>
+                  
+                  <TabsContent value="request">
+                    <SalonPayoutRequest
+                      salonId={selectedSalonId}
+                      salonName={selectedSalon.name}
+                    />
+                  </TabsContent>
+                  
+                  <TabsContent value="bank">
+                    <SalonBankAccountManager
+                      salonId={selectedSalonId}
+                      salonName={selectedSalon.name}
+                    />
+                  </TabsContent>
+                </Tabs>
               )}
             </TabsContent>
           </Tabs>
