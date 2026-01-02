@@ -187,7 +187,7 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
       setPendingBalance({
         total: totalEarned - totalPaidOut,
         availableForPayout: Math.max(0, availableAmount - totalPaidOut - pendingRequests),
-        pendingSettlement: 0 // Show 0 since all captured payments are now available
+        pendingSettlement: pendingSettlement
       });
 
     } catch (error) {
