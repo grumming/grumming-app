@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import confetti from 'canvas-confetti';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,10 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
-import { Wallet, ArrowUpRight, Clock, CheckCircle, AlertCircle, Building2, Loader2, Smartphone, Zap, IndianRupee, Check, Sparkles } from 'lucide-react';
+import { Wallet, ArrowUpRight, Clock, CheckCircle, AlertCircle, Building2, Loader2, Smartphone, Zap, IndianRupee, Check, Sparkles, PartyPopper } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+
+const QUICK_AMOUNTS = [500, 1000, 2000, 5000];
 
 interface SalonPayoutRequestProps {
   salonId: string;
@@ -53,11 +56,40 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successAmount, setSuccessAmount] = useState(0);
   const [requestAmount, setRequestAmount] = useState('');
   const [selectedBankAccount, setSelectedBankAccount] = useState('');
   const [requestNote, setRequestNote] = useState('');
   const [payoutMethod, setPayoutMethod] = useState<'bank' | 'upi' | 'instant_upi'>('bank');
   const [customUpiId, setCustomUpiId] = useState('');
+
+  const triggerConfetti = () => {
+    const duration = 2000;
+    const end = Date.now() + duration;
+
+    const frame = () => {
+      confetti({
+        particleCount: 3,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0, y: 0.7 },
+        colors: ['#22c55e', '#10b981', '#059669', '#047857']
+      });
+      confetti({
+        particleCount: 3,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1, y: 0.7 },
+        colors: ['#22c55e', '#10b981', '#059669', '#047857']
+      });
+
+      if (Date.now() < end) {
+        requestAnimationFrame(frame);
+      }
+    };
+    frame();
+  };
 
   // Get UPI accounts for instant payout
   const upiAccounts = bankAccounts.filter(a => a.account_type === 'upi' || a.upi_id);
@@ -220,12 +252,21 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
 
       if (error) throw error;
 
-      toast.success('Payout request submitted successfully!');
-      setDialogOpen(false);
-      setRequestAmount('');
-      setRequestNote('');
-      setCustomUpiId('');
-      fetchData();
+      // Show success animation
+      setSuccessAmount(netAmount);
+      setShowSuccess(true);
+      triggerConfetti();
+      
+      // Reset after showing success
+      setTimeout(() => {
+        setShowSuccess(false);
+        setDialogOpen(false);
+        setRequestAmount('');
+        setRequestNote('');
+        setCustomUpiId('');
+        toast.success('Payout request submitted successfully!');
+        fetchData();
+      }, 2500);
     } catch (error) {
       console.error('Error requesting payout:', error);
       toast.error('Failed to submit payout request');
@@ -353,59 +394,131 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                     Request Payout
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-lg max-h-[90vh] flex flex-col">
-                  <DialogHeader className="pb-4 border-b">
-                    <DialogTitle className="flex items-center gap-3 text-xl">
-                      <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 shadow-sm">
-                        <ArrowUpRight className="h-5 w-5 text-primary" />
-                      </div>
-                      Request Payout
-                    </DialogTitle>
-                    <DialogDescription className="flex items-center gap-2 pt-2">
-                      <div className="flex items-center gap-1.5 text-green-600 bg-green-50 dark:bg-green-950/30 px-3 py-1.5 rounded-full">
-                        <IndianRupee className="h-4 w-4" />
-                        <span className="font-semibold">₹{pendingBalance.availableForPayout.toLocaleString('en-IN')}</span>
-                        <span className="text-muted-foreground">available</span>
-                      </div>
-                    </DialogDescription>
-                  </DialogHeader>
-                  
-                  <div className="flex-1 overflow-y-auto space-y-5 py-4 px-1">
-                    {/* Amount Input - Professional Design */}
-                    <div className="space-y-3">
-                      <Label htmlFor="amount" className="text-sm font-medium flex items-center gap-2">
-                        <IndianRupee className="h-4 w-4 text-muted-foreground" />
-                        Enter Amount
-                      </Label>
-                      <div className="relative">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center w-8 h-8 rounded-lg bg-muted text-muted-foreground font-bold text-lg">
-                          ₹
-                        </div>
-                        <Input
-                          id="amount"
-                          type="number"
-                          placeholder="0.00"
-                          className="pl-16 pr-4 text-2xl font-bold h-16 border-2 focus:border-primary rounded-xl"
-                          value={requestAmount}
-                          onChange={(e) => setRequestAmount(e.target.value)}
-                          min={100}
-                          max={pendingBalance.availableForPayout}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between px-1">
-                        <span className="text-xs text-muted-foreground">Minimum: ₹100</span>
-                        <Button 
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setRequestAmount(pendingBalance.availableForPayout.toString())}
-                          className="h-7 text-xs font-medium text-primary border-primary/30 hover:bg-primary/5"
+                <DialogContent className="max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+                  <AnimatePresence mode="wait">
+                    {showSuccess ? (
+                      <motion.div
+                        key="success"
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        className="flex flex-col items-center justify-center py-12 px-4 text-center"
+                      >
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: "spring", stiffness: 200, delay: 0.1 }}
+                          className="w-20 h-20 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center mb-6 shadow-lg shadow-green-500/30"
                         >
-                          <Wallet className="h-3 w-3 mr-1.5" />
-                          Withdraw All
-                        </Button>
-                      </div>
-                    </div>
+                          <CheckCircle className="h-10 w-10 text-white" />
+                        </motion.div>
+                        <motion.h3
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.2 }}
+                          className="text-2xl font-bold text-foreground mb-2"
+                        >
+                          Payout Requested!
+                        </motion.h3>
+                        <motion.p
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.3 }}
+                          className="text-muted-foreground mb-4"
+                        >
+                          Your request for <span className="font-semibold text-green-600">₹{successAmount.toLocaleString('en-IN')}</span> has been submitted
+                        </motion.p>
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: 0.4 }}
+                          className="flex items-center gap-2 text-sm text-muted-foreground"
+                        >
+                          <PartyPopper className="h-4 w-4 text-amber-500" />
+                          <span>You'll receive it soon!</span>
+                        </motion.div>
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="form"
+                        initial={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="flex flex-col h-full"
+                      >
+                        <DialogHeader className="pb-4 border-b">
+                          <DialogTitle className="flex items-center gap-3 text-xl">
+                            <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 shadow-sm">
+                              <ArrowUpRight className="h-5 w-5 text-primary" />
+                            </div>
+                            Request Payout
+                          </DialogTitle>
+                          <DialogDescription className="flex items-center gap-2 pt-2">
+                            <div className="flex items-center gap-1.5 text-green-600 bg-green-50 dark:bg-green-950/30 px-3 py-1.5 rounded-full">
+                              <IndianRupee className="h-4 w-4" />
+                              <span className="font-semibold">₹{pendingBalance.availableForPayout.toLocaleString('en-IN')}</span>
+                              <span className="text-muted-foreground">available</span>
+                            </div>
+                          </DialogDescription>
+                        </DialogHeader>
+                        
+                        <div className="flex-1 overflow-y-auto space-y-5 py-4 px-1">
+                          {/* Amount Input - Professional Design */}
+                          <div className="space-y-3">
+                            <Label htmlFor="amount" className="text-sm font-medium flex items-center gap-2">
+                              <IndianRupee className="h-4 w-4 text-muted-foreground" />
+                              Enter Amount
+                            </Label>
+                            <div className="relative">
+                              <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center w-8 h-8 rounded-lg bg-muted text-muted-foreground font-bold text-lg">
+                                ₹
+                              </div>
+                              <Input
+                                id="amount"
+                                type="number"
+                                placeholder="0.00"
+                                className="pl-16 pr-4 text-2xl font-bold h-16 border-2 focus:border-primary rounded-xl"
+                                value={requestAmount}
+                                onChange={(e) => setRequestAmount(e.target.value)}
+                                min={100}
+                                max={pendingBalance.availableForPayout}
+                              />
+                            </div>
+                            
+                            {/* Quick Amount Buttons */}
+                            <div className="flex flex-wrap gap-2">
+                              {QUICK_AMOUNTS.filter(amt => amt <= pendingBalance.availableForPayout).map((amount) => (
+                                <motion.button
+                                  key={amount}
+                                  type="button"
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={() => setRequestAmount(amount.toString())}
+                                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                    requestAmount === amount.toString()
+                                      ? 'bg-primary text-primary-foreground shadow-sm'
+                                      : 'bg-muted hover:bg-muted/80 text-foreground'
+                                  }`}
+                                >
+                                  ₹{amount.toLocaleString('en-IN')}
+                                </motion.button>
+                              ))}
+                              <Button 
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setRequestAmount(pendingBalance.availableForPayout.toString())}
+                                className={`px-4 py-2 h-auto text-sm font-medium transition-all duration-200 ${
+                                  requestAmount === pendingBalance.availableForPayout.toString()
+                                    ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                                    : 'border-primary/30 text-primary hover:bg-primary/5'
+                                }`}
+                              >
+                                <Wallet className="h-3.5 w-3.5 mr-1.5" />
+                                All
+                              </Button>
+                            </div>
+                            
+                            <p className="text-xs text-muted-foreground px-1">Minimum: ₹100</p>
+                          </div>
 
                     <Separator />
 
@@ -674,6 +787,9 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                       )}
                     </Button>
                   </DialogFooter>
+                  </motion.div>
+                )}
+                </AnimatePresence>
                 </DialogContent>
               </Dialog>
             </div>
