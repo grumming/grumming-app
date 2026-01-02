@@ -79,14 +79,44 @@ const Terms = () => {
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-xl font-semibold text-foreground">6. Refund Policy</h2>
+            <h2 className="text-xl font-semibold text-foreground">6. Platform Commission (For Service Providers)</h2>
+            <p className="text-muted-foreground leading-relaxed">
+              Grumming charges a flat <span className="font-semibold text-foreground">8% platform commission</span> on every successfully completed service booking. This commission is deducted from the service provider's payout and is not charged to the customer.
+            </p>
+            <div className="bg-muted/50 rounded-lg p-4 border border-border">
+              <p className="font-medium text-foreground mb-3">Example Calculation:</p>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Service Price</span>
+                  <span className="font-medium">₹1,000</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Platform Commission (8%)</span>
+                  <span className="font-medium text-red-500">-₹80</span>
+                </div>
+                <div className="flex justify-between border-t border-border pt-2">
+                  <span className="font-medium text-foreground">Provider Receives</span>
+                  <span className="font-bold text-green-600">₹920</span>
+                </div>
+              </div>
+            </div>
+            <ul className="list-disc list-inside text-muted-foreground space-y-2 ml-4">
+              <li>Commission applies to both online and cash payments</li>
+              <li>No hidden fees or additional charges for customers</li>
+              <li>Transparent earnings breakdown available in provider dashboard</li>
+              <li>Weekly payouts processed automatically</li>
+            </ul>
+          </section>
+
+          <section className="space-y-4">
+            <h2 className="text-xl font-semibold text-foreground">7. Refund Policy</h2>
             <p className="text-muted-foreground leading-relaxed">
               Refunds are subject to the individual salon's cancellation policy. In cases where a service was not provided as described, please contact our customer support for resolution.
             </p>
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-xl font-semibold text-foreground">7. User Conduct</h2>
+            <h2 className="text-xl font-semibold text-foreground">8. User Conduct</h2>
             <p className="text-muted-foreground leading-relaxed">
               Users agree not to:
             </p>
@@ -100,28 +130,28 @@ const Terms = () => {
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-xl font-semibold text-foreground">8. Intellectual Property</h2>
+            <h2 className="text-xl font-semibold text-foreground">9. Intellectual Property</h2>
             <p className="text-muted-foreground leading-relaxed">
               All content on the Platform, including logos, text, images, and software, is the property of Grumming or its licensors and is protected by intellectual property laws.
             </p>
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-xl font-semibold text-foreground">9. Limitation of Liability</h2>
+            <h2 className="text-xl font-semibold text-foreground">10. Limitation of Liability</h2>
             <p className="text-muted-foreground leading-relaxed">
               Grumming is not liable for any direct, indirect, incidental, or consequential damages arising from the use of our Platform or services provided by third-party salons. We do not guarantee the quality of services provided by listed establishments.
             </p>
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-xl font-semibold text-foreground">10. Changes to Terms</h2>
+            <h2 className="text-xl font-semibold text-foreground">11. Changes to Terms</h2>
             <p className="text-muted-foreground leading-relaxed">
               We reserve the right to modify these Terms and Conditions at any time. Changes will be effective immediately upon posting. Your continued use of the Platform constitutes acceptance of the updated terms.
             </p>
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-xl font-semibold text-foreground">11. Contact Us</h2>
+            <h2 className="text-xl font-semibold text-foreground">12. Contact Us</h2>
             <p className="text-muted-foreground leading-relaxed">
               If you have any questions about these Terms and Conditions, please contact us at:
             </p>

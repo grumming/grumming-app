@@ -372,7 +372,7 @@ export const SalonCommissionReport = () => {
                     <TableHead>Salon</TableHead>
                     <TableHead className="text-right">Payments</TableHead>
                     <TableHead className="text-right">Gross</TableHead>
-                    <TableHead className="text-right">Commission (2%)</TableHead>
+                    <TableHead className="text-right">Commission (8%)</TableHead>
                     <TableHead className="text-right">Net Earnings</TableHead>
                     <TableHead className="text-right">Type Split</TableHead>
                   </TableRow>

@@ -36,7 +36,7 @@ serve(async (req: Request): Promise<Response> => {
       razorpay_order_id,
       razorpay_payment_id,
       payment_method,
-      fee_percentage = 2 // Default 2% platform commission
+      fee_percentage = 8 // Default 8% platform commission
     } = body;
 
     console.log("Processing payment:", { booking_id, amount, razorpay_order_id });
