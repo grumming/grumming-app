@@ -104,6 +104,16 @@ const handler = async (req: Request): Promise<Response> => {
     let statusColor = '';
 
     switch (status) {
+      case 'pending':
+        subject = `📅 Payout of ${formattedAmount} scheduled - ${salon.name}`;
+        statusMessage = 'Your automated weekly payout has been scheduled and is awaiting approval.';
+        statusColor = '#f59e0b';
+        break;
+      case 'approved':
+        subject = `✅ Payout of ${formattedAmount} approved - ${salon.name}`;
+        statusMessage = 'Your payout has been approved and will be processed shortly.';
+        statusColor = '#22c55e';
+        break;
       case 'processing':
         subject = `💸 Payout of ${formattedAmount} is being processed - ${salon.name}`;
         statusMessage = 'Your payout is being processed and will be credited to your bank account soon.';
