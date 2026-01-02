@@ -12,7 +12,7 @@ type DetectLocationOptions = {
 
 interface LocationContextType {
   selectedCity: string;
-  setSelectedCity: (city: string) => void;
+  setSelectedCity: (city: string, coords?: { lat: number; lng: number }) => void;
   isDetecting: boolean;
   coordinates: { lat: number; lng: number } | null;
   detectLocation: (options?: DetectLocationOptions) => Promise<string | null>;
@@ -28,13 +28,17 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
   const [hasAutoDetected, setHasAutoDetected] = useState(false);
 
   // Wrapper to also set coordinates when city is manually selected
-  const setSelectedCity = useCallback((city: string) => {
+  const setSelectedCity = useCallback((city: string, coords?: { lat: number; lng: number }) => {
     setSelectedCityInternal(city);
     
-    // Try to get coordinates for the selected city
-    const cityCoords = getCityCoordinates(city);
-    if (cityCoords) {
-      setCoordinates(cityCoords);
+    // Use provided coordinates first, fallback to city lookup
+    if (coords) {
+      setCoordinates(coords);
+    } else {
+      const cityCoords = getCityCoordinates(city);
+      if (cityCoords) {
+        setCoordinates(cityCoords);
+      }
     }
   }, []);
 

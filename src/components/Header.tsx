@@ -124,7 +124,9 @@ const Header = () => {
   const handleSelectCity = (city: string, state: string, coordinates?: { latitude: number; longitude: number }) => {
     const fullCity = `${city}, ${state}`;
     setLocationInput(fullCity);
-    setSelectedCity(fullCity);
+    // Pass coordinates to LocationContext for distance filtering
+    const coords = coordinates ? { lat: coordinates.latitude, lng: coordinates.longitude } : undefined;
+    setSelectedCity(fullCity, coords);
     addRecentCity(fullCity);
     setShowSuggestions(false);
   };
