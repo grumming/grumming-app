@@ -126,9 +126,6 @@ const SalonPayoutManagement = () => {
         const existing = earningsMap.get(payment.salon_id);
         if (existing) {
           existing.total_earned += payment.salon_amount || 0;
-          if (payment.status === 'captured') {
-            existing.pending_payout += payment.salon_amount || 0;
-          }
         } else {
           earningsMap.set(payment.salon_id, {
             salon_id: payment.salon_id,
@@ -136,22 +133,26 @@ const SalonPayoutManagement = () => {
             salon_image: payment.salon?.image_url,
             total_earned: payment.salon_amount || 0,
             total_paid: 0,
-            pending_payout: payment.status === 'captured' ? (payment.salon_amount || 0) : 0,
+            pending_payout: 0,
             last_payout_date: null
           });
         }
       });
 
-      // Add payout data
+      // Add payout data - calculate total_paid from completed payouts
       (payoutsData || []).forEach((payout: any) => {
         const earnings = earningsMap.get(payout.salon_id);
         if (earnings && payout.status === 'completed') {
           earnings.total_paid += payout.amount;
-          earnings.pending_payout = Math.max(0, earnings.pending_payout - payout.amount);
           if (!earnings.last_payout_date || new Date(payout.processed_at) > new Date(earnings.last_payout_date)) {
             earnings.last_payout_date = payout.processed_at;
           }
         }
+      });
+
+      // Calculate pending_payout as total_earned minus total_paid
+      earningsMap.forEach((earnings) => {
+        earnings.pending_payout = Math.max(0, earnings.total_earned - earnings.total_paid);
       });
 
       setSalonEarnings(Array.from(earningsMap.values()).sort((a, b) => b.pending_payout - a.pending_payout));
