@@ -7,9 +7,21 @@ import NotificationCenter from "@/components/NotificationCenter";
 import SearchModal from "@/components/SearchModal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLocation } from "@/contexts/LocationContext";
-import { getGroupedFilteredCities, popularCities, GroupedCitySuggestion } from "@/data/indianCities";
+import { popularCities } from "@/data/indianCities";
 import { useRecentCities } from "@/hooks/useRecentCities";
+import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo.png";
+
+interface MapboxSuggestion {
+  city: string;
+  state: string;
+  coordinates: { latitude: number; longitude: number };
+}
+
+interface GroupedMapboxSuggestion {
+  state: string;
+  cities: { city: string; coordinates: { latitude: number; longitude: number } }[];
+}
 
 const Header = () => {
   const [showSearchModal, setShowSearchModal] = useState(false);
@@ -17,7 +29,7 @@ const Header = () => {
   const { recentCities, addRecentCity, clearRecentCities } = useRecentCities();
   const [locationInput, setLocationInput] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [groupedSuggestions, setGroupedSuggestions] = useState<GroupedCitySuggestion[]>([]);
+  const [groupedSuggestions, setGroupedSuggestions] = useState<GroupedMapboxSuggestion[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isHidden, setIsHidden] = useState(false);
@@ -37,17 +49,29 @@ const Header = () => {
       clearTimeout(searchTimeoutRef.current);
     }
     
-    // Only show loading for search queries
+    // Only search with Mapbox when input is >= 2 chars
     if (locationInput.length >= 2) {
       setIsSearching(true);
-      searchTimeoutRef.current = setTimeout(() => {
-        const grouped = getGroupedFilteredCities(locationInput);
-        setGroupedSuggestions(grouped);
+      searchTimeoutRef.current = setTimeout(async () => {
+        try {
+          const { data, error } = await supabase.functions.invoke('places-autocomplete', {
+            body: { query: locationInput, country: 'in', limit: 10 }
+          });
+          
+          if (error) {
+            console.error('Places autocomplete error:', error);
+            setGroupedSuggestions([]);
+          } else {
+            setGroupedSuggestions(data.grouped || []);
+          }
+        } catch (err) {
+          console.error('Failed to fetch suggestions:', err);
+          setGroupedSuggestions([]);
+        }
         setIsSearching(false);
       }, 300);
     } else {
-      const grouped = getGroupedFilteredCities(locationInput);
-      setGroupedSuggestions(grouped);
+      setGroupedSuggestions([]);
       setIsSearching(false);
     }
     
@@ -97,7 +121,7 @@ const Header = () => {
     setShowSuggestions(true);
   };
 
-  const handleSelectCity = (city: string, state: string) => {
+  const handleSelectCity = (city: string, state: string, coordinates?: { latitude: number; longitude: number }) => {
     const fullCity = `${city}, ${state}`;
     setLocationInput(fullCity);
     setSelectedCity(fullCity);
@@ -307,20 +331,20 @@ const Header = () => {
                       >
                         {group.state}
                       </motion.div>
-                      {group.cities.map((city, cityIndex) => (
+                      {group.cities.map((cityData, cityIndex) => (
                         <motion.button
-                          key={`${group.state}-${city}`}
+                          key={`${group.state}-${cityData.city}`}
                           initial={{ opacity: 0, x: -8 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ duration: 0.2, delay: 0.1 + (groupIndex * 0.08) + (cityIndex * 0.04) }}
-                          onClick={() => handleSelectCity(city, group.state)}
+                          onClick={() => handleSelectCity(cityData.city, group.state, cityData.coordinates)}
                           className="w-full px-3 py-2 text-left hover:bg-primary/10 rounded-lg transition-all duration-200 flex items-center gap-2.5 text-sm group"
                         >
                           <div className="p-1 rounded-md bg-muted group-hover:bg-primary/20 transition-colors">
                             <MapPin className="w-3 h-3 text-primary flex-shrink-0" />
                           </div>
                           <span className="text-foreground font-body group-hover:text-primary transition-colors">
-                            {city}
+                            {cityData.city}
                           </span>
                         </motion.button>
                       ))}
