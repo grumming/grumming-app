@@ -12,7 +12,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
@@ -30,7 +29,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { format, subDays, startOfMonth, endOfMonth, differenceInHours } from 'date-fns';
+import { format, subDays, differenceInHours } from 'date-fns';
 
 interface SalonPayout {
   id: string;
@@ -74,10 +73,6 @@ const SalonPayoutManagement = () => {
   const [salonEarnings, setSalonEarnings] = useState<SalonEarnings[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [showCreatePayout, setShowCreatePayout] = useState(false);
-  const [selectedSalon, setSelectedSalon] = useState<SalonEarnings | null>(null);
-  const [payoutAmount, setPayoutAmount] = useState('');
-  const [payoutNotes, setPayoutNotes] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [expandedSalon, setExpandedSalon] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('requests');
@@ -267,37 +262,6 @@ const SalonPayoutManagement = () => {
       console.error('Error rejecting payout:', err);
       toast({ title: 'Error', description: 'Failed to reject payout', variant: 'destructive' });
     }
-  };
-
-  const handleCreatePayout = async () => {
-    if (!selectedSalon || !payoutAmount) return;
-    
-    setIsProcessing(true);
-    try {
-      const { error } = await supabase
-        .from('salon_payouts')
-        .insert({
-          salon_id: selectedSalon.salon_id,
-          amount: parseFloat(payoutAmount),
-          status: 'pending',
-          notes: payoutNotes || null,
-          period_start: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
-          period_end: format(endOfMonth(new Date()), 'yyyy-MM-dd')
-        });
-
-      if (error) throw error;
-
-      toast({ title: 'Success', description: 'Payout created successfully' });
-      setShowCreatePayout(false);
-      setSelectedSalon(null);
-      setPayoutAmount('');
-      setPayoutNotes('');
-      fetchData();
-    } catch (err) {
-      console.error('Error creating payout:', err);
-      toast({ title: 'Error', description: 'Failed to create payout', variant: 'destructive' });
-    }
-    setIsProcessing(false);
   };
 
   const handleCompletePayout = async (payoutId: string) => {
@@ -661,19 +625,9 @@ const SalonPayoutManagement = () => {
                                     </p>
                                   )}
                                 </div>
-                                {salon.pending_payout > 0 && (
-                                  <Button
-                                    size="sm"
-                                    onClick={() => {
-                                      setSelectedSalon(salon);
-                                      setPayoutAmount(salon.pending_payout.toString());
-                                      setShowCreatePayout(true);
-                                    }}
-                                  >
-                                    <Send className="w-4 h-4 mr-2" />
-                                    Create Payout
-                                  </Button>
-                                )}
+                                <p className="text-xs text-muted-foreground">
+                                  Salon owners can request payouts from their dashboard
+                                </p>
                               </div>
                             </div>
                           </CollapsibleContent>
@@ -878,58 +832,6 @@ const SalonPayoutManagement = () => {
                 <Send className="w-4 h-4 mr-2" />
               )}
               {selectedPayoutMethod === 'upi' ? 'Send via UPI' : 'Process Bank Transfer'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Create Payout Dialog */}
-      <Dialog open={showCreatePayout} onOpenChange={setShowCreatePayout}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create Payout</DialogTitle>
-            <DialogDescription>
-              Create a new payout for {selectedSalon?.salon_name}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="p-4 bg-muted rounded-lg">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Pending Amount</span>
-                <span className="font-medium">₹{selectedSalon?.pending_payout.toLocaleString()}</span>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Payout Amount</Label>
-              <div className="relative">
-                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  type="number"
-                  placeholder="Enter amount"
-                  value={payoutAmount}
-                  onChange={(e) => setPayoutAmount(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Notes (Optional)</Label>
-              <Textarea
-                placeholder="Add any notes about this payout..."
-                value={payoutNotes}
-                onChange={(e) => setPayoutNotes(e.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreatePayout(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleCreatePayout} disabled={isProcessing || !payoutAmount}>
-              {isProcessing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
-              Create Payout
             </Button>
           </DialogFooter>
         </DialogContent>
