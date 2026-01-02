@@ -364,27 +364,47 @@ const SalonPayoutManagement = () => {
     <div className="space-y-6">
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
+        <Card className="border-l-4 border-l-purple-500">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Pending Requests</p>
-                <p className="text-2xl font-bold text-amber-600">{pendingRequests.length}</p>
-                <p className="text-xs text-muted-foreground">Awaiting approval</p>
+                <p className="text-sm text-muted-foreground">Instant Pending</p>
+                <p className="text-2xl font-bold text-purple-600">{instantPendingRequests.length}</p>
+                <p className="text-xs text-muted-foreground">
+                  ₹{instantPendingRequests.reduce((sum, p) => sum + p.amount, 0).toLocaleString()}
+                </p>
               </div>
-              <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/20 flex items-center justify-center">
-                <Clock className="w-6 h-6 text-amber-600" />
+              <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center">
+                <Smartphone className="w-6 h-6 text-purple-600" />
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-l-4 border-l-amber-500">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Normal Pending</p>
+                <p className="text-2xl font-bold text-amber-600">{normalPendingRequests.length}</p>
+                <p className="text-xs text-muted-foreground">
+                  ₹{normalPendingRequests.reduce((sum, p) => sum + p.amount, 0).toLocaleString()}
+                </p>
+              </div>
+              <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/20 flex items-center justify-center">
+                <Building2 className="w-6 h-6 text-amber-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-blue-500">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Processing</p>
                 <p className="text-2xl font-bold text-blue-600">{processingPayouts.length}</p>
-                <p className="text-xs text-muted-foreground">In progress</p>
+                <p className="text-xs text-muted-foreground">
+                  {instantProcessingPayouts.length} instant • {normalProcessingPayouts.length} normal
+                </p>
               </div>
               <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
                 <ArrowUpRight className="w-6 h-6 text-blue-600" />
@@ -392,21 +412,7 @@ const SalonPayoutManagement = () => {
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Payable</p>
-                <p className="text-2xl font-bold text-orange-600">₹{totalPending.toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground">{salonEarnings.filter(s => s.pending_payout > 0).length} salons</p>
-              </div>
-              <div className="w-12 h-12 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
-                <Wallet className="w-6 h-6 text-orange-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
+        <Card className="border-l-4 border-l-green-500">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
