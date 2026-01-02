@@ -85,34 +85,47 @@ const PaymentManagement = () => {
   const fetchPayments = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      // Fetch payments first
+      const { data: paymentsData, error: paymentsError } = await supabase
         .from('payments')
         .select(`
           *,
-          salon:salons(name),
-          profile:profiles!payments_user_id_fkey(full_name, phone)
+          salon:salons(name)
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      
-      // Type assertion since the join might not return the expected shape
-      const paymentsData = (data || []) as unknown as Payment[];
-      setPayments(paymentsData);
+      if (paymentsError) throw paymentsError;
+
+      // Get unique user IDs and fetch their profiles
+      const userIds = [...new Set((paymentsData || []).map(p => p.user_id))];
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, phone')
+        .in('user_id', userIds);
+
+      // Create a map for quick lookup
+      const profilesMap = new Map((profilesData || []).map(p => [p.user_id, p]));
+
+      // Merge profiles into payments and type assert
+      const mergedPayments = (paymentsData || []).map(payment => ({
+        ...payment,
+        profile: profilesMap.get(payment.user_id) || null
+      })) as unknown as Payment[];
+      setPayments(mergedPayments);
 
       // Calculate stats
-      const capturedOrSettled = paymentsData.filter(p => ['captured', 'settled'].includes(p.status));
+      const capturedOrSettled = mergedPayments.filter(p => ['captured', 'settled'].includes(p.status));
       const onlinePaymentsData = capturedOrSettled.filter(p => p.payment_method !== 'cash');
       const cashPaymentsData = capturedOrSettled.filter(p => p.payment_method === 'cash');
       
       const statsCalc: PaymentStats = {
-        totalPayments: paymentsData.length,
-        totalAmount: paymentsData.reduce((sum, p) => sum + p.amount, 0),
-        pendingAmount: paymentsData.filter(p => p.status === 'pending').reduce((sum, p) => sum + p.amount, 0),
-        capturedAmount: paymentsData.filter(p => p.status === 'captured').reduce((sum, p) => sum + p.amount, 0),
-        settledAmount: paymentsData.filter(p => p.status === 'settled').reduce((sum, p) => sum + p.amount, 0),
+        totalPayments: mergedPayments.length,
+        totalAmount: mergedPayments.reduce((sum, p) => sum + p.amount, 0),
+        pendingAmount: mergedPayments.filter(p => p.status === 'pending').reduce((sum, p) => sum + p.amount, 0),
+        capturedAmount: mergedPayments.filter(p => p.status === 'captured').reduce((sum, p) => sum + p.amount, 0),
+        settledAmount: mergedPayments.filter(p => p.status === 'settled').reduce((sum, p) => sum + p.amount, 0),
         platformEarnings: capturedOrSettled.reduce((sum, p) => sum + p.platform_fee, 0),
-        salonPayable: paymentsData.filter(p => p.status === 'captured').reduce((sum, p) => sum + p.salon_amount, 0),
+        salonPayable: mergedPayments.filter(p => p.status === 'captured').reduce((sum, p) => sum + p.salon_amount, 0),
         onlinePayments: onlinePaymentsData.length,
         cashPayments: cashPaymentsData.length,
         onlineCommission: onlinePaymentsData.reduce((sum, p) => sum + p.platform_fee, 0),
