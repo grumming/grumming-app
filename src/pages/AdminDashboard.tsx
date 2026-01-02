@@ -5,7 +5,8 @@ import {
   ArrowLeft, Users, Calendar, Wallet, Tag, TrendingUp, 
   BarChart3, Clock, CheckCircle, XCircle, Loader2, 
   AlertTriangle, ChevronRight, Search, MoreVertical,
-  Mail, Phone, UserCheck, UserX, Eye, RefreshCw, Store, Bell
+  Mail, Phone, UserCheck, UserX, Eye, RefreshCw, Store, Bell,
+  CreditCard, Building2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,6 +36,8 @@ import RefundManagement from '@/components/admin/RefundManagement';
 import SupportTicketManagement from '@/components/admin/SupportTicketManagement';
 import UserManagement from '@/components/admin/UserManagement';
 import PromoCodeManagement from '@/components/admin/PromoCodeManagement';
+import PaymentManagement from '@/components/admin/PaymentManagement';
+import SalonPayoutManagement from '@/components/admin/SalonPayoutManagement';
 import { getDisplayContact } from '@/utils/displayUtils';
 
 interface UserProfile {
@@ -303,8 +306,16 @@ const AdminDashboard = () => {
           </div>
         ) : (
           <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-8">
+            <TabsList className="flex flex-wrap h-auto gap-1">
               <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="payments">
+                <CreditCard className="w-4 h-4 mr-1" />
+                Payments
+              </TabsTrigger>
+              <TabsTrigger value="payouts">
+                <Building2 className="w-4 h-4 mr-1" />
+                Payouts
+              </TabsTrigger>
               <TabsTrigger value="salons" className="relative">
                 Salons
                 {pendingSalonCount > 0 && (
@@ -492,6 +503,16 @@ const AdminDashboard = () => {
                   </CardContent>
                 </Card>
               </div>
+            </TabsContent>
+
+            {/* Payments Tab */}
+            <TabsContent value="payments">
+              <PaymentManagement />
+            </TabsContent>
+
+            {/* Payouts Tab */}
+            <TabsContent value="payouts">
+              <SalonPayoutManagement />
             </TabsContent>
 
             {/* Salons Tab */}
