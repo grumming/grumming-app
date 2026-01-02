@@ -1492,12 +1492,6 @@ const SalonDetail = () => {
               <Clock className="w-4 h-4 text-muted-foreground" />
               <span>{salon.timing}</span>
             </div>
-            <div className="flex items-center gap-2 text-sm">
-              <Phone className="w-4 h-4 text-muted-foreground" />
-              <a href={`tel:${salon.phone}`} className="text-primary hover:underline">
-                {salon.phone}
-              </a>
-            </div>
             {salonDistance !== null && (
               <div className="flex items-center gap-2 text-sm">
                 <Car className="w-4 h-4 text-muted-foreground" />
