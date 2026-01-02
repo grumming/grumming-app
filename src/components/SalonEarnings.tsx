@@ -244,16 +244,33 @@ export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
         </motion.div>
       </div>
 
-      {/* Platform Fee Info */}
-      <Card className="bg-muted/30">
-        <CardContent className="py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Building className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Platform Commission (2%)</span>
-            </div>
-            <span className="text-sm font-medium">₹{stats.platformFees.toLocaleString()}</span>
+      {/* Commission Breakdown */}
+      <Card className="bg-gradient-to-br from-muted/50 to-muted/30 border-border/50">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Building className="w-4 h-4 text-muted-foreground" />
+            Commission Breakdown
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between py-2 border-b border-border/50">
+            <span className="text-sm text-muted-foreground">Gross Earnings</span>
+            <span className="text-sm font-medium">₹{(stats.totalEarnings + stats.platformFees).toLocaleString()}</span>
           </div>
+          <div className="flex items-center justify-between py-2 border-b border-border/50">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Platform Commission</span>
+              <Badge variant="secondary" className="text-xs">2%</Badge>
+            </div>
+            <span className="text-sm font-medium text-red-500">-₹{stats.platformFees.toLocaleString()}</span>
+          </div>
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-sm font-medium">Net Earnings</span>
+            <span className="text-base font-bold text-green-600">₹{stats.totalEarnings.toLocaleString()}</span>
+          </div>
+          <p className="text-xs text-muted-foreground pt-2 border-t border-border/50">
+            A 2% platform commission is deducted from all bookings (online & cash payments)
+          </p>
         </CardContent>
       </Card>
 
