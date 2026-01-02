@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Wallet, ArrowUpRight, Clock, CheckCircle, AlertCircle, Building2, Loader2 } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Wallet, ArrowUpRight, Clock, CheckCircle, AlertCircle, Building2, Loader2, Smartphone } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -23,6 +24,7 @@ interface BankAccount {
   account_holder_name: string;
   ifsc_code: string;
   is_primary: boolean;
+  upi_id: string | null;
 }
 
 interface PayoutRequest {
@@ -50,6 +52,8 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
   const [requestAmount, setRequestAmount] = useState('');
   const [selectedBankAccount, setSelectedBankAccount] = useState('');
   const [requestNote, setRequestNote] = useState('');
+  const [payoutMethod, setPayoutMethod] = useState<'bank' | 'upi'>('bank');
+  const [customUpiId, setCustomUpiId] = useState('');
 
   useEffect(() => {
     if (salonId) {
@@ -147,21 +151,33 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
       return;
     }
 
-    if (!selectedBankAccount) {
+    if (payoutMethod === 'bank' && !selectedBankAccount) {
       toast.error('Please select a bank account');
       return;
     }
 
+    if (payoutMethod === 'upi') {
+      const upiId = customUpiId || bankAccounts.find(a => a.id === selectedBankAccount)?.upi_id;
+      if (!upiId) {
+        toast.error('Please enter a UPI ID');
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     try {
+      const selectedAccount = bankAccounts.find(a => a.id === selectedBankAccount);
+      const upiId = payoutMethod === 'upi' ? (customUpiId || selectedAccount?.upi_id) : null;
+
       const { error } = await supabase
         .from('salon_payouts')
         .insert({
           salon_id: salonId,
           amount: amount,
           status: 'pending',
-          payout_method: 'bank_transfer',
-          bank_account_id: selectedBankAccount,
+          payout_method: payoutMethod === 'upi' ? 'upi' : 'bank_transfer',
+          bank_account_id: payoutMethod === 'bank' ? selectedBankAccount : null,
+          upi_id: upiId,
           notes: requestNote || `Early payout request for ${salonName}`,
           period_start: new Date().toISOString().split('T')[0],
           period_end: new Date().toISOString().split('T')[0]
@@ -173,6 +189,7 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
       setDialogOpen(false);
       setRequestAmount('');
       setRequestNote('');
+      setCustomUpiId('');
       fetchData();
     } catch (error) {
       console.error('Error requesting payout:', error);
@@ -324,6 +341,52 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                       <p className="text-xs text-muted-foreground">Minimum: ₹100 | Maximum: ₹{pendingBalance.availableForPayout.toLocaleString('en-IN')}</p>
                     </div>
 
+                    {/* Payout Method Selection */}
+                    <div className="space-y-3">
+                      <Label>Payout Method</Label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setPayoutMethod('bank')}
+                          className={`p-3 border rounded-lg text-left transition-colors ${
+                            payoutMethod === 'bank' 
+                              ? 'border-primary bg-primary/5' 
+                              : 'hover:bg-muted'
+                          }`}
+                        >
+                          <Building2 className="h-5 w-5 mb-1" />
+                          <p className="font-medium text-sm">Bank Transfer</p>
+                          <p className="text-xs text-muted-foreground">1-2 business days</p>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPayoutMethod('upi')}
+                          className={`p-3 border rounded-lg text-left transition-colors ${
+                            payoutMethod === 'upi' 
+                              ? 'border-primary bg-primary/5' 
+                              : 'hover:bg-muted'
+                          }`}
+                        >
+                          <Smartphone className="h-5 w-5 mb-1" />
+                          <p className="font-medium text-sm">UPI</p>
+                          <p className="text-xs text-muted-foreground">Instant transfer</p>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* UPI ID Input */}
+                    {payoutMethod === 'upi' && (
+                      <div className="space-y-2">
+                        <Label htmlFor="upi">UPI ID</Label>
+                        <Input
+                          id="upi"
+                          placeholder="yourname@upi"
+                          value={customUpiId || bankAccounts.find(a => a.id === selectedBankAccount)?.upi_id || ''}
+                          onChange={(e) => setCustomUpiId(e.target.value)}
+                        />
+                      </div>
+                    )}
+
                     <div className="space-y-2">
                       <Label htmlFor="note">Note (Optional)</Label>
                       <Input
@@ -337,8 +400,11 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                     <div className="p-3 bg-muted rounded-lg">
                       <p className="text-sm font-medium">Payout to:</p>
                       <p className="text-sm text-muted-foreground">
-                        {bankAccounts.find(a => a.id === selectedBankAccount)?.bank_name || 'Bank'} - 
-                        ****{bankAccounts.find(a => a.id === selectedBankAccount)?.account_number.slice(-4)}
+                        {payoutMethod === 'upi' ? (
+                          <>UPI: {customUpiId || bankAccounts.find(a => a.id === selectedBankAccount)?.upi_id || 'Enter UPI ID'}</>
+                        ) : (
+                          <>{bankAccounts.find(a => a.id === selectedBankAccount)?.bank_name || 'Bank'} - ****{bankAccounts.find(a => a.id === selectedBankAccount)?.account_number.slice(-4)}</>
+                        )}
                       </p>
                     </div>
                   </div>
