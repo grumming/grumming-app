@@ -351,7 +351,7 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Balance</p>
-                <p className="text-2xl font-bold">₹{pendingBalance.total.toLocaleString('en-IN')}</p>
+                <p className="text-2xl font-bold font-sans">₹{pendingBalance.total.toLocaleString('en-IN')}</p>
               </div>
             </div>
           </CardContent>
@@ -365,7 +365,7 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Available for Payout</p>
-                <p className="text-2xl font-bold text-green-600">₹{pendingBalance.availableForPayout.toLocaleString('en-IN')}</p>
+                <p className="text-2xl font-bold text-green-600 font-sans">₹{pendingBalance.availableForPayout.toLocaleString('en-IN')}</p>
               </div>
             </div>
           </CardContent>
@@ -379,7 +379,7 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Pending Settlement</p>
-                <p className="text-2xl font-bold text-amber-600">₹{pendingBalance.pendingSettlement.toLocaleString('en-IN')}</p>
+                <p className="text-2xl font-bold text-amber-600 font-sans">₹{pendingBalance.pendingSettlement.toLocaleString('en-IN')}</p>
               </div>
             </div>
           </CardContent>
@@ -576,7 +576,7 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                           transition={{ delay: 0.3 }}
                           className="text-muted-foreground mb-4"
                         >
-                          Your request for <span className="font-semibold text-green-600">₹{successAmount.toLocaleString('en-IN')}</span> has been submitted
+                          Your request for <span className="font-semibold text-green-600 font-sans">₹{successAmount.toLocaleString('en-IN')}</span> has been submitted
                         </motion.p>
                         <motion.div
                           initial={{ opacity: 0 }}
@@ -605,7 +605,7 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                           <DialogDescription className="flex items-center gap-2 pt-2">
                             <div className="flex items-center gap-1.5 text-green-600 bg-green-50 dark:bg-green-950/30 px-3 py-1.5 rounded-full">
                               <IndianRupee className="h-4 w-4" />
-                              <span className="font-semibold">₹{pendingBalance.availableForPayout.toLocaleString('en-IN')}</span>
+                              <span className="font-semibold font-sans">₹{pendingBalance.availableForPayout.toLocaleString('en-IN')}</span>
                               <span className="text-muted-foreground">available</span>
                             </div>
                           </DialogDescription>
@@ -619,7 +619,7 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                               Enter Amount
                             </Label>
                             <div className="relative">
-                              <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center w-8 h-8 rounded-lg bg-muted text-muted-foreground font-bold text-lg">
+                              <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center w-8 h-8 rounded-lg bg-muted text-muted-foreground font-bold text-lg font-sans">
                                 ₹
                               </div>
                               <Input
@@ -648,7 +648,7 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                                       : 'bg-muted hover:bg-muted/80 text-foreground'
                                   }`}
                                 >
-                                  ₹{amount.toLocaleString('en-IN')}
+                                  <span className="font-sans">₹{amount.toLocaleString('en-IN')}</span>
                                 </motion.button>
                               ))}
                               <Button 
@@ -667,7 +667,7 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                               </Button>
                             </div>
                             
-                            <p className="text-xs text-muted-foreground px-1">Minimum: ₹100</p>
+                            <p className="text-xs text-muted-foreground px-1">Minimum: <span className="font-sans">₹100</span></p>
                           </div>
 
                     <Separator />
@@ -845,12 +845,12 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                           <div className="space-y-2 text-sm">
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">Payout Amount</span>
-                              <span className="font-medium">₹{parseFloat(requestAmount).toLocaleString('en-IN')}</span>
+                              <span className="font-medium font-sans">₹{parseFloat(requestAmount).toLocaleString('en-IN')}</span>
                             </div>
                             {payoutMethod === 'instant_upi' && (
                               <div className="flex justify-between text-orange-600">
                                 <span>Convenience Fee ({INSTANT_PAYOUT_FEE_PERCENT}%)</span>
-                                <span className="font-medium">-₹{calculateInstantFee(parseFloat(requestAmount)).toLocaleString('en-IN')}</span>
+                                <span className="font-medium font-sans">-₹{calculateInstantFee(parseFloat(requestAmount)).toLocaleString('en-IN')}</span>
                               </div>
                             )}
                             <Separator className={payoutMethod === 'instant_upi' ? 'bg-green-200 dark:bg-green-800' : ''} />
@@ -858,7 +858,7 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                               <span className={`font-semibold ${payoutMethod === 'instant_upi' ? 'text-green-700 dark:text-green-400' : 'text-primary'}`}>
                                 You'll Receive
                               </span>
-                              <span className={`font-bold text-lg ${payoutMethod === 'instant_upi' ? 'text-green-700 dark:text-green-400' : 'text-primary'}`}>
+                              <span className={`font-bold text-lg font-sans ${payoutMethod === 'instant_upi' ? 'text-green-700 dark:text-green-400' : 'text-primary'}`}>
                                 ₹{getNetAmount(parseFloat(requestAmount)).toLocaleString('en-IN')}
                               </span>
                             </div>
@@ -964,7 +964,7 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                   className="flex items-center justify-between p-3 border rounded-lg"
                 >
                   <div>
-                    <p className="font-medium">₹{Number(request.amount).toLocaleString('en-IN')}</p>
+                    <p className="font-medium font-sans">₹{Number(request.amount).toLocaleString('en-IN')}</p>
                     <p className="text-sm text-muted-foreground">
                       Requested on {format(new Date(request.created_at), 'MMM d, yyyy')}
                     </p>
@@ -990,7 +990,7 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
               <ul className="mt-1 text-blue-800 dark:text-blue-200 space-y-1">
                 <li>• Early payout requests are processed within 1-2 business days</li>
                 <li>• Only settled payments are available for early payout</li>
-                <li>• Minimum payout amount is ₹100</li>
+                <li>• Minimum payout amount is <span className="font-sans">₹100</span></li>
                 <li>• Regular payouts are processed automatically every week</li>
               </ul>
             </div>
