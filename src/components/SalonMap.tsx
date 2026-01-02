@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { supabase } from '@/integrations/supabase/client';
-import { MapPin, Navigation, Loader2 } from 'lucide-react';
+import { useLocation } from '@/contexts/LocationContext';
+import { MapPin, Navigation, Loader2, Locate } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { formatDistance, calculateDistance } from '@/lib/distance';
 
 interface SalonMapProps {
   coordinates: { lat: number; lng: number };
@@ -15,9 +17,12 @@ interface SalonMapProps {
 const SalonMap = ({ coordinates, salonName, address, className = '' }: SalonMapProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
+  const userMarker = useRef<mapboxgl.Marker | null>(null);
   const [mapboxToken, setMapboxToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showUserLocation, setShowUserLocation] = useState(false);
+  const { coordinates: userCoords, detectLocation, isDetecting } = useLocation();
 
   // Fetch Mapbox token from edge function
   useEffect(() => {
@@ -58,7 +63,7 @@ const SalonMap = ({ coordinates, salonName, address, className = '' }: SalonMapP
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/streets-v12',
       center: [coordinates.lng, coordinates.lat],
-      zoom: 15,
+      zoom: 14,
     });
 
     // Add navigation controls
@@ -69,23 +74,23 @@ const SalonMap = ({ coordinates, salonName, address, className = '' }: SalonMapP
       'top-right'
     );
 
-    // Create custom marker element
-    const markerEl = document.createElement('div');
-    markerEl.className = 'custom-salon-marker';
-    markerEl.innerHTML = `
+    // Create custom salon marker element
+    const salonMarkerEl = document.createElement('div');
+    salonMarkerEl.className = 'custom-salon-marker';
+    salonMarkerEl.innerHTML = `
       <div class="relative">
-        <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center shadow-lg animate-pulse">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <div class="w-12 h-12 bg-primary rounded-full flex items-center justify-center shadow-lg border-3 border-white">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
             <circle cx="12" cy="10" r="3"/>
           </svg>
         </div>
-        <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-primary rounded-full opacity-30 animate-ping"></div>
+        <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-4 bg-primary rounded-full opacity-30 animate-ping"></div>
       </div>
     `;
 
-    // Add marker
-    new mapboxgl.Marker(markerEl)
+    // Add salon marker
+    new mapboxgl.Marker(salonMarkerEl)
       .setLngLat([coordinates.lng, coordinates.lat])
       .setPopup(
         new mapboxgl.Popup({ offset: 25, closeButton: false })
@@ -103,6 +108,104 @@ const SalonMap = ({ coordinates, salonName, address, className = '' }: SalonMapP
       map.current?.remove();
     };
   }, [mapboxToken, coordinates, salonName, address]);
+
+  // Add/update user location marker
+  useEffect(() => {
+    if (!map.current || !userCoords || !showUserLocation) return;
+
+    // Remove existing user marker
+    if (userMarker.current) {
+      userMarker.current.remove();
+    }
+
+    // Create user location marker
+    const userMarkerEl = document.createElement('div');
+    userMarkerEl.className = 'user-location-marker';
+    userMarkerEl.innerHTML = `
+      <div class="relative">
+        <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center shadow-lg border-3 border-white">
+          <div class="w-4 h-4 bg-white rounded-full"></div>
+        </div>
+        <div class="absolute inset-0 bg-blue-500 rounded-full opacity-30 animate-ping"></div>
+      </div>
+    `;
+
+    const distance = calculateDistance(
+      userCoords.lat,
+      userCoords.lng,
+      coordinates.lat,
+      coordinates.lng
+    );
+
+    userMarker.current = new mapboxgl.Marker(userMarkerEl)
+      .setLngLat([userCoords.lng, userCoords.lat])
+      .setPopup(
+        new mapboxgl.Popup({ offset: 25, closeButton: false })
+          .setHTML(`
+            <div class="p-2">
+              <h3 class="font-semibold text-sm">📍 Your Location</h3>
+              <p class="text-xs text-gray-600 mt-1">${formatDistance(distance)} to salon</p>
+            </div>
+          `)
+      )
+      .addTo(map.current);
+
+    // Fit bounds to show both markers
+    const bounds = new mapboxgl.LngLatBounds();
+    bounds.extend([coordinates.lng, coordinates.lat]);
+    bounds.extend([userCoords.lng, userCoords.lat]);
+    
+    map.current.fitBounds(bounds, {
+      padding: { top: 60, bottom: 60, left: 40, right: 40 },
+      maxZoom: 15,
+    });
+
+    // Add route line between user and salon
+    if (map.current.getSource('route')) {
+      map.current.removeLayer('route');
+      map.current.removeSource('route');
+    }
+
+    map.current.addSource('route', {
+      type: 'geojson',
+      data: {
+        type: 'Feature',
+        properties: {},
+        geometry: {
+          type: 'LineString',
+          coordinates: [
+            [userCoords.lng, userCoords.lat],
+            [coordinates.lng, coordinates.lat]
+          ]
+        }
+      }
+    });
+
+    map.current.addLayer({
+      id: 'route',
+      type: 'line',
+      source: 'route',
+      layout: {
+        'line-join': 'round',
+        'line-cap': 'round'
+      },
+      paint: {
+        'line-color': '#3b82f6',
+        'line-width': 3,
+        'line-dasharray': [2, 2]
+      }
+    });
+
+  }, [userCoords, showUserLocation, coordinates]);
+
+  const handleShowUserLocation = async () => {
+    if (userCoords) {
+      setShowUserLocation(true);
+    } else {
+      await detectLocation({ showToast: true });
+      setShowUserLocation(true);
+    }
+  };
 
   const openGoogleMapsDirections = () => {
     window.open(
@@ -144,6 +247,26 @@ const SalonMap = ({ coordinates, salonName, address, className = '' }: SalonMapP
   return (
     <div className={`relative rounded-xl overflow-hidden ${className}`}>
       <div ref={mapContainer} className="absolute inset-0" />
+      
+      {/* User location button */}
+      <div className="absolute top-3 left-3 z-10">
+        <Button
+          size="sm"
+          variant={showUserLocation ? "default" : "secondary"}
+          onClick={handleShowUserLocation}
+          disabled={isDetecting}
+          className="shadow-lg"
+        >
+          {isDetecting ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <Locate className="w-4 h-4 mr-2" />
+          )}
+          {showUserLocation ? 'Location shown' : 'Show my location'}
+        </Button>
+      </div>
+
+      {/* Directions button */}
       <div className="absolute bottom-3 right-3 z-10">
         <Button
           size="sm"
@@ -154,12 +277,23 @@ const SalonMap = ({ coordinates, salonName, address, className = '' }: SalonMapP
           Directions
         </Button>
       </div>
+
+      {/* Distance badge */}
+      {showUserLocation && userCoords && (
+        <div className="absolute bottom-3 left-3 z-10 bg-card/90 backdrop-blur-sm px-3 py-2 rounded-lg shadow-lg">
+          <p className="text-xs text-muted-foreground">Distance</p>
+          <p className="font-semibold text-primary">
+            {formatDistance(calculateDistance(userCoords.lat, userCoords.lng, coordinates.lat, coordinates.lng))}
+          </p>
+        </div>
+      )}
+
       <style>{`
         .mapboxgl-popup-content {
           border-radius: 8px;
           box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
-        .custom-salon-marker {
+        .custom-salon-marker, .user-location-marker {
           cursor: pointer;
         }
       `}</style>
