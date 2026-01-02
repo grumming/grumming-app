@@ -835,34 +835,27 @@ const SalonPayoutManagement = () => {
                 </div>
               )}
 
-              {/* Payout Method Selection */}
+              {/* Requested Payout Method (Read-only) */}
               <div className="space-y-3">
-                <Label>Payout Method</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => setSelectedPayoutMethod('bank')}
-                    className={`p-3 border rounded-lg text-left transition-colors ${
-                      selectedPayoutMethod === 'bank' 
-                        ? 'border-primary bg-primary/5' 
-                        : 'hover:bg-muted'
-                    }`}
-                  >
-                    <Building2 className="w-5 h-5 mb-1" />
-                    <p className="font-medium text-sm">Bank Transfer</p>
-                    <p className="text-xs text-muted-foreground">1-2 business days</p>
-                  </button>
-                  <button
-                    onClick={() => setSelectedPayoutMethod('upi')}
-                    className={`p-3 border rounded-lg text-left transition-colors ${
-                      selectedPayoutMethod === 'upi' 
-                        ? 'border-primary bg-primary/5' 
-                        : 'hover:bg-muted'
-                    }`}
-                  >
-                    <Smartphone className="w-5 h-5 mb-1" />
-                    <p className="font-medium text-sm">UPI</p>
-                    <p className="text-xs text-muted-foreground">Instant transfer</p>
-                  </button>
+                <Label>Requested Payout Method</Label>
+                <div className="p-3 border rounded-lg border-primary bg-primary/5">
+                  {selectedPayout.payout_method === 'upi' || selectedPayout.upi_id ? (
+                    <div className="flex items-center gap-3">
+                      <Smartphone className="w-5 h-5 text-primary" />
+                      <div>
+                        <p className="font-medium text-sm">UPI Transfer</p>
+                        <p className="text-xs text-muted-foreground">Instant transfer</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      <Building2 className="w-5 h-5 text-primary" />
+                      <div>
+                        <p className="font-medium text-sm">Bank Transfer</p>
+                        <p className="text-xs text-muted-foreground">1-2 business days</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -881,25 +874,14 @@ const SalonPayoutManagement = () => {
                 </div>
               )}
 
-              {/* UPI ID */}
+              {/* UPI ID (Read-only) */}
               {selectedPayoutMethod === 'upi' && (
-                <div className="space-y-2">
-                  <Label>UPI ID</Label>
-                  <Input
-                    placeholder="yourname@upi"
-                    value={customUpiId}
-                    onChange={(e) => setCustomUpiId(e.target.value)}
-                  />
-                  {payoutBankAccount?.upi_id && customUpiId !== payoutBankAccount.upi_id && (
-                    <Button 
-                      variant="link" 
-                      size="sm" 
-                      className="h-auto p-0 text-xs"
-                      onClick={() => setCustomUpiId(payoutBankAccount.upi_id || '')}
-                    >
-                      Use saved UPI: {payoutBankAccount.upi_id}
-                    </Button>
-                  )}
+                <div className="p-3 border rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Smartphone className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">UPI ID</span>
+                  </div>
+                  <p className="text-sm font-mono">{customUpiId || selectedPayout.upi_id || payoutBankAccount?.upi_id || 'Not provided'}</p>
                 </div>
               )}
 
