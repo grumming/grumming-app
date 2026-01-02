@@ -24,22 +24,7 @@ function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-// Fetch whitelisted test phone numbers from database
-async function getWhitelistedPhone(supabase: any, phone: string): Promise<string | null> {
-  const { data, error } = await supabase
-    .from('test_phone_whitelist')
-    .select('otp_code')
-    .eq('phone', phone)
-    .eq('is_active', true)
-    .maybeSingle();
-
-  if (error) {
-    console.error('Error fetching whitelist:', error);
-    return null;
-  }
-
-  return data?.otp_code || null;
-}
+// NOTE: Test mode removed - all SMS sent via live providers
 
 // Send SMS via Fast2SMS (for Indian numbers)
 async function sendSMSViaFast2SMS(phone: string, otp: string): Promise<boolean> {
@@ -236,83 +221,38 @@ serve(async (req) => {
       );
     }
 
-    // Check if this is a whitelisted test number from database
-    const whitelistedOtp = await getWhitelistedPhone(supabase, phone);
-    const isWhitelisted = !!whitelistedOtp;
-    
-    if (!isWhitelisted) {
-      // Check rate limit only for non-whitelisted numbers
-      const rateLimitCutoff = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString();
-      const { data: recentAttempts, error: rateLimitError } = await supabase
-        .from('otp_rate_limits')
-        .select('*')
-        .eq('phone', phone)
-        .eq('attempt_type', 'send')
-        .gte('attempted_at', rateLimitCutoff);
+    // Check rate limit for all numbers (live mode)
+    const rateLimitCutoff = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString();
+    const { data: recentAttempts, error: rateLimitError } = await supabase
+      .from('otp_rate_limits')
+      .select('*')
+      .eq('phone', phone)
+      .eq('attempt_type', 'send')
+      .gte('attempted_at', rateLimitCutoff);
 
-      if (rateLimitError) {
-        console.error('Rate limit check error:', rateLimitError);
-      }
-
-      if (recentAttempts && recentAttempts.length >= MAX_SEND_ATTEMPTS) {
-        console.log(`Rate limit exceeded for ${phone}: ${recentAttempts.length} attempts in last minute`);
-        return new Response(
-          JSON.stringify({ error: 'Too many OTP requests. Please wait 1 minute before trying again.' }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Record this attempt
-      const { error: recordError } = await supabase
-        .from('otp_rate_limits')
-        .insert({
-          phone,
-          attempt_type: 'send',
-          ip_address: req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown',
-        });
-
-      if (recordError) {
-        console.error('Failed to record rate limit attempt:', recordError);
-      }
-    } else {
-      console.log(`Whitelisted test number detected: ${phone}, skipping rate limit`);
+    if (rateLimitError) {
+      console.error('Rate limit check error:', rateLimitError);
     }
 
-    // For whitelisted test numbers, use fixed OTP and skip SMS
-    if (isWhitelisted && whitelistedOtp) {
-      const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiry
-      console.log(`Using test OTP for whitelisted number: ${phone}`);
-
-      // Delete any existing OTP for this phone first
-      await supabase.from('phone_otps').delete().eq('phone', phone);
-
-      // Store test OTP in database
-      const { error: dbError } = await supabase
-        .from('phone_otps')
-        .insert({
-          phone,
-          otp_code: whitelistedOtp,
-          expires_at: expiresAt.toISOString(),
-          verified: false,
-        });
-
-      if (dbError) {
-        console.error('Database error:', dbError);
-        return new Response(
-          JSON.stringify({ error: 'Failed to generate OTP' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      console.log(`Test OTP stored for ${phone}, OTP: ${whitelistedOtp}`);
+    if (recentAttempts && recentAttempts.length >= MAX_SEND_ATTEMPTS) {
+      console.log(`Rate limit exceeded for ${phone}: ${recentAttempts.length} attempts in last minute`);
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: 'OTP sent successfully',
-          isTestNumber: true, // For debugging
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Too many OTP requests. Please wait 1 minute before trying again.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Record this attempt
+    const { error: recordError } = await supabase
+      .from('otp_rate_limits')
+      .insert({
+        phone,
+        attempt_type: 'send',
+        ip_address: req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown',
+      });
+
+    if (recordError) {
+      console.error('Failed to record rate limit attempt:', recordError);
     }
 
     // Generate OTP for regular numbers
