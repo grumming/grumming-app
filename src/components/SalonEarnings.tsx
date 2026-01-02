@@ -250,7 +250,7 @@ export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Building className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Platform Fees (10%)</span>
+              <span className="text-sm text-muted-foreground">Platform Commission (2%)</span>
             </div>
             <span className="text-sm font-medium">₹{stats.platformFees.toLocaleString()}</span>
           </div>
