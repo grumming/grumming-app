@@ -137,15 +137,17 @@ const Profile = () => {
         className="bg-gradient-to-b from-primary/5 to-transparent"
       >
         <div className="p-6 flex flex-col items-center text-center">
-          <div className="relative mb-4">
-            <Avatar className="w-24 h-24 ring-4 ring-primary/20 ring-offset-2 ring-offset-background shadow-xl">
-              <AvatarImage src={avatarUrl || undefined} alt={fullName} className="object-cover" />
-              <AvatarFallback className="bg-gradient-primary text-primary-foreground text-2xl font-bold">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-green-500 border-2 border-background flex items-center justify-center">
-              <div className="w-2.5 h-2.5 rounded-full bg-white" />
+          <div className="relative mb-4 flex items-center justify-center">
+            <div className="relative">
+              <Avatar className="w-24 h-24 ring-4 ring-primary/20 ring-offset-2 ring-offset-background shadow-xl overflow-hidden">
+                <AvatarImage src={avatarUrl || undefined} alt={fullName || 'User'} className="object-cover w-full h-full" />
+                <AvatarFallback className="bg-gradient-primary text-primary-foreground text-2xl font-bold">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-green-500 border-2 border-background flex items-center justify-center">
+                <div className="w-2.5 h-2.5 rounded-full bg-white" />
+              </div>
             </div>
           </div>
           
