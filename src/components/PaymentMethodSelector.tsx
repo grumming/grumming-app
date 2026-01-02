@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   CreditCard, Wallet, MapPin, Smartphone, 
-  SplitSquareVertical, Check, Info
+  SplitSquareVertical, Check, Info, FlaskConical
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { SavedPaymentMethodPicker } from './SavedPaymentMethodPicker';
 import { UpiAppIcons } from './UpiAppSelector';
+import { usePaymentTestMode } from '@/hooks/usePaymentTestMode';
 
 export type PaymentMethodType = 'online' | 'upi' | 'salon';
 
@@ -61,6 +62,7 @@ export function PaymentMethodSelector({
   selectedUpiAppId,
   onUpiAppSelect,
 }: PaymentMethodSelectorProps) {
+  const { isTestMode, simulateSuccess, isLoading: testModeLoading } = usePaymentTestMode();
   const maxWalletUsable = Math.min(walletBalance, totalAmount);
 
   const handleMethodSelect = (method: PaymentMethodType) => {
@@ -69,6 +71,27 @@ export function PaymentMethodSelector({
 
   return (
     <div className="space-y-5">
+      {/* Test Mode Indicator */}
+      {isTestMode && !testModeLoading && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30"
+        >
+          <FlaskConical className="w-5 h-5 text-amber-500" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
+              Test Mode Active
+            </p>
+            <p className="text-xs text-amber-600/70 dark:text-amber-400/70">
+              Payments are simulated • {simulateSuccess ? 'Will succeed' : 'Will fail'}
+            </p>
+          </div>
+          <Badge variant="outline" className="border-amber-500/50 text-amber-600 dark:text-amber-400 text-[10px]">
+            TEST
+          </Badge>
+        </motion.div>
+      )}
       {/* Payment Methods Grid */}
       <div className="grid grid-cols-3 gap-3">
         {paymentMethods.map((method) => {
