@@ -430,6 +430,87 @@ export type Database = {
         }
         Relationships: []
       }
+      payments: {
+        Row: {
+          amount: number
+          booking_id: string | null
+          captured_at: string | null
+          created_at: string
+          currency: string
+          fee_percentage: number
+          id: string
+          metadata: Json | null
+          payment_method: string | null
+          platform_fee: number
+          razorpay_order_id: string | null
+          razorpay_payment_id: string | null
+          salon_amount: number
+          salon_id: string | null
+          settled_at: string | null
+          settlement_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          booking_id?: string | null
+          captured_at?: string | null
+          created_at?: string
+          currency?: string
+          fee_percentage?: number
+          id?: string
+          metadata?: Json | null
+          payment_method?: string | null
+          platform_fee?: number
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          salon_amount?: number
+          salon_id?: string | null
+          settled_at?: string | null
+          settlement_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          booking_id?: string | null
+          captured_at?: string | null
+          created_at?: string
+          currency?: string
+          fee_percentage?: number
+          id?: string
+          metadata?: Json | null
+          payment_method?: string | null
+          platform_fee?: number
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          salon_amount?: number
+          salon_id?: string | null
+          settled_at?: string | null
+          settlement_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_salon_id_fkey"
+            columns: ["salon_id"]
+            isOneToOne: false
+            referencedRelation: "salons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       phone_otps: {
         Row: {
           created_at: string
@@ -767,6 +848,62 @@ export type Database = {
           },
         ]
       }
+      salon_bank_accounts: {
+        Row: {
+          account_holder_name: string
+          account_number: string
+          account_type: string | null
+          bank_name: string | null
+          created_at: string
+          id: string
+          ifsc_code: string
+          is_primary: boolean | null
+          is_verified: boolean | null
+          razorpay_fund_account_id: string | null
+          salon_id: string
+          updated_at: string
+          upi_id: string | null
+        }
+        Insert: {
+          account_holder_name: string
+          account_number: string
+          account_type?: string | null
+          bank_name?: string | null
+          created_at?: string
+          id?: string
+          ifsc_code: string
+          is_primary?: boolean | null
+          is_verified?: boolean | null
+          razorpay_fund_account_id?: string | null
+          salon_id: string
+          updated_at?: string
+          upi_id?: string | null
+        }
+        Update: {
+          account_holder_name?: string
+          account_number?: string
+          account_type?: string | null
+          bank_name?: string | null
+          created_at?: string
+          id?: string
+          ifsc_code?: string
+          is_primary?: boolean | null
+          is_verified?: boolean | null
+          razorpay_fund_account_id?: string | null
+          salon_id?: string
+          updated_at?: string
+          upi_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_bank_accounts_salon_id_fkey"
+            columns: ["salon_id"]
+            isOneToOne: false
+            referencedRelation: "salons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       salon_owners: {
         Row: {
           created_at: string
@@ -792,6 +929,71 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "salon_owners_salon_id_fkey"
+            columns: ["salon_id"]
+            isOneToOne: false
+            referencedRelation: "salons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_payouts: {
+        Row: {
+          amount: number
+          bank_account_id: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          payout_method: string | null
+          period_end: string | null
+          period_start: string | null
+          processed_at: string | null
+          processed_by: string | null
+          razorpay_fund_account_id: string | null
+          razorpay_payout_id: string | null
+          salon_id: string
+          status: string
+          updated_at: string
+          upi_id: string | null
+        }
+        Insert: {
+          amount: number
+          bank_account_id?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          payout_method?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          razorpay_fund_account_id?: string | null
+          razorpay_payout_id?: string | null
+          salon_id: string
+          status?: string
+          updated_at?: string
+          upi_id?: string | null
+        }
+        Update: {
+          amount?: number
+          bank_account_id?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          payout_method?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          razorpay_fund_account_id?: string | null
+          razorpay_payout_id?: string | null
+          salon_id?: string
+          status?: string
+          updated_at?: string
+          upi_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_payouts_salon_id_fkey"
             columns: ["salon_id"]
             isOneToOne: false
             referencedRelation: "salons"
@@ -909,6 +1111,45 @@ export type Database = {
           status?: string
           total_reviews?: number | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      settlements: {
+        Row: {
+          amount: number
+          created_at: string
+          fees: number
+          id: string
+          razorpay_settlement_id: string | null
+          settled_at: string | null
+          status: string
+          tax: number
+          updated_at: string
+          utr: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          fees?: number
+          id?: string
+          razorpay_settlement_id?: string | null
+          settled_at?: string | null
+          status?: string
+          tax?: number
+          updated_at?: string
+          utr?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          fees?: number
+          id?: string
+          razorpay_settlement_id?: string | null
+          settled_at?: string | null
+          status?: string
+          tax?: number
+          updated_at?: string
+          utr?: string | null
         }
         Relationships: []
       }
