@@ -74,10 +74,9 @@ export function BookingPaymentSheet({
 
   const getPaymentMethodLabel = (method: PaymentMethodType) => {
     switch (method) {
-      case 'online': return 'Card/Net Banking';
       case 'upi': return 'UPI';
       case 'salon': return 'Pay at Salon';
-      default: return 'Online';
+      default: return 'UPI';
     }
   };
 
@@ -134,8 +133,8 @@ export function BookingPaymentSheet({
         }
       }
 
-      // Handle online/UPI payment
-      if (paymentMethod === 'online' || paymentMethod === 'upi') {
+      // Handle UPI payment
+      if (paymentMethod === 'upi') {
         const result = await initiatePayment({
           amount: amountToPay,
           bookingId: booking.id,
