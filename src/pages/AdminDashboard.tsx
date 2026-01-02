@@ -39,6 +39,7 @@ import PromoCodeManagement from '@/components/admin/PromoCodeManagement';
 import PaymentManagement from '@/components/admin/PaymentManagement';
 import SalonPayoutManagement from '@/components/admin/SalonPayoutManagement';
 import { CommissionReports } from '@/components/admin/CommissionReports';
+import { SalonCommissionReport } from '@/components/admin/SalonCommissionReport';
 import { getDisplayContact } from '@/utils/displayUtils';
 
 interface UserProfile {
@@ -510,6 +511,7 @@ const AdminDashboard = () => {
             <TabsContent value="payments" className="space-y-8">
               <PaymentManagement />
               <CommissionReports />
+              <SalonCommissionReport />
             </TabsContent>
 
             {/* Payouts Tab */}
