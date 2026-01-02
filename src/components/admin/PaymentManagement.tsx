@@ -54,6 +54,10 @@ interface PaymentStats {
   settledAmount: number;
   platformEarnings: number;
   salonPayable: number;
+  onlinePayments: number;
+  cashPayments: number;
+  onlineCommission: number;
+  cashCommission: number;
 }
 
 const PaymentManagement = () => {
@@ -66,7 +70,11 @@ const PaymentManagement = () => {
     capturedAmount: 0,
     settledAmount: 0,
     platformEarnings: 0,
-    salonPayable: 0
+    salonPayable: 0,
+    onlinePayments: 0,
+    cashPayments: 0,
+    onlineCommission: 0,
+    cashCommission: 0
   });
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -93,14 +101,22 @@ const PaymentManagement = () => {
       setPayments(paymentsData);
 
       // Calculate stats
+      const capturedOrSettled = paymentsData.filter(p => ['captured', 'settled'].includes(p.status));
+      const onlinePaymentsData = capturedOrSettled.filter(p => p.payment_method !== 'cash');
+      const cashPaymentsData = capturedOrSettled.filter(p => p.payment_method === 'cash');
+      
       const statsCalc: PaymentStats = {
         totalPayments: paymentsData.length,
         totalAmount: paymentsData.reduce((sum, p) => sum + p.amount, 0),
         pendingAmount: paymentsData.filter(p => p.status === 'pending').reduce((sum, p) => sum + p.amount, 0),
         capturedAmount: paymentsData.filter(p => p.status === 'captured').reduce((sum, p) => sum + p.amount, 0),
         settledAmount: paymentsData.filter(p => p.status === 'settled').reduce((sum, p) => sum + p.amount, 0),
-        platformEarnings: paymentsData.filter(p => ['captured', 'settled'].includes(p.status)).reduce((sum, p) => sum + p.platform_fee, 0),
-        salonPayable: paymentsData.filter(p => p.status === 'captured').reduce((sum, p) => sum + p.salon_amount, 0)
+        platformEarnings: capturedOrSettled.reduce((sum, p) => sum + p.platform_fee, 0),
+        salonPayable: paymentsData.filter(p => p.status === 'captured').reduce((sum, p) => sum + p.salon_amount, 0),
+        onlinePayments: onlinePaymentsData.length,
+        cashPayments: cashPaymentsData.length,
+        onlineCommission: onlinePaymentsData.reduce((sum, p) => sum + p.platform_fee, 0),
+        cashCommission: cashPaymentsData.reduce((sum, p) => sum + p.platform_fee, 0)
       };
       setStats(statsCalc);
     } catch (err) {
@@ -187,7 +203,7 @@ const PaymentManagement = () => {
         <StatCard
           title="Platform Earnings"
           value={`₹${stats.platformEarnings.toLocaleString()}`}
-          subtitle="Commission earned"
+          subtitle="2% commission"
           icon={TrendingUp}
           color="bg-green-500"
         />
@@ -206,6 +222,45 @@ const PaymentManagement = () => {
           color="bg-blue-500"
         />
       </div>
+
+      {/* Commission Summary */}
+      <Card className="bg-gradient-to-br from-green-500/10 to-emerald-500/5 border-green-500/20">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-green-600" />
+            Platform Commission Summary (2%)
+          </CardTitle>
+          <CardDescription>Breakdown of commission earnings by payment type</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 bg-background/50 rounded-lg border border-border/50">
+              <div className="flex items-center gap-2 mb-2">
+                <CreditCard className="w-4 h-4 text-primary" />
+                <span className="text-sm text-muted-foreground">Online Payments</span>
+              </div>
+              <p className="text-xl font-bold text-primary">₹{stats.onlineCommission.toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground mt-1">{stats.onlinePayments} transactions</p>
+            </div>
+            <div className="p-4 bg-background/50 rounded-lg border border-border/50">
+              <div className="flex items-center gap-2 mb-2">
+                <Wallet className="w-4 h-4 text-amber-600" />
+                <span className="text-sm text-muted-foreground">Cash Payments</span>
+              </div>
+              <p className="text-xl font-bold text-amber-600">₹{stats.cashCommission.toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground mt-1">{stats.cashPayments} transactions</p>
+            </div>
+            <div className="p-4 bg-green-500/10 rounded-lg border border-green-500/20">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp className="w-4 h-4 text-green-600" />
+                <span className="text-sm text-muted-foreground">Total Commission</span>
+              </div>
+              <p className="text-2xl font-bold text-green-600">₹{stats.platformEarnings.toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground mt-1">{stats.onlinePayments + stats.cashPayments} total transactions</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Filters */}
       <Card>
