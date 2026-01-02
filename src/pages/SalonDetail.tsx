@@ -8,6 +8,7 @@ import {
   Tag, Loader2, Wallet, Ticket, Navigation, Car, ChevronDown, Sparkles
 } from 'lucide-react';
 import BackToTop from '@/components/BackToTop';
+import SalonMap from '@/components/SalonMap';
 import { useLocation } from '@/contexts/LocationContext';
 import { calculateDistance, formatDistance, estimateTravelTime } from '@/lib/distance';
 import { PaymentMethodSelector, PaymentMethodType } from '@/components/PaymentMethodSelector';
@@ -1662,21 +1663,15 @@ const SalonDetail = () => {
               </CardContent>
             </Card>
 
-            {/* Map Placeholder */}
-            <div className="h-64 bg-muted rounded-xl flex items-center justify-center">
-              <div className="text-center">
-                <MapPin className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
-                <p className="text-muted-foreground">Map view coming soon</p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-2"
-                  onClick={() => window.open(`https://maps.google.com?q=${encodeURIComponent(salon.address)}`, '_blank')}
-                >
-                  Open in Google Maps
-                </Button>
-              </div>
-            </div>
+            {/* Mapbox Map */}
+            {salon.coordinates && (
+              <SalonMap
+                coordinates={salon.coordinates}
+                salonName={salon.name}
+                address={salon.address}
+                className="h-64"
+              />
+            )}
 
             <Card>
               <CardContent className="p-4">
