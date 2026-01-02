@@ -75,7 +75,7 @@ const SalonPayoutManagement = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isProcessing, setIsProcessing] = useState(false);
   const [expandedSalon, setExpandedSalon] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('requests');
+  const [activeTab, setActiveTab] = useState('instant');
   
   // Payout approval dialog
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
@@ -350,6 +350,13 @@ const SalonPayoutManagement = () => {
 
   const pendingRequests = payouts.filter(p => p.status === 'pending');
   const processingPayouts = payouts.filter(p => p.status === 'processing');
+  
+  // Separate instant and normal payouts
+  const instantPendingRequests = pendingRequests.filter(p => p.payout_method === 'instant_upi');
+  const normalPendingRequests = pendingRequests.filter(p => p.payout_method !== 'instant_upi');
+  const instantProcessingPayouts = processingPayouts.filter(p => p.payout_method === 'instant_upi');
+  const normalProcessingPayouts = processingPayouts.filter(p => p.payout_method !== 'instant_upi');
+  
   const totalPending = salonEarnings.reduce((sum, s) => sum + s.pending_payout, 0);
   const totalPaid = payouts.filter(p => p.status === 'completed').reduce((sum, p) => sum + p.amount, 0);
 
@@ -416,12 +423,22 @@ const SalonPayoutManagement = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="requests" className="relative">
-            Payout Requests
-            {pendingRequests.length > 0 && (
+        <TabsList className="flex-wrap h-auto gap-1">
+          <TabsTrigger value="instant" className="relative">
+            <Smartphone className="w-4 h-4 mr-1" />
+            Instant Payouts
+            {instantPendingRequests.length > 0 && (
               <Badge variant="destructive" className="ml-2 h-5 min-w-5 px-1.5 text-xs">
-                {pendingRequests.length}
+                {instantPendingRequests.length}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="normal" className="relative">
+            <Building2 className="w-4 h-4 mr-1" />
+            Normal Payouts
+            {normalPendingRequests.length > 0 && (
+              <Badge variant="destructive" className="ml-2 h-5 min-w-5 px-1.5 text-xs">
+                {normalPendingRequests.length}
               </Badge>
             )}
           </TabsTrigger>
@@ -433,16 +450,16 @@ const SalonPayoutManagement = () => {
           </TabsTrigger>
         </TabsList>
 
-        {/* Payout Requests Tab */}
-        <TabsContent value="requests" className="space-y-4">
+        {/* Instant Payouts Tab */}
+        <TabsContent value="instant" className="space-y-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2">
-                  <ArrowDownToLine className="w-5 h-5" />
-                  Payout Requests
+                  <Smartphone className="w-5 h-5 text-purple-600" />
+                  Instant Payout Requests
                 </CardTitle>
-                <CardDescription>Review and process early payout requests from salon owners</CardDescription>
+                <CardDescription>Priority requests with 1% convenience fee - process within minutes</CardDescription>
               </div>
               <Button variant="outline" onClick={fetchData}>
                 <RefreshCw className="w-4 h-4 mr-2" />
@@ -454,17 +471,147 @@ const SalonPayoutManagement = () => {
                 <div className="flex justify-center py-12">
                   <Loader2 className="w-8 h-8 animate-spin text-primary" />
                 </div>
-              ) : pendingRequests.length === 0 && processingPayouts.length === 0 ? (
+              ) : instantPendingRequests.length === 0 && instantProcessingPayouts.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <CheckCircle className="w-12 h-12 mx-auto mb-4 text-green-500 opacity-50" />
-                  <p className="font-medium">All caught up!</p>
-                  <p className="text-sm">No pending payout requests</p>
+                  <p className="font-medium">No instant payout requests</p>
+                  <p className="text-sm">All instant requests have been processed</p>
                 </div>
               ) : (
                 <ScrollArea className="h-[500px]">
                   <div className="space-y-3">
-                    {/* Pending requests first */}
-                    {pendingRequests.map((payout) => (
+                    {/* Pending instant requests */}
+                    {instantPendingRequests.map((payout) => (
+                      <motion.div
+                        key={payout.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="border-2 border-purple-200 dark:border-purple-800 rounded-lg p-4 hover:bg-purple-50/50 dark:hover:bg-purple-900/20 transition-colors"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-start gap-4">
+                            <div className="w-12 h-12 rounded-lg bg-purple-100 dark:bg-purple-900/30 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                              <Smartphone className="w-6 h-6 text-purple-600" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="font-semibold text-lg">₹{payout.amount.toLocaleString()}</p>
+                                <Badge className="bg-purple-100 text-purple-700 border-purple-200">
+                                  Instant
+                                </Badge>
+                                {getStatusBadge(payout.status)}
+                              </div>
+                              <p className="font-medium">{(payout.salon as any)?.name || 'Unknown Salon'}</p>
+                              <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
+                                <span className="flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {getWaitTime(payout.created_at)}
+                                </span>
+                                <span className="flex items-center gap-1 text-purple-600">
+                                  <Smartphone className="w-3 h-3" />
+                                  Instant UPI
+                                </span>
+                              </div>
+                              {payout.upi_id && (
+                                <p className="text-sm text-muted-foreground mt-1">UPI: {payout.upi_id}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleRejectPayout(payout.id)}
+                            >
+                              <XCircle className="w-4 h-4 mr-1" />
+                              Reject
+                            </Button>
+                            <Button 
+                              size="sm"
+                              className="bg-purple-600 hover:bg-purple-700"
+                              onClick={() => handleOpenApprovalDialog(payout)}
+                            >
+                              <CheckCircle className="w-4 h-4 mr-1" />
+                              Approve
+                            </Button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                    
+                    {/* Processing instant payouts */}
+                    {instantProcessingPayouts.length > 0 && (
+                      <>
+                        <Separator className="my-4" />
+                        <p className="text-sm font-medium text-muted-foreground mb-2">Processing</p>
+                        {instantProcessingPayouts.map((payout) => (
+                          <motion.div
+                            key={payout.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="border rounded-lg p-4 bg-purple-50/50 dark:bg-purple-900/10"
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-start gap-4">
+                                <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center">
+                                  <Loader2 className="w-5 h-5 text-purple-600 animate-spin" />
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <p className="font-semibold">₹{payout.amount.toLocaleString()}</p>
+                                    {getStatusBadge(payout.status)}
+                                  </div>
+                                  <p className="text-sm">{(payout.salon as any)?.name || 'Unknown Salon'}</p>
+                                  <p className="text-xs text-muted-foreground mt-1">UPI: {payout.upi_id}</p>
+                                </div>
+                              </div>
+                              <Button size="sm" onClick={() => handleCompletePayout(payout.id)}>
+                                Mark Complete
+                              </Button>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                </ScrollArea>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Normal Payouts Tab */}
+        <TabsContent value="normal" className="space-y-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <ArrowDownToLine className="w-5 h-5" />
+                  Normal Payout Requests
+                </CardTitle>
+                <CardDescription>Standard bank transfer and UPI payout requests</CardDescription>
+              </div>
+              <Button variant="outline" onClick={fetchData}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : normalPendingRequests.length === 0 && normalProcessingPayouts.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <CheckCircle className="w-12 h-12 mx-auto mb-4 text-green-500 opacity-50" />
+                  <p className="font-medium">All caught up!</p>
+                  <p className="text-sm">No pending normal payout requests</p>
+                </div>
+              ) : (
+                <ScrollArea className="h-[500px]">
+                  <div className="space-y-3">
+                    {/* Pending normal requests */}
+                    {normalPendingRequests.map((payout) => (
                       <motion.div
                         key={payout.id}
                         initial={{ opacity: 0, y: 10 }}
@@ -534,12 +681,12 @@ const SalonPayoutManagement = () => {
                       </motion.div>
                     ))}
                     
-                    {/* Processing payouts */}
-                    {processingPayouts.length > 0 && (
+                    {/* Processing normal payouts */}
+                    {normalProcessingPayouts.length > 0 && (
                       <>
                         <Separator className="my-4" />
                         <p className="text-sm font-medium text-muted-foreground mb-2">Processing</p>
-                        {processingPayouts.map((payout) => (
+                        {normalProcessingPayouts.map((payout) => (
                           <motion.div
                             key={payout.id}
                             initial={{ opacity: 0, y: 10 }}
