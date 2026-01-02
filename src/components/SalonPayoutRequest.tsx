@@ -353,46 +353,57 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                     Request Payout
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-lg">
-                  <DialogHeader className="pb-2">
-                    <DialogTitle className="flex items-center gap-2 text-xl">
-                      <div className="p-2 rounded-full bg-primary/10">
+                <DialogContent className="max-w-lg max-h-[90vh] flex flex-col">
+                  <DialogHeader className="pb-4 border-b">
+                    <DialogTitle className="flex items-center gap-3 text-xl">
+                      <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 shadow-sm">
                         <ArrowUpRight className="h-5 w-5 text-primary" />
                       </div>
-                      Request Early Payout
+                      Request Payout
                     </DialogTitle>
                     <DialogDescription className="flex items-center gap-2 pt-2">
-                      <IndianRupee className="h-4 w-4" />
-                      Available: <span className="font-semibold text-green-600">₹{pendingBalance.availableForPayout.toLocaleString('en-IN')}</span>
+                      <div className="flex items-center gap-1.5 text-green-600 bg-green-50 dark:bg-green-950/30 px-3 py-1.5 rounded-full">
+                        <IndianRupee className="h-4 w-4" />
+                        <span className="font-semibold">₹{pendingBalance.availableForPayout.toLocaleString('en-IN')}</span>
+                        <span className="text-muted-foreground">available</span>
+                      </div>
                     </DialogDescription>
                   </DialogHeader>
                   
-                  <div className="space-y-5 py-4">
-                    {/* Amount Input with Quick Select */}
+                  <div className="flex-1 overflow-y-auto space-y-5 py-4 px-1">
+                    {/* Amount Input - Professional Design */}
                     <div className="space-y-3">
-                      <Label htmlFor="amount" className="text-sm font-medium">Payout Amount</Label>
+                      <Label htmlFor="amount" className="text-sm font-medium flex items-center gap-2">
+                        <IndianRupee className="h-4 w-4 text-muted-foreground" />
+                        Enter Amount
+                      </Label>
                       <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">₹</span>
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center w-8 h-8 rounded-lg bg-muted text-muted-foreground font-bold text-lg">
+                          ₹
+                        </div>
                         <Input
                           id="amount"
                           type="number"
-                          placeholder="0"
-                          className="pl-7 text-lg font-semibold h-12"
+                          placeholder="0.00"
+                          className="pl-16 pr-4 text-2xl font-bold h-16 border-2 focus:border-primary rounded-xl"
                           value={requestAmount}
                           onChange={(e) => setRequestAmount(e.target.value)}
                           min={100}
                           max={pendingBalance.availableForPayout}
                         />
                       </div>
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>Min: ₹100</span>
-                        <button 
+                      <div className="flex items-center justify-between px-1">
+                        <span className="text-xs text-muted-foreground">Minimum: ₹100</span>
+                        <Button 
                           type="button"
+                          variant="outline"
+                          size="sm"
                           onClick={() => setRequestAmount(pendingBalance.availableForPayout.toString())}
-                          className="text-primary hover:underline font-medium"
+                          className="h-7 text-xs font-medium text-primary border-primary/30 hover:bg-primary/5"
                         >
+                          <Wallet className="h-3 w-3 mr-1.5" />
                           Withdraw All
-                        </button>
+                        </Button>
                       </div>
                     </div>
 
@@ -612,7 +623,7 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                     </AnimatePresence>
                   </div>
 
-                  <DialogFooter className="gap-2 sm:gap-2">
+                  <DialogFooter className="pt-4 border-t gap-2 sm:gap-2">
                     <Button variant="outline" onClick={() => setDialogOpen(false)} className="flex-1 sm:flex-none">
                       Cancel
                     </Button>
