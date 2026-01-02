@@ -463,49 +463,6 @@ const AdminDashboard = () => {
                   </div>
                 </CardContent>
               </Card>
-
-              {/* Live Activity Feed and Recent Users Grid */}
-              <div className="grid lg:grid-cols-2 gap-6">
-                {/* Live Activity Feed */}
-                <LiveActivityFeed />
-
-                {/* Recent Users */}
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="text-lg">Recent Users</CardTitle>
-                    <Button variant="ghost" size="sm" className="text-xs" onClick={() => document.querySelector<HTMLButtonElement>('[data-value="users"]')?.click()}>
-                      View All <ChevronRight className="w-4 h-4 ml-1" />
-                    </Button>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {users.slice(0, 5).map((u) => (
-                        <div 
-                          key={u.id} 
-                          className="flex items-center justify-between p-3 bg-muted/30 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
-                          onClick={() => handleViewUser(u)}
-                        >
-                          <div className="flex items-center gap-3">
-                            <Avatar className="w-10 h-10">
-                              <AvatarImage src={u.avatar_url || ''} />
-                              <AvatarFallback>
-                                {u.full_name?.charAt(0) || u.phone?.charAt(0) || 'U'}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-medium text-sm">{u.full_name || 'Unnamed User'}</p>
-                              <p className="text-xs text-muted-foreground">{getDisplayContact(u.phone, u.email) || 'No contact'}</p>
-                            </div>
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            {format(new Date(u.created_at), 'MMM d')}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
             </TabsContent>
 
             {/* Payments Tab */}
