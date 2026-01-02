@@ -239,6 +239,45 @@ const PaymentManagement = () => {
         />
       </div>
 
+      {/* Captured vs Settled Breakdown */}
+      <Card className="bg-gradient-to-br from-blue-500/10 to-indigo-500/5 border-blue-500/20">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Building2 className="w-5 h-5 text-blue-600" />
+            Settlement Status Breakdown
+          </CardTitle>
+          <CardDescription>Captured payments awaiting settlement vs completed settlements</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 bg-background/50 rounded-lg border border-yellow-500/30">
+              <div className="flex items-center gap-2 mb-2">
+                <Clock className="w-4 h-4 text-yellow-600" />
+                <span className="text-sm text-muted-foreground">Captured (Pending)</span>
+              </div>
+              <p className="text-xl font-bold font-sans text-yellow-600">₹{stats.capturedAmount.toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground mt-1">Awaiting bank settlement</p>
+            </div>
+            <div className="p-4 bg-background/50 rounded-lg border border-green-500/30">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle className="w-4 h-4 text-green-600" />
+                <span className="text-sm text-muted-foreground">Settled (Completed)</span>
+              </div>
+              <p className="text-xl font-bold font-sans text-green-600">₹{stats.settledAmount.toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground mt-1">Transferred to bank</p>
+            </div>
+            <div className="p-4 bg-blue-500/10 rounded-lg border border-blue-500/20">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp className="w-4 h-4 text-blue-600" />
+                <span className="text-sm text-muted-foreground">Total Processed</span>
+              </div>
+              <p className="text-2xl font-bold font-sans text-blue-600">₹{(stats.capturedAmount + stats.settledAmount).toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground mt-1">Captured + Settled</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Commission Summary */}
       <Card className="bg-gradient-to-br from-green-500/10 to-emerald-500/5 border-green-500/20">
         <CardHeader className="pb-3">
