@@ -40,6 +40,7 @@ import PaymentManagement from '@/components/admin/PaymentManagement';
 import SalonPayoutManagement from '@/components/admin/SalonPayoutManagement';
 import { CommissionReports } from '@/components/admin/CommissionReports';
 import { SalonCommissionReport } from '@/components/admin/SalonCommissionReport';
+import RecentUsers from '@/components/admin/RecentUsers';
 import { getDisplayContact } from '@/utils/displayUtils';
 
 interface UserProfile {
@@ -569,6 +570,18 @@ const AdminDashboard = () => {
 
             {/* Tools Tab */}
             <TabsContent value="tools" className="space-y-6">
+              {/* Live Activity & Recent Users */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <LiveActivityFeed />
+                <RecentUsers 
+                  onViewAll={() => {
+                    const usersTab = document.querySelector<HTMLButtonElement>('[data-value="users"]') || 
+                                      document.querySelector<HTMLButtonElement>('[value="users"]');
+                    if (usersTab) usersTab.click();
+                  }} 
+                />
+              </div>
+
               {/* Test Phone Whitelist */}
               <TestPhoneWhitelist />
 
