@@ -24,7 +24,27 @@ function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-// NOTE: Test mode removed - all SMS sent via live providers
+// Check if phone is in test whitelist (dynamic from database)
+async function getTestPhoneOtp(supabase: any, phone: string): Promise<string | null> {
+  try {
+    const { data, error } = await supabase
+      .from('test_phone_whitelist')
+      .select('otp_code, is_active')
+      .eq('phone', phone)
+      .eq('is_active', true)
+      .single();
+
+    if (error || !data) {
+      return null;
+    }
+
+    console.log(`Test phone detected: ${phone}, using fixed OTP`);
+    return data.otp_code;
+  } catch (error) {
+    console.error('Error checking test whitelist:', error);
+    return null;
+  }
+}
 
 // Send SMS via Fast2SMS (for Indian numbers)
 async function sendSMSViaFast2SMS(phone: string, otp: string): Promise<boolean> {
@@ -255,7 +275,46 @@ serve(async (req) => {
       console.error('Failed to record rate limit attempt:', recordError);
     }
 
-    // Generate OTP for regular numbers
+    // Check if this is a test phone number
+    const testOtp = await getTestPhoneOtp(supabase, phone);
+    
+    if (testOtp) {
+      // Test phone - use fixed OTP from whitelist, skip SMS
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+      
+      // Delete any existing OTP for this phone first
+      await supabase.from('phone_otps').delete().eq('phone', phone);
+      
+      // Store test OTP in database
+      const { error: dbError } = await supabase
+        .from('phone_otps')
+        .insert({
+          phone,
+          otp_code: testOtp,
+          expires_at: expiresAt.toISOString(),
+          verified: false,
+        });
+
+      if (dbError) {
+        console.error('Database error:', dbError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to generate OTP' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log(`Test mode: OTP stored for ${phone}, no SMS sent`);
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: 'OTP sent successfully',
+          isTestMode: true,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Generate OTP for regular numbers (live mode)
     const otp = generateOTP();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiry
     console.log(`Generated OTP for phone: ${phone}, expires at: ${expiresAt.toISOString()}`);
