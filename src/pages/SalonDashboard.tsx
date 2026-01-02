@@ -39,6 +39,7 @@ import { SalonEarnings } from '@/components/SalonEarnings';
 import { SalonBankAccountManager } from '@/components/SalonBankAccountManager';
 import SalonPayoutRequest from '@/components/SalonPayoutRequest';
 import { SalonPayoutHistory } from '@/components/SalonPayoutHistory';
+import { PayoutNotificationCenter } from '@/components/PayoutNotificationCenter';
 
 interface Booking {
   id: string;
@@ -804,7 +805,10 @@ const SalonDashboard = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Payout Notification Center */}
+              <PayoutNotificationCenter />
+              
               {/* Salon Selector */}
               {ownedSalons.length > 1 && (
                 <Select value={selectedSalonId || ''} onValueChange={setSelectedSalonId}>
