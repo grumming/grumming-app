@@ -593,7 +593,7 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                         key="form"
                         initial={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="flex flex-col h-full"
+                        className="flex flex-col min-h-0 h-full"
                       >
                         <DialogHeader className="pb-4 border-b">
                           <DialogTitle className="flex items-center gap-3 text-xl">
@@ -611,7 +611,7 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                           </DialogDescription>
                         </DialogHeader>
                         
-                        <div className="flex-1 overflow-y-auto space-y-5 py-4 px-1">
+                        <div className="flex-1 min-h-0 overflow-y-auto space-y-5 py-4 px-1">
                           {/* Amount Input - Professional Design */}
                           <div className="space-y-3">
                             <Label htmlFor="amount" className="text-sm font-medium flex items-center gap-2">
