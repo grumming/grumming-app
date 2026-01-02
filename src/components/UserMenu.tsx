@@ -59,7 +59,7 @@ const UserMenu = () => {
     const { count } = await supabase
       .from('salons')
       .select('*', { count: 'exact', head: true })
-      .eq('status', 'pending');
+      .eq('is_active', false);
     
     setPendingCount(count || 0);
   };
