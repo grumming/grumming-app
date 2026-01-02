@@ -61,12 +61,48 @@ serve(async (req) => {
       const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-      // Fetch booking to get amount
-      const { data: booking } = await supabase
+      // Fetch booking details
+      const { data: booking, error: bookingError } = await supabase
         .from('bookings')
-        .select('service_price')
+        .select('service_price, user_id, salon_id, salon_name')
         .eq('id', booking_id)
         .single();
+
+      if (bookingError) {
+        console.error('Failed to fetch booking:', bookingError);
+        throw new Error('Booking not found');
+      }
+
+      const amount = booking.service_price;
+      const feePercentage = 10; // Platform takes 10%
+      const platformFee = Math.round(amount * feePercentage) / 100;
+      const salonAmount = amount - platformFee;
+
+      // Create payment record in payments table
+      const { error: paymentError } = await supabase
+        .from('payments')
+        .insert({
+          booking_id,
+          user_id: booking.user_id,
+          salon_id: booking.salon_id,
+          amount,
+          currency: 'INR',
+          status: 'captured',
+          razorpay_order_id,
+          razorpay_payment_id,
+          payment_method: 'razorpay',
+          platform_fee: platformFee,
+          salon_amount: salonAmount,
+          fee_percentage: feePercentage,
+          captured_at: new Date().toISOString(),
+        });
+
+      if (paymentError) {
+        console.error('Failed to create payment record:', paymentError);
+        // Continue - don't fail the whole payment for this
+      } else {
+        console.log('Payment record created successfully');
+      }
 
       // Store payment_id for future refunds and update status
       const { error: updateError } = await supabase
@@ -94,7 +130,7 @@ serve(async (req) => {
             body: JSON.stringify({
               booking_id,
               payment_id: razorpay_payment_id,
-              amount: booking?.service_price || 0,
+              amount: booking.service_price,
             }),
           });
           
