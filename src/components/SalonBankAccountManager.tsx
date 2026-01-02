@@ -1,23 +1,14 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Building2, Plus, Trash2, Check, Loader2, CreditCard, 
-  AlertCircle, Shield, Edit2, X, Smartphone, Zap
+  Building2, Plus, Trash2, Check, Loader2, 
+  AlertCircle, Shield, Smartphone, Zap, Star, ChevronDown, Save, X
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
@@ -36,6 +27,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -82,7 +78,7 @@ type AccountMode = 'bank' | 'upi';
 export function SalonBankAccountManager({ salonId, salonName }: SalonBankAccountManagerProps) {
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<BankAccountForm>(initialFormState);
   const [formErrors, setFormErrors] = useState<Partial<BankAccountForm>>({});
@@ -115,7 +111,6 @@ export function SalonBankAccountManager({ salonId, salonName }: SalonBankAccount
     const errors: Partial<BankAccountForm> = {};
 
     if (accountMode === 'upi') {
-      // UPI-only validation
       if (!formData.account_holder_name.trim()) {
         errors.account_holder_name = 'Name is required';
       }
@@ -125,7 +120,6 @@ export function SalonBankAccountManager({ salonId, salonName }: SalonBankAccount
         errors.upi_id = 'Invalid UPI ID format (e.g., name@upi)';
       }
     } else {
-      // Bank account validation
       if (!formData.account_holder_name.trim()) {
         errors.account_holder_name = 'Account holder name is required';
       }
@@ -155,7 +149,7 @@ export function SalonBankAccountManager({ salonId, salonName }: SalonBankAccount
     return Object.keys(errors).length === 0;
   };
 
-  const handleAddBankAccount = async () => {
+  const handleSaveAccount = async () => {
     if (!validateForm()) return;
 
     setIsSubmitting(true);
@@ -163,7 +157,6 @@ export function SalonBankAccountManager({ salonId, salonName }: SalonBankAccount
       const isPrimary = bankAccounts.length === 0;
 
       if (accountMode === 'upi') {
-        // Add UPI-only payout method
         const { error } = await supabase.from('salon_bank_accounts').insert({
           salon_id: salonId,
           account_holder_name: formData.account_holder_name.trim(),
@@ -176,9 +169,8 @@ export function SalonBankAccountManager({ salonId, salonName }: SalonBankAccount
         });
 
         if (error) throw error;
-        toast.success('UPI ID added successfully for instant payouts');
+        toast.success('UPI ID added successfully for instant payouts!');
       } else {
-        // Add bank account
         const { error } = await supabase.from('salon_bank_accounts').insert({
           salon_id: salonId,
           account_holder_name: formData.account_holder_name.trim(),
@@ -191,10 +183,10 @@ export function SalonBankAccountManager({ salonId, salonName }: SalonBankAccount
         });
 
         if (error) throw error;
-        toast.success('Bank account added successfully');
+        toast.success('Bank account added successfully!');
       }
 
-      setIsAddDialogOpen(false);
+      setIsFormOpen(false);
       setFormData(initialFormState);
       setFormErrors({});
       setAccountMode('bank');
@@ -209,13 +201,11 @@ export function SalonBankAccountManager({ salonId, salonName }: SalonBankAccount
 
   const handleSetPrimary = async (accountId: string) => {
     try {
-      // First, unset all as primary
       await supabase
         .from('salon_bank_accounts')
         .update({ is_primary: false })
         .eq('salon_id', salonId);
 
-      // Then set the selected one as primary
       const { error } = await supabase
         .from('salon_bank_accounts')
         .update({ is_primary: true })
@@ -240,7 +230,7 @@ export function SalonBankAccountManager({ salonId, salonName }: SalonBankAccount
 
       if (error) throw error;
 
-      toast.success('Bank account removed');
+      toast.success('Account removed successfully');
       fetchBankAccounts();
     } catch (error) {
       console.error('Error deleting bank account:', error);
@@ -251,6 +241,13 @@ export function SalonBankAccountManager({ salonId, salonName }: SalonBankAccount
   const maskAccountNumber = (accountNumber: string) => {
     if (accountNumber.length <= 4) return accountNumber;
     return '••••' + accountNumber.slice(-4);
+  };
+
+  const resetForm = () => {
+    setFormData(initialFormState);
+    setFormErrors({});
+    setAccountMode('bank');
+    setIsFormOpen(false);
   };
 
   if (isLoading) {
@@ -266,393 +263,476 @@ export function SalonBankAccountManager({ salonId, salonName }: SalonBankAccount
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold">Bank Accounts</h3>
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <Building2 className="w-5 h-5 text-primary" />
+            Payout Methods
+          </h3>
           <p className="text-sm text-muted-foreground">
-            Manage your payout destinations
+            Add bank account or UPI for receiving payouts
           </p>
         </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
-          setIsAddDialogOpen(open);
-          if (!open) {
-            setFormData(initialFormState);
-            setFormErrors({});
-            setAccountMode('bank');
-          }
-        }}>
-          <DialogTrigger asChild>
-            <Button size="sm" className="gap-2">
-              <Plus className="w-4 h-4" />
-              Add Account
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Add Payout Method</DialogTitle>
-              <DialogDescription>
-                Choose how you want to receive payouts
-              </DialogDescription>
-            </DialogHeader>
-            
-            {/* Mode Selection */}
-            <div className="grid grid-cols-2 gap-3 py-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setAccountMode('bank');
-                  setFormData(initialFormState);
-                  setFormErrors({});
-                }}
-                className={`p-4 rounded-lg border-2 transition-all text-left ${
-                  accountMode === 'bank'
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border hover:border-primary/50'
-                }`}
-              >
-                <Building2 className={`w-6 h-6 mb-2 ${accountMode === 'bank' ? 'text-primary' : 'text-muted-foreground'}`} />
-                <p className="font-medium text-sm">Bank Account</p>
-                <p className="text-xs text-muted-foreground mt-1">NEFT/IMPS transfer</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setAccountMode('upi');
-                  setFormData(initialFormState);
-                  setFormErrors({});
-                }}
-                className={`p-4 rounded-lg border-2 transition-all text-left ${
-                  accountMode === 'upi'
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border hover:border-primary/50'
-                }`}
-              >
-                <div className="flex items-center gap-1 mb-2">
-                  <Smartphone className={`w-6 h-6 ${accountMode === 'upi' ? 'text-primary' : 'text-muted-foreground'}`} />
-                  <Zap className={`w-4 h-4 ${accountMode === 'upi' ? 'text-yellow-500' : 'text-muted-foreground'}`} />
-                </div>
-                <p className="font-medium text-sm">UPI ID</p>
-                <p className="text-xs text-muted-foreground mt-1">Instant payout</p>
-              </button>
-            </div>
-
-            <div className="space-y-4 py-2">
-              {accountMode === 'upi' ? (
-                <>
-                  {/* UPI Only Form */}
-                  <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
-                    <div className="flex items-center gap-2 text-green-600 text-sm">
-                      <Zap className="w-4 h-4" />
-                      <span className="font-medium">Instant Payouts</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Receive payouts directly to your UPI ID within seconds
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="upi_holder_name">Name *</Label>
-                    <Input
-                      id="upi_holder_name"
-                      placeholder="Enter your name"
-                      value={formData.account_holder_name}
-                      onChange={(e) => setFormData({ ...formData, account_holder_name: e.target.value })}
-                      className={formErrors.account_holder_name ? 'border-destructive' : ''}
-                    />
-                    {formErrors.account_holder_name && (
-                      <p className="text-xs text-destructive">{formErrors.account_holder_name}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="upi_id">UPI ID *</Label>
-                    <Input
-                      id="upi_id"
-                      placeholder="e.g., yourname@paytm, mobile@upi"
-                      value={formData.upi_id}
-                      onChange={(e) => setFormData({ ...formData, upi_id: e.target.value.toLowerCase() })}
-                      className={formErrors.upi_id ? 'border-destructive' : ''}
-                    />
-                    {formErrors.upi_id && (
-                      <p className="text-xs text-destructive">{formErrors.upi_id}</p>
-                    )}
-                    <p className="text-xs text-muted-foreground">
-                      Enter your UPI ID linked to any UPI app (GPay, PhonePe, Paytm, etc.)
-                    </p>
-                  </div>
-                </>
-              ) : (
-                <>
-                  {/* Bank Account Form */}
-                  <div className="space-y-2">
-                    <Label htmlFor="account_holder_name">Account Holder Name *</Label>
-                    <Input
-                      id="account_holder_name"
-                      placeholder="Enter name as per bank records"
-                      value={formData.account_holder_name}
-                      onChange={(e) => setFormData({ ...formData, account_holder_name: e.target.value })}
-                      className={formErrors.account_holder_name ? 'border-destructive' : ''}
-                    />
-                    {formErrors.account_holder_name && (
-                      <p className="text-xs text-destructive">{formErrors.account_holder_name}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="account_number">Account Number *</Label>
-                    <Input
-                      id="account_number"
-                      placeholder="Enter account number"
-                      value={formData.account_number}
-                      onChange={(e) => setFormData({ ...formData, account_number: e.target.value.replace(/\D/g, '') })}
-                      className={formErrors.account_number ? 'border-destructive' : ''}
-                    />
-                    {formErrors.account_number && (
-                      <p className="text-xs text-destructive">{formErrors.account_number}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="confirm_account_number">Confirm Account Number *</Label>
-                    <Input
-                      id="confirm_account_number"
-                      placeholder="Re-enter account number"
-                      value={formData.confirm_account_number}
-                      onChange={(e) => setFormData({ ...formData, confirm_account_number: e.target.value.replace(/\D/g, '') })}
-                      className={formErrors.confirm_account_number ? 'border-destructive' : ''}
-                    />
-                    {formErrors.confirm_account_number && (
-                      <p className="text-xs text-destructive">{formErrors.confirm_account_number}</p>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="ifsc_code">IFSC Code *</Label>
-                      <Input
-                        id="ifsc_code"
-                        placeholder="e.g., HDFC0001234"
-                        value={formData.ifsc_code}
-                        onChange={(e) => setFormData({ ...formData, ifsc_code: e.target.value.toUpperCase() })}
-                        className={formErrors.ifsc_code ? 'border-destructive' : ''}
-                        maxLength={11}
-                      />
-                      {formErrors.ifsc_code && (
-                        <p className="text-xs text-destructive">{formErrors.ifsc_code}</p>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="account_type">Account Type</Label>
-                      <Select
-                        value={formData.account_type}
-                        onValueChange={(value) => setFormData({ ...formData, account_type: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="savings">Savings</SelectItem>
-                          <SelectItem value="current">Current</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="bank_name">Bank Name</Label>
-                    <Input
-                      id="bank_name"
-                      placeholder="e.g., HDFC Bank"
-                      value={formData.bank_name}
-                      onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="bank_upi_id">UPI ID (Optional)</Label>
-                    <Input
-                      id="bank_upi_id"
-                      placeholder="e.g., yourname@upi"
-                      value={formData.upi_id}
-                      onChange={(e) => setFormData({ ...formData, upi_id: e.target.value })}
-                      className={formErrors.upi_id ? 'border-destructive' : ''}
-                    />
-                    {formErrors.upi_id && (
-                      <p className="text-xs text-destructive">{formErrors.upi_id}</p>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleAddBankAccount} disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Adding...
-                  </>
-                ) : (
-                  accountMode === 'upi' ? 'Add UPI ID' : 'Add Account'
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        {bankAccounts.length > 0 && !isFormOpen && (
+          <Button size="sm" onClick={() => setIsFormOpen(true)} className="gap-2">
+            <Plus className="w-4 h-4" />
+            Add New
+          </Button>
+        )}
       </div>
 
-      {/* Security Notice */}
-      <Card className="bg-blue-500/5 border-blue-500/20">
-        <CardContent className="py-3">
-          <div className="flex items-center gap-2 text-sm text-blue-600">
-            <Shield className="w-4 h-4" />
-            <span>Your bank details are encrypted and securely stored</span>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Security Badge */}
+      <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+        <Shield className="w-5 h-5 text-emerald-600" />
+        <span className="text-sm text-emerald-700 dark:text-emerald-400 font-medium">
+          Bank-grade encryption • Your details are secure
+        </span>
+      </div>
 
-      {/* Bank Accounts List */}
-      {bankAccounts.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Building2 className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
-            <h4 className="font-medium mb-2">No bank accounts added</h4>
-            <p className="text-sm text-muted-foreground mb-4">
-              Add a bank account to receive payouts
-            </p>
-            <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
-              <Plus className="w-4 h-4" />
-              Add Your First Account
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
+      {/* Add New Form - Inline */}
+      <AnimatePresence>
+        {(isFormOpen || bankAccounts.length === 0) && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Card className="border-2 border-dashed border-primary/30 bg-gradient-to-br from-primary/5 to-transparent overflow-hidden">
+              <CardContent className="p-6 space-y-6">
+                {/* Mode Selector */}
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAccountMode('bank');
+                      setFormData(initialFormState);
+                      setFormErrors({});
+                    }}
+                    className={`relative p-4 rounded-xl border-2 transition-all text-left ${
+                      accountMode === 'bank'
+                        ? 'border-primary bg-primary/10 shadow-lg shadow-primary/10'
+                        : 'border-border bg-card hover:border-primary/40'
+                    }`}
+                  >
+                    {accountMode === 'bank' && (
+                      <motion.div
+                        layoutId="modeIndicator"
+                        className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary flex items-center justify-center"
+                      >
+                        <Check className="w-3 h-3 text-primary-foreground" strokeWidth={3} />
+                      </motion.div>
+                    )}
+                    <Building2 className={`w-7 h-7 mb-2 ${accountMode === 'bank' ? 'text-primary' : 'text-muted-foreground'}`} />
+                    <p className="font-semibold">Bank Account</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">NEFT/IMPS transfer • 1-3 days</p>
+                  </button>
+                  
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAccountMode('upi');
+                      setFormData(initialFormState);
+                      setFormErrors({});
+                    }}
+                    className={`relative p-4 rounded-xl border-2 transition-all text-left ${
+                      accountMode === 'upi'
+                        ? 'border-primary bg-primary/10 shadow-lg shadow-primary/10'
+                        : 'border-border bg-card hover:border-primary/40'
+                    }`}
+                  >
+                    {accountMode === 'upi' && (
+                      <motion.div
+                        layoutId="modeIndicator"
+                        className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary flex items-center justify-center"
+                      >
+                        <Check className="w-3 h-3 text-primary-foreground" strokeWidth={3} />
+                      </motion.div>
+                    )}
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <Smartphone className={`w-7 h-7 ${accountMode === 'upi' ? 'text-primary' : 'text-muted-foreground'}`} />
+                      <Zap className={`w-5 h-5 ${accountMode === 'upi' ? 'text-yellow-500' : 'text-muted-foreground/50'}`} />
+                    </div>
+                    <p className="font-semibold">UPI ID</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Instant payout • Within seconds</p>
+                  </button>
+                </div>
+
+                {/* Form Fields */}
+                <div className="space-y-4">
+                  {accountMode === 'upi' ? (
+                    <>
+                      {/* Instant Payout Banner */}
+                      <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-green-500/15 to-emerald-500/10 border border-green-500/30">
+                        <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                          <Zap className="w-5 h-5 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-green-700 dark:text-green-400">Instant Payouts Enabled</p>
+                          <p className="text-xs text-muted-foreground">Get paid directly to UPI within seconds</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="upi_holder_name" className="text-sm font-medium">
+                          Account Holder Name <span className="text-destructive">*</span>
+                        </Label>
+                        <Input
+                          id="upi_holder_name"
+                          placeholder="Enter your full name"
+                          value={formData.account_holder_name}
+                          onChange={(e) => setFormData({ ...formData, account_holder_name: e.target.value })}
+                          className={`h-12 text-base ${formErrors.account_holder_name ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                        />
+                        {formErrors.account_holder_name && (
+                          <p className="text-xs text-destructive flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" />
+                            {formErrors.account_holder_name}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="upi_id" className="text-sm font-medium">
+                          UPI ID <span className="text-destructive">*</span>
+                        </Label>
+                        <Input
+                          id="upi_id"
+                          placeholder="yourname@paytm, mobile@upi, etc."
+                          value={formData.upi_id}
+                          onChange={(e) => setFormData({ ...formData, upi_id: e.target.value.toLowerCase() })}
+                          className={`h-12 text-base ${formErrors.upi_id ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                        />
+                        {formErrors.upi_id && (
+                          <p className="text-xs text-destructive flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" />
+                            {formErrors.upi_id}
+                          </p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          Works with GPay, PhonePe, Paytm, BHIM, and all UPI apps
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="account_holder_name" className="text-sm font-medium">
+                          Account Holder Name <span className="text-destructive">*</span>
+                        </Label>
+                        <Input
+                          id="account_holder_name"
+                          placeholder="Name as per bank records"
+                          value={formData.account_holder_name}
+                          onChange={(e) => setFormData({ ...formData, account_holder_name: e.target.value })}
+                          className={`h-12 text-base ${formErrors.account_holder_name ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                        />
+                        {formErrors.account_holder_name && (
+                          <p className="text-xs text-destructive flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" />
+                            {formErrors.account_holder_name}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="account_number" className="text-sm font-medium">
+                          Account Number <span className="text-destructive">*</span>
+                        </Label>
+                        <Input
+                          id="account_number"
+                          placeholder="Enter your account number"
+                          value={formData.account_number}
+                          onChange={(e) => setFormData({ ...formData, account_number: e.target.value.replace(/\D/g, '') })}
+                          className={`h-12 text-base font-mono ${formErrors.account_number ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                        />
+                        {formErrors.account_number && (
+                          <p className="text-xs text-destructive flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" />
+                            {formErrors.account_number}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="confirm_account_number" className="text-sm font-medium">
+                          Confirm Account Number <span className="text-destructive">*</span>
+                        </Label>
+                        <Input
+                          id="confirm_account_number"
+                          placeholder="Re-enter account number"
+                          value={formData.confirm_account_number}
+                          onChange={(e) => setFormData({ ...formData, confirm_account_number: e.target.value.replace(/\D/g, '') })}
+                          className={`h-12 text-base font-mono ${formErrors.confirm_account_number ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                        />
+                        {formErrors.confirm_account_number && (
+                          <p className="text-xs text-destructive flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" />
+                            {formErrors.confirm_account_number}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="ifsc_code" className="text-sm font-medium">
+                            IFSC Code <span className="text-destructive">*</span>
+                          </Label>
+                          <Input
+                            id="ifsc_code"
+                            placeholder="e.g., HDFC0001234"
+                            value={formData.ifsc_code}
+                            onChange={(e) => setFormData({ ...formData, ifsc_code: e.target.value.toUpperCase() })}
+                            className={`h-12 text-base font-mono uppercase ${formErrors.ifsc_code ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                            maxLength={11}
+                          />
+                          {formErrors.ifsc_code && (
+                            <p className="text-xs text-destructive flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3" />
+                              {formErrors.ifsc_code}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="account_type" className="text-sm font-medium">
+                            Account Type
+                          </Label>
+                          <Select
+                            value={formData.account_type}
+                            onValueChange={(value) => setFormData({ ...formData, account_type: value })}
+                          >
+                            <SelectTrigger className="h-12">
+                              <SelectValue placeholder="Select type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="savings">Savings</SelectItem>
+                              <SelectItem value="current">Current</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="bank_name" className="text-sm font-medium">
+                          Bank Name
+                        </Label>
+                        <Input
+                          id="bank_name"
+                          placeholder="e.g., HDFC Bank, SBI, ICICI"
+                          value={formData.bank_name}
+                          onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })}
+                          className="h-12 text-base"
+                        />
+                      </div>
+
+                      <Collapsible>
+                        <CollapsibleTrigger asChild>
+                          <button className="flex items-center gap-2 text-sm text-primary hover:underline">
+                            <ChevronDown className="w-4 h-4" />
+                            Add UPI ID for faster payouts (optional)
+                          </button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="pt-3">
+                          <div className="space-y-2">
+                            <Label htmlFor="bank_upi_id" className="text-sm font-medium">
+                              UPI ID (Optional)
+                            </Label>
+                            <Input
+                              id="bank_upi_id"
+                              placeholder="e.g., yourname@upi"
+                              value={formData.upi_id}
+                              onChange={(e) => setFormData({ ...formData, upi_id: e.target.value })}
+                              className={`h-12 text-base ${formErrors.upi_id ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                            />
+                            {formErrors.upi_id && (
+                              <p className="text-xs text-destructive flex items-center gap-1">
+                                <AlertCircle className="w-3 h-3" />
+                                {formErrors.upi_id}
+                              </p>
+                            )}
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    </>
+                  )}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex items-center gap-3 pt-2">
+                  <Button 
+                    onClick={handleSaveAccount} 
+                    disabled={isSubmitting}
+                    className="flex-1 h-12 text-base font-semibold gap-2"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-5 h-5" />
+                        {accountMode === 'upi' ? 'Save UPI ID' : 'Save Bank Account'}
+                      </>
+                    )}
+                  </Button>
+                  {bankAccounts.length > 0 && (
+                    <Button 
+                      variant="outline" 
+                      onClick={resetForm}
+                      className="h-12 px-6"
+                    >
+                      <X className="w-5 h-5" />
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Saved Accounts List */}
+      {bankAccounts.length > 0 && (
         <div className="space-y-3">
+          <p className="text-sm font-medium text-muted-foreground px-1">
+            Saved Payout Methods ({bankAccounts.length})
+          </p>
           {bankAccounts.map((account, index) => {
             const isUpiOnly = account.account_type === 'upi';
             
             return (
-            <motion.div
-              key={account.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-            >
-              <Card className={account.is_primary ? 'border-primary/50 bg-primary/5' : ''}>
-                <CardContent className="py-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center mt-1 ${
-                        isUpiOnly ? 'bg-green-500/10' : 'bg-primary/10'
-                      }`}>
-                        {isUpiOnly ? (
-                          <Smartphone className="w-5 h-5 text-green-600" />
-                        ) : (
-                          <Building2 className="w-5 h-5 text-primary" />
-                        )}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className="font-medium">{account.account_holder_name}</p>
-                          {account.is_primary && (
-                            <Badge variant="secondary" className="text-xs">Primary</Badge>
-                          )}
-                          {isUpiOnly && (
-                            <Badge className="bg-green-500/10 text-green-600 border-green-500/20 text-xs gap-1">
-                              <Zap className="w-3 h-3" />
-                              Instant
-                            </Badge>
-                          )}
-                          {account.is_verified && (
-                            <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20 text-xs">
-                              Verified
-                            </Badge>
+              <motion.div
+                key={account.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <Card className={`transition-all ${
+                  account.is_primary 
+                    ? 'border-primary bg-gradient-to-br from-primary/5 to-transparent shadow-md' 
+                    : 'hover:border-primary/30'
+                }`}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-4">
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                          isUpiOnly 
+                            ? 'bg-gradient-to-br from-green-500/20 to-emerald-500/10' 
+                            : 'bg-gradient-to-br from-primary/20 to-primary/5'
+                        }`}>
+                          {isUpiOnly ? (
+                            <Smartphone className="w-6 h-6 text-green-600" />
+                          ) : (
+                            <Building2 className="w-6 h-6 text-primary" />
                           )}
                         </div>
-                        {isUpiOnly ? (
-                          <p className="text-sm text-muted-foreground">
-                            UPI ID: {account.upi_id}
-                          </p>
-                        ) : (
-                          <>
-                            <p className="text-sm text-muted-foreground">
-                              {account.bank_name || 'Bank'} • {maskAccountNumber(account.account_number)}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              IFSC: {account.ifsc_code} • {account.account_type?.charAt(0).toUpperCase()}{account.account_type?.slice(1)}
-                            </p>
-                            {account.upi_id && (
-                              <p className="text-xs text-muted-foreground mt-1">
-                                UPI: {account.upi_id}
-                              </p>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-semibold">{account.account_holder_name}</p>
+                            {account.is_primary && (
+                              <Badge className="bg-primary/20 text-primary border-0 gap-1">
+                                <Star className="w-3 h-3 fill-current" />
+                                Primary
+                              </Badge>
                             )}
-                          </>
+                            {isUpiOnly && (
+                              <Badge variant="outline" className="border-green-500/50 text-green-600 gap-1">
+                                <Zap className="w-3 h-3" />
+                                Instant
+                              </Badge>
+                            )}
+                            {account.is_verified && (
+                              <Badge variant="outline" className="border-emerald-500/50 text-emerald-600 gap-1">
+                                <Check className="w-3 h-3" />
+                                Verified
+                              </Badge>
+                            )}
+                          </div>
+                          
+                          {isUpiOnly ? (
+                            <p className="text-sm text-muted-foreground font-mono">
+                              {account.upi_id}
+                            </p>
+                          ) : (
+                            <div className="space-y-0.5">
+                              <p className="text-sm text-muted-foreground">
+                                {account.bank_name || 'Bank Account'} • {maskAccountNumber(account.account_number)}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                IFSC: {account.ifsc_code}
+                                {account.upi_id && ` • UPI: ${account.upi_id}`}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {!account.is_primary && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleSetPrimary(account.id)}
+                            className="text-xs h-8 px-3"
+                          >
+                            Set Primary
+                          </Button>
                         )}
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Remove Payout Method?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will remove {isUpiOnly ? 'UPI ID' : 'bank account'} "{account.account_holder_name}" 
+                                from your payout methods. This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeleteAccount(account.id)}
+                                className="bg-destructive hover:bg-destructive/90"
+                              >
+                                Remove
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {!account.is_primary && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleSetPrimary(account.id)}
-                          className="text-xs"
-                        >
-                          Set as Primary
-                        </Button>
-                      )}
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Remove Bank Account?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will remove the bank account ending in {account.account_number.slice(-4)}. 
-                              You can add it again later if needed.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDeleteAccount(account.id)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                              Remove
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          );
+                  </CardContent>
+                </Card>
+              </motion.div>
+            );
           })}
         </div>
       )}
 
-      {/* Info Card */}
-      <Card className="bg-muted/30">
-        <CardContent className="py-4">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-muted-foreground mt-0.5" />
-            <div className="text-sm text-muted-foreground">
-              <p className="font-medium text-foreground mb-1">About Payouts</p>
-              <ul className="space-y-1 list-disc list-inside">
-                <li>Payouts are processed weekly to your primary account</li>
-                <li>Minimum payout amount is ₹100</li>
-                <li>Bank transfers typically take 1-2 business days</li>
-              </ul>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Empty State Help */}
+      {bankAccounts.length === 0 && !isFormOpen && (
+        <Card className="border-dashed">
+          <CardContent className="py-12 text-center">
+            <Building2 className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
+            <h4 className="font-medium mb-2">No payout method added</h4>
+            <p className="text-sm text-muted-foreground mb-4">
+              Add a bank account or UPI ID to receive your earnings
+            </p>
+            <Button onClick={() => setIsFormOpen(true)} className="gap-2">
+              <Plus className="w-4 h-4" />
+              Add Payout Method
+            </Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
