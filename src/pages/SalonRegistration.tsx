@@ -43,6 +43,7 @@ import {
 } from '@/components/ui/select';
 import { indianCities } from '@/data/indianCities';
 import ImageCropDialog from '@/components/ImageCropDialog';
+import LocationPickerDialog from '@/components/LocationPickerDialog';
 
 // Validation schemas for each step
 const basicInfoSchema = z.object({
@@ -71,6 +72,8 @@ type SalonFormData = {
   email: string;
   openingTime: string;
   closingTime: string;
+  latitude: number | null;
+  longitude: number | null;
 };
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
@@ -130,6 +133,9 @@ const SalonRegistration = () => {
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   
+  // Location picker state
+  const [locationPickerOpen, setLocationPickerOpen] = useState(false);
+  
   const [formData, setFormData] = useState<SalonFormData>({
     name: '',
     description: '',
@@ -139,6 +145,8 @@ const SalonRegistration = () => {
     email: '',
     openingTime: '09:00',
     closingTime: '21:00',
+    latitude: null,
+    longitude: null,
   });
 
   useEffect(() => {
@@ -399,6 +407,8 @@ const SalonRegistration = () => {
           email: formData.email || null,
           opening_time: formData.openingTime,
           closing_time: formData.closingTime,
+          latitude: formData.latitude,
+          longitude: formData.longitude,
           is_active: false,
         })
         .select()
@@ -705,7 +715,52 @@ const SalonRegistration = () => {
                       />
                       {errors.location && <p className="text-xs text-destructive">{errors.location}</p>}
                     </div>
+
+                    {/* Pin Location on Map */}
+                    <div className="space-y-2">
+                      <Label>Pin Location on Map</Label>
+                      <div className="flex items-center gap-3">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setLocationPickerOpen(true)}
+                          className="flex-1"
+                        >
+                          <MapPin className="w-4 h-4 mr-2" />
+                          {formData.latitude && formData.longitude
+                            ? 'Update Map Pin'
+                            : 'Pick Location on Map'}
+                        </Button>
+                        {formData.latitude && formData.longitude && (
+                          <div className="flex items-center gap-1.5 text-sm text-green-600">
+                            <CheckCircle className="w-4 h-4" />
+                            <span>Location set</span>
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Helps customers see your exact location on the map
+                      </p>
+                    </div>
                   </div>
+
+                  <LocationPickerDialog
+                    open={locationPickerOpen}
+                    onOpenChange={setLocationPickerOpen}
+                    initialCoordinates={
+                      formData.latitude && formData.longitude
+                        ? { lat: formData.latitude, lng: formData.longitude }
+                        : null
+                    }
+                    city={formData.city}
+                    onLocationSelect={(coords) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        latitude: coords.lat,
+                        longitude: coords.lng,
+                      }));
+                    }}
+                  />
                 </div>
               )}
 
