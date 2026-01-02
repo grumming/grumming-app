@@ -590,7 +590,7 @@ const Auth = () => {
         rewardAmount={100}
       />
       
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/10 flex flex-col relative overflow-hidden">
+      <div className="min-h-[100svh] bg-gradient-to-br from-primary/5 via-background to-secondary/10 flex flex-col relative overflow-x-hidden overflow-y-auto">
         {/* Decorative background elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <motion.div 
