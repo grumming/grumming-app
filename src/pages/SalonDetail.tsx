@@ -533,7 +533,7 @@ const SalonDetail = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [isBooking, setIsBooking] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('online');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('upi');
   const [selectedSavedPaymentMethod, setSelectedSavedPaymentMethod] = useState<string | null>(null);
   const [selectedUpiApp, setSelectedUpiApp] = useState<string | null>(null);
   const [applyReward, setApplyReward] = useState(false);
@@ -948,7 +948,7 @@ const SalonDetail = () => {
     // Create new booking or update existing one (retry mode)
     const bookingStatus = isFullyCoveredByCredits 
       ? 'upcoming' 
-      : (paymentMethod === 'online' || paymentMethod === 'upi') 
+      : (paymentMethod === 'upi') 
         ? 'pending_payment' 
         : 'upcoming';
 
@@ -1201,8 +1201,8 @@ const SalonDetail = () => {
       return;
     }
 
-    // If online payment (cards, UPI without app selection) selected, initiate Razorpay
-    if (paymentMethod === 'online' || paymentMethod === 'upi') {
+    // If UPI payment selected, initiate Razorpay
+    if (paymentMethod === 'upi') {
       const paymentResult = await initiatePayment({
         amount: totalPrice,
         bookingId: bookingData.id,
@@ -2339,7 +2339,7 @@ const SalonDetail = () => {
                           <CreditCard className="w-5 h-5" />
                           Pay ₹{totalPrice} with {getUpiAppName(selectedUpiApp)}
                         </div>
-                      ) : paymentMethod === 'online' || paymentMethod === 'upi' ? (
+                      ) : paymentMethod === 'upi' ? (
                         <div className="flex items-center gap-2">
                           <CreditCard className="w-5 h-5" />
                           Pay ₹{totalPrice}

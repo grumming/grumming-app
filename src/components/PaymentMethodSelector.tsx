@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  CreditCard, Wallet, MapPin, Smartphone, 
-  SplitSquareVertical, Check, Info, FlaskConical
+  MapPin, Smartphone, 
+  Check, FlaskConical
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
@@ -10,7 +10,7 @@ import { SavedPaymentMethodPicker } from './SavedPaymentMethodPicker';
 import { UpiAppIcons } from './UpiAppSelector';
 import { usePaymentTestMode } from '@/hooks/usePaymentTestMode';
 
-export type PaymentMethodType = 'online' | 'upi' | 'salon';
+export type PaymentMethodType = 'upi' | 'salon';
 
 interface PaymentMethodSelectorProps {
   selectedMethod: PaymentMethodType;
@@ -26,13 +26,6 @@ interface PaymentMethodSelectorProps {
 }
 
 const paymentMethods = [
-  {
-    id: 'online' as PaymentMethodType,
-    name: 'Pay Online',
-    description: 'Cards, Net Banking',
-    icon: CreditCard,
-    badge: null,
-  },
   {
     id: 'upi' as PaymentMethodType,
     name: 'UPI',
@@ -93,7 +86,7 @@ export function PaymentMethodSelector({
         </motion.div>
       )}
       {/* Payment Methods Grid */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         {paymentMethods.map((method) => {
           const Icon = method.icon;
           const isSelected = selectedMethod === method.id;
@@ -152,26 +145,6 @@ export function PaymentMethodSelector({
         })}
       </div>
 
-      {/* Saved Card Selection for Online Payment */}
-      <AnimatePresence>
-        {selectedMethod === 'online' && onSavedMethodSelect && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="p-4 rounded-2xl bg-muted/30 border border-border space-y-3">
-              <p className="text-sm font-medium text-foreground">Your saved cards</p>
-              <SavedPaymentMethodPicker
-                paymentType="card"
-                selectedMethodId={selectedSavedMethodId || null}
-                onMethodSelect={onSavedMethodSelect}
-              />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Saved UPI Selection */}
       <AnimatePresence>
