@@ -910,34 +910,34 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                           </AnimatePresence>
                         </div>
 
-                  <DialogFooter className="pt-4 border-t gap-2 sm:gap-2">
-                    <Button variant="outline" onClick={() => setDialogOpen(false)} className="flex-1 sm:flex-none">
-                      Cancel
-                    </Button>
-                    <Button 
-                      onClick={handleRequestPayout} 
-                      disabled={isSubmitting || !requestAmount || parseFloat(requestAmount) < 100}
-                      className={`flex-1 sm:flex-none ${payoutMethod === 'instant_upi' ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600' : ''}`}
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Processing...
-                        </>
-                      ) : payoutMethod === 'instant_upi' ? (
-                        <>
-                          <Zap className="h-4 w-4 mr-2" />
-                          Request Instant Payout
-                        </>
-                      ) : (
-                        <>
-                          <ArrowUpRight className="h-4 w-4 mr-2" />
-                          Submit Request
-                        </>
-                      )}
-                    </Button>
-                  </DialogFooter>
-                  </motion.div>
+                        <div className="pt-4 border-t flex flex-col-reverse sm:flex-row gap-2 sm:gap-2 sm:justify-end">
+                          <Button variant="outline" onClick={() => setDialogOpen(false)} className="flex-1 sm:flex-none">
+                            Cancel
+                          </Button>
+                          <Button 
+                            onClick={handleRequestPayout} 
+                            disabled={isSubmitting || !requestAmount || parseFloat(requestAmount) < 100}
+                            className={`flex-1 sm:flex-none ${payoutMethod === 'instant_upi' ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600' : ''}`}
+                          >
+                            {isSubmitting ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Processing...
+                              </>
+                            ) : payoutMethod === 'instant_upi' ? (
+                              <>
+                                <Zap className="h-4 w-4 mr-2" />
+                                Request Instant Payout
+                              </>
+                            ) : (
+                              <>
+                                <ArrowUpRight className="h-4 w-4 mr-2" />
+                                Submit Request
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </motion.div>
                 )}
                 </AnimatePresence>
                 </DialogContent>
