@@ -53,6 +53,7 @@ interface PaymentStats {
   capturedAmount: number;
   settledAmount: number;
   platformEarnings: number;
+  pendingPlatformFee: number;
   salonPayable: number;
   onlinePayments: number;
   cashPayments: number;
@@ -70,6 +71,7 @@ const PaymentManagement = () => {
     capturedAmount: 0,
     settledAmount: 0,
     platformEarnings: 0,
+    pendingPlatformFee: 0,
     salonPayable: 0,
     onlinePayments: 0,
     cashPayments: 0,
@@ -125,6 +127,7 @@ const PaymentManagement = () => {
         capturedAmount: mergedPayments.filter(p => p.status === 'captured').reduce((sum, p) => sum + p.amount, 0),
         settledAmount: mergedPayments.filter(p => p.status === 'settled').reduce((sum, p) => sum + p.amount, 0),
         platformEarnings: capturedOrSettled.reduce((sum, p) => sum + p.platform_fee, 0),
+        pendingPlatformFee: mergedPayments.filter(p => p.status === 'captured').reduce((sum, p) => sum + p.platform_fee, 0),
         salonPayable: mergedPayments.filter(p => p.status === 'captured').reduce((sum, p) => sum + p.salon_amount, 0),
         onlinePayments: onlinePaymentsData.length,
         cashPayments: cashPaymentsData.length,
@@ -222,8 +225,8 @@ const PaymentManagement = () => {
         />
         <StatCard
           title="Pending Settlement"
-          value={`₹${stats.capturedAmount.toLocaleString()}`}
-          subtitle="Awaiting bank transfer"
+          value={`₹${stats.pendingPlatformFee.toLocaleString()}`}
+          subtitle="Platform commission pending"
           icon={Clock}
           color="bg-yellow-500"
         />
