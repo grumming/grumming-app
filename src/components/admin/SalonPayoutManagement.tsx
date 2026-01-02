@@ -5,8 +5,9 @@ import {
   XCircle, Loader2, Search, Filter, RefreshCw, Plus,
   Store, User, CreditCard, AlertCircle, Eye, ChevronDown,
   IndianRupee, Calendar, Send, FileText, Download, Ban,
-  Smartphone, ArrowDownToLine
+  Smartphone, ArrowDownToLine, Settings2
 } from 'lucide-react';
+import { PayoutScheduleSettings } from './PayoutScheduleSettings';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -423,6 +424,10 @@ const SalonPayoutManagement = () => {
           </TabsTrigger>
           <TabsTrigger value="earnings">Salon Earnings</TabsTrigger>
           <TabsTrigger value="history">Payout History</TabsTrigger>
+          <TabsTrigger value="settings">
+            <Settings2 className="w-4 h-4 mr-1" />
+            Settings
+          </TabsTrigger>
         </TabsList>
 
         {/* Payout Requests Tab */}
@@ -744,6 +749,11 @@ const SalonPayoutManagement = () => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Settings Tab */}
+        <TabsContent value="settings" className="space-y-4">
+          <PayoutScheduleSettings />
         </TabsContent>
       </Tabs>
 
