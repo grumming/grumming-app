@@ -133,23 +133,17 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
       const totalPaidOut = completedPayouts?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
       const pendingRequests = requests?.reduce((sum, r) => sum + Number(r.amount), 0) || 0;
       
-      // Captured payments are available for payout (since the money has been captured)
-      // Only payments captured more than 2 days ago are considered settled for conservative estimate
-      const twoDaysAgo = new Date();
-      twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+      // All captured payments are immediately available for payout
+      const availableAmount = totalEarned;
       
-      const settledAmount = payments?.filter(p => 
-        p.settled_at || (p.captured_at && new Date(p.captured_at) < twoDaysAgo)
-      ).reduce((sum, p) => sum + Number(p.salon_amount), 0) || 0;
-      
-      const pendingSettlement = payments?.filter(p => 
-        !p.settled_at && (!p.captured_at || new Date(p.captured_at) >= twoDaysAgo)
-      ).reduce((sum, p) => sum + Number(p.salon_amount), 0) || 0;
+      // Only payments with settled_at are "fully settled", others are technically pending but available
+      const settledAmount = payments?.filter(p => p.settled_at).reduce((sum, p) => sum + Number(p.salon_amount), 0) || 0;
+      const pendingSettlement = totalEarned - settledAmount;
       
       setPendingBalance({
         total: totalEarned - totalPaidOut,
-        availableForPayout: Math.max(0, settledAmount - totalPaidOut - pendingRequests),
-        pendingSettlement: pendingSettlement
+        availableForPayout: Math.max(0, availableAmount - totalPaidOut - pendingRequests),
+        pendingSettlement: 0 // Show 0 since all captured payments are now available
       });
 
     } catch (error) {
