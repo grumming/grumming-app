@@ -80,3 +80,6 @@ verify_jwt = false
 
 [functions.send-push-notification]
 verify_jwt = false
+
+[functions.send-penalty-waived-notification]
+verify_jwt = false
