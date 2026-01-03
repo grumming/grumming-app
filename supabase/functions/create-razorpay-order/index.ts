@@ -67,13 +67,13 @@ serve(async (req) => {
       });
     }
 
-    // Calculate total amount: service price + any penalty
+    // IMPORTANT: Use service_price from database for security (not client-provided amount)
     // Penalty is platform revenue, not salon revenue
     const servicePrice = parseFloat(booking.service_price);
-    const penaltyAmount = parseFloat(penalty_amount) || 0;
-    const totalAmount = servicePrice + penaltyAmount;
+    const penaltyFromClient = parseFloat(penalty_amount) || 0;
+    const totalAmount = servicePrice + penaltyFromClient;
     
-    console.log(`Creating order - Service: ${servicePrice}, Penalty: ${penaltyAmount}, Total: ${totalAmount} ${currency} for booking: ${booking_id}`);
+    console.log(`Creating order - Service: ₹${servicePrice}, Penalty: ₹${penaltyFromClient}, Total: ₹${totalAmount} ${currency} for booking: ${booking_id}`);
 
     // Create Razorpay order with total amount (service + penalty)
     const auth = btoa(`${keyId}:${keySecret}`);
@@ -88,7 +88,7 @@ serve(async (req) => {
         amount: Math.round(totalAmount * 100), // Razorpay expects amount in paise
         currency,
         receipt: receipt || `receipt_${Date.now()}`,
-        notes: { ...notes, booking_id, service_price: servicePrice, penalty_amount: penaltyAmount },
+        notes: { ...notes, booking_id, service_price: servicePrice, penalty_amount: penaltyFromClient },
       }),
     });
 

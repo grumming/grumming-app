@@ -153,6 +153,7 @@ export function BookingPaymentSheet({
           customerName,
           customerEmail,
           customerPhone,
+          penaltyAmount: hasPenalties ? totalPenalty : 0, // Pass penalty for platform revenue
         });
 
         if (result.success && result.paymentId) {
