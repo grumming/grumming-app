@@ -460,6 +460,9 @@ const SalonDashboard = () => {
     
     setIsRestoring(true);
     
+    const oldDate = selectedBookingForRestore.booking_date;
+    const oldTime = selectedBookingForRestore.booking_time;
+    
     const updateData: { status: string; booking_date?: string; booking_time?: string } = { 
       status: 'upcoming' 
     };
@@ -483,6 +486,27 @@ const SalonDashboard = () => {
           ? 'Booking rescheduled successfully' 
           : 'Booking restored to upcoming' 
       });
+      
+      // Send notification to customer if rescheduled
+      if (withReschedule && rescheduleDate && rescheduleTime) {
+        try {
+          await supabase.functions.invoke('send-reschedule-notification', {
+            body: {
+              booking_id: selectedBookingForRestore.id,
+              user_id: selectedBookingForRestore.user_id,
+              salon_name: selectedBookingForRestore.salon_name,
+              service_name: selectedBookingForRestore.service_name,
+              old_date: oldDate,
+              old_time: oldTime,
+              new_date: rescheduleDate,
+              new_time: rescheduleTime,
+            }
+          });
+        } catch (notifError) {
+          console.error('Failed to send reschedule notification:', notifError);
+        }
+      }
+      
       await fetchSalonData(false);
     }
     
