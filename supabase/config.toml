@@ -65,3 +65,6 @@ verify_jwt = false
 
 [functions.lookup-ifsc]
 verify_jwt = false
+
+[functions.send-reschedule-notification]
+verify_jwt = false
