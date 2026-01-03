@@ -231,31 +231,39 @@ export function BookingCancellationDialog({
             >
               {/* Cancellation Policy */}
               <div className="space-y-3">
-                <div className="flex items-center gap-2 text-sm font-medium">
+                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                   <Info className="w-4 h-4 text-primary" />
                   Cancellation Policy
                 </div>
-                <div className="space-y-2">
-                  {CANCELLATION_POLICIES.map((policy, index) => (
-                    <div 
-                      key={index}
-                      className={`flex items-center justify-between p-2.5 rounded-lg text-sm ${
-                        refundInfo.policy.hoursBeforeBooking === policy.hoursBeforeBooking
-                          ? 'bg-primary/10 border-2 border-primary'
-                          : 'bg-muted/50'
-                      }`}
-                    >
-                      <span className={refundInfo.policy.hoursBeforeBooking === policy.hoursBeforeBooking ? 'font-medium' : 'text-muted-foreground'}>
-                        {policy.label}
-                      </span>
-                      <span className={`font-semibold ${
-                        policy.refundPercentage >= 50 ? 'text-green-600' : 
-                        policy.refundPercentage > 0 ? 'text-amber-600' : 'text-red-600'
-                      }`}>
-                        {policy.refundPercentage}% refund
-                      </span>
-                    </div>
-                  ))}
+                <div className="space-y-2 rounded-xl bg-muted/30 p-2">
+                  {CANCELLATION_POLICIES.map((policy, index) => {
+                    const isActive = refundInfo.policy.hoursBeforeBooking === policy.hoursBeforeBooking;
+                    const getRefundColor = () => {
+                      if (policy.refundPercentage >= 80) return 'text-green-600 dark:text-green-500';
+                      if (policy.refundPercentage >= 50) return 'text-emerald-600 dark:text-emerald-500';
+                      if (policy.refundPercentage >= 30) return 'text-amber-600 dark:text-amber-500';
+                      if (policy.refundPercentage > 0) return 'text-orange-600 dark:text-orange-500';
+                      return 'text-red-600 dark:text-red-500';
+                    };
+                    
+                    return (
+                      <div 
+                        key={index}
+                        className={`flex items-center justify-between px-4 py-3 rounded-lg text-sm transition-all ${
+                          isActive
+                            ? 'bg-background border-2 border-green-500 shadow-sm'
+                            : 'bg-background/60 border border-transparent'
+                        }`}
+                      >
+                        <span className={`${isActive ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
+                          {policy.label}
+                        </span>
+                        <span className={`font-bold ${getRefundColor()}`}>
+                          {policy.refundPercentage}% refund
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
