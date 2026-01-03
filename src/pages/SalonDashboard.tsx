@@ -1361,12 +1361,26 @@ const SalonDashboard = () => {
                                   onClick={() => {
                                     setSelectedBookingForRestore(booking);
                                     // Check if original date has passed
-                                    const bookingDateTime = parse(
-                                      `${booking.booking_date} ${booking.booking_time}`,
-                                      'yyyy-MM-dd HH:mm:ss',
-                                      new Date()
-                                    );
-                                    const isPast = isBefore(bookingDateTime, new Date());
+                                    let bookingDateTime: Date;
+                                    try {
+                                      // Try HH:mm:ss format first
+                                      bookingDateTime = parse(
+                                        `${booking.booking_date} ${booking.booking_time}`,
+                                        'yyyy-MM-dd HH:mm:ss',
+                                        new Date()
+                                      );
+                                      if (isNaN(bookingDateTime.getTime())) {
+                                        // Try h:mm a format (e.g., "10:00 AM")
+                                        bookingDateTime = parse(
+                                          `${booking.booking_date} ${booking.booking_time}`,
+                                          'yyyy-MM-dd h:mm a',
+                                          new Date()
+                                        );
+                                      }
+                                    } catch {
+                                      bookingDateTime = new Date(0); // Force past if parsing fails
+                                    }
+                                    const isPast = isBefore(bookingDateTime, new Date()) || isNaN(bookingDateTime.getTime());
                                     // If past, automatically enable reschedule mode
                                     if (isPast) {
                                       setIsRescheduling(true);
@@ -1937,12 +1951,26 @@ const SalonDashboard = () => {
               
               {/* Reschedule toggle for future bookings */}
               {(() => {
-                const bookingDateTime = parse(
-                  `${selectedBookingForRestore.booking_date} ${selectedBookingForRestore.booking_time}`,
-                  'yyyy-MM-dd HH:mm:ss',
-                  new Date()
-                );
-                const isPast = isBefore(bookingDateTime, new Date());
+                let bookingDateTime: Date;
+                try {
+                  // Try HH:mm:ss format first
+                  bookingDateTime = parse(
+                    `${selectedBookingForRestore.booking_date} ${selectedBookingForRestore.booking_time}`,
+                    'yyyy-MM-dd HH:mm:ss',
+                    new Date()
+                  );
+                  if (isNaN(bookingDateTime.getTime())) {
+                    // Try h:mm a format (e.g., "10:00 AM")
+                    bookingDateTime = parse(
+                      `${selectedBookingForRestore.booking_date} ${selectedBookingForRestore.booking_time}`,
+                      'yyyy-MM-dd h:mm a',
+                      new Date()
+                    );
+                  }
+                } catch {
+                  bookingDateTime = new Date(0); // Force past if parsing fails
+                }
+                const isPast = isBefore(bookingDateTime, new Date()) || isNaN(bookingDateTime.getTime());
                 
                 return (
                   <>
