@@ -20,6 +20,100 @@ interface RefundNotificationRequest {
   estimated_days?: string;
 }
 
+const getSmsContent = (data: RefundNotificationRequest): string => {
+  const statusMessages = {
+    initiated: `Grumming: Refund of Rs.${data.refund_amount} initiated for ${data.salon_name}. Expected in ${data.estimated_days || '5-7 days'}.`,
+    processed: `Grumming: Refund of Rs.${data.refund_amount} processed! Will credit to your account in 3-5 business days.`,
+    completed: `Grumming: Rs.${data.refund_amount} refund completed and credited to your account. Thank you for using Grumming!`,
+    failed: `Grumming: Issue with your Rs.${data.refund_amount} refund. Our team is on it and will resolve within 24-48 hours.`,
+  };
+  return statusMessages[data.refund_status];
+};
+
+const sendSmsTwilio = async (phone: string, message: string): Promise<boolean> => {
+  const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+  const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+  const fromNumber = Deno.env.get('TWILIO_PHONE_NUMBER');
+
+  if (!accountSid || !authToken || !fromNumber) {
+    console.log('Twilio credentials not configured');
+    return false;
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Basic ' + btoa(`${accountSid}:${authToken}`),
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          To: phone.startsWith('+') ? phone : `+91${phone}`,
+          From: fromNumber,
+          Body: message,
+        }),
+      }
+    );
+
+    if (response.ok) {
+      console.log('SMS sent via Twilio');
+      return true;
+    } else {
+      const error = await response.text();
+      console.error('Twilio error:', error);
+      return false;
+    }
+  } catch (error) {
+    console.error('Twilio exception:', error);
+    return false;
+  }
+};
+
+const sendSmsFast2SMS = async (phone: string, message: string): Promise<boolean> => {
+  const apiKey = Deno.env.get('FAST2SMS_API_KEY');
+
+  if (!apiKey) {
+    console.log('Fast2SMS API key not configured');
+    return false;
+  }
+
+  try {
+    const cleanPhone = phone.replace(/^\+91/, '').replace(/\D/g, '');
+    
+    const response = await fetch('https://www.fast2sms.com/dev/bulkV2', {
+      method: 'POST',
+      headers: {
+        'authorization': apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        route: 'q',
+        message: message,
+        language: 'english',
+        flash: 0,
+        numbers: cleanPhone,
+      }),
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      if (result.return === true) {
+        console.log('SMS sent via Fast2SMS');
+        return true;
+      }
+    }
+    
+    const error = await response.text();
+    console.error('Fast2SMS error:', error);
+    return false;
+  } catch (error) {
+    console.error('Fast2SMS exception:', error);
+    return false;
+  }
+};
+
 const getEmailContent = (data: RefundNotificationRequest & { user_email: string; user_name: string }) => {
   const statusConfig = {
     initiated: {
@@ -190,42 +284,84 @@ const handler = async (req: Request): Promise<Response> => {
     
     console.log('Sending refund notification:', data);
 
-    // Get user email from profiles
+    // Get user details from profiles
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('email, full_name')
+      .select('email, full_name, phone')
       .eq('user_id', data.user_id)
       .single();
 
-    if (profileError || !profile?.email) {
-      console.log('No email found for user:', data.user_id);
-      return new Response(
-        JSON.stringify({ success: false, message: 'No email found for user' }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (profileError) {
+      console.error('Error fetching profile:', profileError);
     }
 
-    const emailContent = getEmailContent({
-      ...data,
-      user_email: profile.email,
-      user_name: profile.full_name || 'there',
-    });
+    const results = {
+      email: { sent: false, error: null as string | null },
+      sms: { sent: false, error: null as string | null },
+    };
 
-    const emailResponse = await resend.emails.send({
-      from: "Grumming <notifications@resend.dev>",
-      to: [profile.email],
-      subject: emailContent.subject,
-      html: emailContent.html,
-    });
+    // Send email if user has email
+    if (profile?.email) {
+      try {
+        const emailContent = getEmailContent({
+          ...data,
+          user_email: profile.email,
+          user_name: profile.full_name || 'there',
+        });
 
-    console.log("Refund notification email sent:", emailResponse);
+        const emailResponse = await resend.emails.send({
+          from: "Grumming <notifications@resend.dev>",
+          to: [profile.email],
+          subject: emailContent.subject,
+          html: emailContent.html,
+        });
+
+        console.log("Refund notification email sent:", emailResponse);
+        results.email.sent = true;
+      } catch (emailError: unknown) {
+        console.error("Email send error:", emailError);
+        results.email.error = emailError instanceof Error ? emailError.message : 'Unknown error';
+      }
+    } else {
+      console.log('No email found for user:', data.user_id);
+    }
+
+    // Send SMS if user has phone number
+    if (profile?.phone) {
+      try {
+        const smsMessage = getSmsContent(data);
+        
+        // Try Twilio first, fallback to Fast2SMS
+        let smsSent = await sendSmsTwilio(profile.phone, smsMessage);
+        
+        if (!smsSent) {
+          console.log('Twilio failed, trying Fast2SMS...');
+          smsSent = await sendSmsFast2SMS(profile.phone, smsMessage);
+        }
+
+        if (smsSent) {
+          console.log("Refund notification SMS sent to:", profile.phone);
+          results.sms.sent = true;
+        } else {
+          results.sms.error = 'Both SMS providers failed';
+        }
+      } catch (smsError: unknown) {
+        console.error("SMS send error:", smsError);
+        results.sms.error = smsError instanceof Error ? smsError.message : 'Unknown error';
+      }
+    } else {
+      console.log('No phone found for user:', data.user_id);
+    }
 
     return new Response(
-      JSON.stringify({ success: true, emailResponse }),
+      JSON.stringify({ 
+        success: results.email.sent || results.sms.sent,
+        results 
+      }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error: unknown) {
