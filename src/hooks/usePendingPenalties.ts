@@ -55,28 +55,30 @@ export function usePendingPenalties() {
     const penaltyIds = penalties.map(p => p.id);
     console.log('markPenaltiesAsPaid: Marking penalties as paid', { penaltyIds, bookingId, collectingSalonId });
     
-    // Build update object - include collecting_salon_id for cash payments
-    const updateData: Record<string, unknown> = { 
-      is_paid: true, 
-      paid_at: new Date().toISOString(),
-      paid_booking_id: bookingId
-    };
-    
-    // If collecting salon is specified (cash payment), track it for remittance
-    if (collectingSalonId) {
-      updateData.collecting_salon_id = collectingSalonId;
-    }
-    
-    const { error, count } = await supabase
-      .from('cancellation_penalties')
-      .update(updateData)
-      .in('id', penaltyIds)
-      .eq('user_id', user.id); // Ensure we only update user's own penalties
+    // Update each penalty individually to ensure collecting_salon_id is set correctly
+    for (const penaltyId of penaltyIds) {
+      const updateData: Record<string, unknown> = { 
+        is_paid: true, 
+        paid_at: new Date().toISOString(),
+        paid_booking_id: bookingId
+      };
+      
+      // If collecting salon is specified (cash payment), track it for remittance
+      if (collectingSalonId) {
+        updateData.collecting_salon_id = collectingSalonId;
+      }
+      
+      const { error } = await supabase
+        .from('cancellation_penalties')
+        .update(updateData)
+        .eq('id', penaltyId)
+        .eq('user_id', user.id);
 
-    if (error) {
-      console.error('markPenaltiesAsPaid: Error updating penalties', error);
-    } else {
-      console.log('markPenaltiesAsPaid: Updated penalties', { count });
+      if (error) {
+        console.error('markPenaltiesAsPaid: Error updating penalty', penaltyId, error);
+      } else {
+        console.log('markPenaltiesAsPaid: Updated penalty', { penaltyId, collectingSalonId });
+      }
     }
 
     // Refresh penalties
