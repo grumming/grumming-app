@@ -22,6 +22,7 @@ interface BookingPaymentSheetProps {
   onOpenChange: (open: boolean) => void;
   booking: {
     id: string;
+    salon_id?: string;
     salon_name: string;
     service_name: string;
     service_price: number;
@@ -113,9 +114,11 @@ export function BookingPaymentSheet({
           .update({ payment_method: 'salon' })
           .eq('id', booking.id);
 
-        // Mark any pending penalties as paid for cash payments too
-        // Penalties are platform revenue, collected when customer pays at salon
-        if (hasPenalties) {
+        // Mark any pending penalties as paid for cash payments
+        // Track the collecting salon so we can deduct from their payout later
+        if (hasPenalties && booking.salon_id) {
+          await markPenaltiesAsPaid(booking.id, booking.salon_id);
+        } else if (hasPenalties) {
           await markPenaltiesAsPaid(booking.id);
         }
 

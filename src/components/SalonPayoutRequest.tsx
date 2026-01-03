@@ -45,6 +45,7 @@ interface PendingBalance {
   total: number;
   availableForPayout: number;
   pendingSettlement: number;
+  penaltiesOwed: number; // Penalties collected via cash that need to be remitted to platform
 }
 
 const INSTANT_PAYOUT_FEE_PERCENT = 1; // 1% convenience fee for instant payouts
@@ -52,7 +53,7 @@ const INSTANT_PAYOUT_FEE_PERCENT = 1; // 1% convenience fee for instant payouts
 export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRequestProps) {
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [payoutRequests, setPayoutRequests] = useState<PayoutRequest[]>([]);
-  const [pendingBalance, setPendingBalance] = useState<PendingBalance>({ total: 0, availableForPayout: 0, pendingSettlement: 0 });
+  const [pendingBalance, setPendingBalance] = useState<PendingBalance>({ total: 0, availableForPayout: 0, pendingSettlement: 0, penaltiesOwed: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -173,6 +174,18 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
 
       if (payoutsError) throw payoutsError;
 
+      // Fetch unremitted penalties collected by this salon (cash payments)
+      const { data: unremittedPenalties, error: penaltiesError } = await supabase
+        .from('cancellation_penalties')
+        .select('penalty_amount')
+        .eq('collecting_salon_id', salonId)
+        .eq('is_paid', true)
+        .eq('remitted_to_platform', false);
+
+      if (penaltiesError) throw penaltiesError;
+
+      const totalPenaltiesOwed = unremittedPenalties?.reduce((sum, p) => sum + Number(p.penalty_amount), 0) || 0;
+
       const totalEarned = payments?.reduce((sum, p) => sum + Number(p.salon_amount), 0) || 0;
       const totalPaidOut = completedPayouts?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
       const pendingRequests = requests?.reduce((sum, r) => sum + Number(r.amount), 0) || 0;
@@ -183,10 +196,14 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
       // Pending settlement = payout requests that are pending (not yet approved)
       const pendingPayoutAmount = requests?.filter(r => r.status === 'pending').reduce((sum, r) => sum + Number(r.amount), 0) || 0;
       
+      // Deduct penalties owed to platform from available balance
+      const netAvailable = Math.max(0, availableAmount - totalPaidOut - pendingRequests - totalPenaltiesOwed);
+      
       setPendingBalance({
         total: totalEarned - totalPaidOut,
-        availableForPayout: Math.max(0, availableAmount - totalPaidOut - pendingRequests),
-        pendingSettlement: pendingPayoutAmount
+        availableForPayout: netAvailable,
+        pendingSettlement: pendingPayoutAmount,
+        penaltiesOwed: totalPenaltiesOwed
       });
 
     } catch (error) {
@@ -342,7 +359,7 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
   return (
     <div className="space-y-6">
       {/* Balance Overview */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -384,6 +401,24 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
             </div>
           </CardContent>
         </Card>
+
+        {/* Penalties Owed Card - Only show if there are penalties to remit */}
+        {pendingBalance.penaltiesOwed > 0 && (
+          <Card className="border-red-200 dark:border-red-800/50 bg-red-50/50 dark:bg-red-950/20">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-full bg-red-500/10">
+                  <AlertCircle className="h-5 w-5 text-red-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-red-600 dark:text-red-400">Penalties Owed to Platform</p>
+                  <p className="text-2xl font-bold text-red-600 font-sans">-₹{pendingBalance.penaltiesOwed.toLocaleString('en-IN')}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Collected via cash, deducted from payout</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Request Payout Section */}
