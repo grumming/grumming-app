@@ -229,71 +229,32 @@ export function BookingCancellationDialog({
               exit={{ opacity: 0, x: 20 }}
               className="space-y-4 py-4"
             >
-              {/* Cancellation Policy */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                  <Info className="w-4 h-4 text-primary" />
-                  Cancellation Policy
-                </div>
-                <div className="space-y-2 rounded-xl bg-muted/30 p-2">
-                  {CANCELLATION_POLICIES.map((policy, index) => {
-                    const isActive = refundInfo.policy.hoursBeforeBooking === policy.hoursBeforeBooking;
-                    const getRefundColor = () => {
-                      if (policy.refundPercentage >= 80) return 'text-green-600 dark:text-green-500';
-                      if (policy.refundPercentage >= 50) return 'text-emerald-600 dark:text-emerald-500';
-                      if (policy.refundPercentage >= 30) return 'text-amber-600 dark:text-amber-500';
-                      if (policy.refundPercentage > 0) return 'text-orange-600 dark:text-orange-500';
-                      return 'text-red-600 dark:text-red-500';
-                    };
-                    
-                    return (
-                      <div 
-                        key={index}
-                        className={`flex items-center justify-between px-4 py-3 rounded-lg text-sm transition-all ${
-                          isActive
-                            ? 'bg-background border-2 border-green-500 shadow-sm'
-                            : 'bg-background/60 border border-transparent'
-                        }`}
-                      >
-                        <span className={`${isActive ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
-                          {policy.label}
-                        </span>
-                        <span className={`font-bold ${getRefundColor()}`}>
-                          {policy.refundPercentage}% refund
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Your Refund */}
+              {/* Refund Summary */}
               <div className="p-4 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm text-muted-foreground">Time until booking</span>
-                  <span className="font-semibold">
-                    {refundInfo.isPastBooking ? (
-                      <span className="text-red-600">Past booking</span>
-                    ) : refundInfo.hoursRemaining >= 24 ? (
-                      `${Math.floor(refundInfo.hoursRemaining / 24)}d ${refundInfo.hoursRemaining % 24}h`
-                    ) : (
-                      `${refundInfo.hoursRemaining}h remaining`
-                    )}
-                  </span>
-                </div>
-                
-                <div className="space-y-2">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Time until booking</span>
+                    <span className="font-semibold">
+                      {refundInfo.isPastBooking ? (
+                        <span className="text-red-600">Past booking</span>
+                      ) : refundInfo.hoursRemaining >= 24 ? (
+                        `${Math.floor(refundInfo.hoursRemaining / 24)}d ${refundInfo.hoursRemaining % 24}h`
+                      ) : (
+                        `${refundInfo.hoursRemaining}h remaining`
+                      )}
+                    </span>
+                  </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Original Amount</span>
-                    <span>₹{booking.service_price}</span>
+                    <span className="font-sans font-medium">₹{booking.service_price}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Cancellation Fee ({100 - refundInfo.percentage}%)</span>
-                    <span className="text-red-600">-₹{refundInfo.deduction}</span>
+                    <span className="text-red-600 font-sans font-medium">-₹{refundInfo.deduction}</span>
                   </div>
-                  <div className="border-t border-border pt-2 flex items-center justify-between">
+                  <div className="border-t border-border pt-3 flex items-center justify-between">
                     <span className="font-medium">Your Refund ({refundInfo.percentage}%)</span>
-                    <span className={`text-xl font-bold ${refundInfo.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <span className={`text-xl font-bold font-sans ${refundInfo.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
                       ₹{refundInfo.amount}
                     </span>
                   </div>
