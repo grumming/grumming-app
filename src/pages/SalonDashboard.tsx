@@ -457,59 +457,111 @@ const SalonDashboard = () => {
   // Restore booking handler (with optional reschedule)
   const handleRestoreBooking = async (withReschedule = false) => {
     if (!selectedBookingForRestore) return;
-    
+
     setIsRestoring(true);
-    
+
+    // Determine if booking is in the past (supports multiple time formats)
+    let bookingDateTime: Date;
+    try {
+      bookingDateTime = parse(
+        `${selectedBookingForRestore.booking_date} ${selectedBookingForRestore.booking_time}`,
+        'yyyy-MM-dd HH:mm:ss',
+        new Date()
+      );
+      if (isNaN(bookingDateTime.getTime())) {
+        bookingDateTime = parse(
+          `${selectedBookingForRestore.booking_date} ${selectedBookingForRestore.booking_time}`,
+          'yyyy-MM-dd h:mm a',
+          new Date()
+        );
+      }
+    } catch {
+      bookingDateTime = new Date(0);
+    }
+    const isPast = isBefore(bookingDateTime, new Date()) || isNaN(bookingDateTime.getTime());
+
+    if (isPast && !withReschedule) {
+      setIsRestoring(false);
+      toast({
+        title: 'Reschedule required',
+        description: 'This booking is in the past. Please choose a new date and time.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     const oldDate = selectedBookingForRestore.booking_date;
     const oldTime = selectedBookingForRestore.booking_time;
-    
-    const updateData: { status: string; booking_date?: string; booking_time?: string } = { 
-      status: 'upcoming' 
+
+    const updateData: { status: string; booking_date?: string; booking_time?: string } = {
+      status: 'upcoming',
     };
-    
+
     if (withReschedule && rescheduleDate && rescheduleTime) {
       updateData.booking_date = rescheduleDate;
       updateData.booking_time = rescheduleTime;
     }
-    
-    const { error } = await supabase
+
+    console.log('[restore/reschedule] attempt', {
+      booking_id: selectedBookingForRestore.id,
+      withReschedule,
+      updateData,
+      old: { date: oldDate, time: oldTime },
+    });
+
+    const { data: updatedRows, error } = await supabase
       .from('bookings')
       .update(updateData)
-      .eq('id', selectedBookingForRestore.id);
+      .eq('id', selectedBookingForRestore.id)
+      .select('id, status, booking_date, booking_time');
+
+    console.log('[restore/reschedule] result', { updatedRows, error });
 
     if (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    } else {
-      toast({ 
-        title: 'Success', 
-        description: withReschedule 
-          ? 'Booking rescheduled successfully' 
-          : 'Booking restored to upcoming' 
-      });
-      
-      // Send notification to customer if rescheduled
-      if (withReschedule && rescheduleDate && rescheduleTime) {
-        try {
-          await supabase.functions.invoke('send-reschedule-notification', {
-            body: {
-              booking_id: selectedBookingForRestore.id,
-              user_id: selectedBookingForRestore.user_id,
-              salon_name: selectedBookingForRestore.salon_name,
-              service_name: selectedBookingForRestore.service_name,
-              old_date: oldDate,
-              old_time: oldTime,
-              new_date: rescheduleDate,
-              new_time: rescheduleTime,
-            }
-          });
-        } catch (notifError) {
-          console.error('Failed to send reschedule notification:', notifError);
-        }
-      }
-      
-      await fetchSalonData(false);
+      setIsRestoring(false);
+      return;
     }
-    
+
+    if (!updatedRows || updatedRows.length === 0) {
+      toast({
+        title: 'Could not update booking',
+        description: 'No changes were applied. This is usually a permissions issue.',
+        variant: 'destructive',
+      });
+      setIsRestoring(false);
+      return;
+    }
+
+    toast({
+      title: 'Success',
+      description: withReschedule
+        ? `Booking rescheduled to ${updateData.booking_date} at ${updateData.booking_time}`
+        : 'Booking restored to upcoming',
+    });
+
+    // Send notification to customer if rescheduled
+    if (withReschedule && rescheduleDate && rescheduleTime) {
+      try {
+        await supabase.functions.invoke('send-reschedule-notification', {
+          body: {
+            booking_id: selectedBookingForRestore.id,
+            user_id: selectedBookingForRestore.user_id,
+            salon_name: selectedBookingForRestore.salon_name,
+            service_name: selectedBookingForRestore.service_name,
+            old_date: oldDate,
+            old_time: oldTime,
+            new_date: rescheduleDate,
+            new_time: rescheduleTime,
+          },
+        });
+      } catch (notifError) {
+        console.error('Failed to send reschedule notification:', notifError);
+      }
+    }
+
+    await fetchSalonData(false);
+
     setIsRestoring(false);
     setIsRestoreDialogOpen(false);
     setSelectedBookingForRestore(null);
