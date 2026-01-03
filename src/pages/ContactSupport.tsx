@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, MessageCircle, Clock, CheckCircle, AlertCircle, ExternalLink, Phone, Mail, Paperclip, X, Image } from "lucide-react";
+import { ArrowLeft, Send, MessageCircle, Clock, CheckCircle, AlertCircle, ExternalLink, Phone, Mail, FileImage } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { FAQSection } from "@/components/support/FAQSection";
+import { TicketStatusTracker } from "@/components/support/TicketStatusTracker";
+import { LiveChatWidget } from "@/components/support/LiveChatWidget";
+import { DragDropAttachments } from "@/components/support/DragDropAttachments";
 
 const categories = [
   { value: "booking", label: "Booking Issues" },
@@ -50,7 +54,6 @@ const ContactSupport = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [category, setCategory] = useState("");
   const [priority, setPriority] = useState("normal");
@@ -58,6 +61,7 @@ const ContactSupport = () => {
   const [message, setMessage] = useState("");
   const [attachments, setAttachments] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [expandedTicket, setExpandedTicket] = useState<string | null>(null);
 
   // Fetch user's tickets (explicitly exclude internal_notes which is admin-only)
   const { data: tickets, isLoading: ticketsLoading } = useQuery({
@@ -147,41 +151,6 @@ const ContactSupport = () => {
       toast.error(error.message || "Failed to submit ticket");
     },
   });
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-    
-    const validFiles: File[] = [];
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
-    
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      if (!allowedTypes.includes(file.type)) {
-        toast.error(`${file.name}: Only images and PDFs are allowed`);
-        continue;
-      }
-      if (file.size > maxSize) {
-        toast.error(`${file.name}: File size must be less than 5MB`);
-        continue;
-      }
-      if (attachments.length + validFiles.length >= 5) {
-        toast.error("Maximum 5 attachments allowed");
-        break;
-      }
-      validFiles.push(file);
-    }
-    
-    setAttachments(prev => [...prev, ...validFiles]);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const removeAttachment = (index: number) => {
-    setAttachments(prev => prev.filter((_, i) => i !== index));
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -355,43 +324,12 @@ const ContactSupport = () => {
                     {/* Attachments Section */}
                     <div className="space-y-2">
                       <Label>Attachments (optional)</Label>
-                      <div className="flex flex-wrap gap-2">
-                        {attachments.map((file, index) => (
-                          <div key={index} className="flex items-center gap-2 px-3 py-2 bg-muted rounded-lg text-sm">
-                            <Image className="h-4 w-4 text-muted-foreground" />
-                            <span className="truncate max-w-[150px]">{file.name}</span>
-                            <button
-                              type="button"
-                              onClick={() => removeAttachment(index)}
-                              className="text-muted-foreground hover:text-destructive"
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-                          </div>
-                        ))}
-                        {attachments.length < 5 && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => fileInputRef.current?.click()}
-                          >
-                            <Paperclip className="h-4 w-4 mr-2" />
-                            Add File
-                          </Button>
-                        )}
-                      </div>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*,.pdf"
-                        multiple
-                        onChange={handleFileSelect}
-                        className="hidden"
+                      <DragDropAttachments
+                        attachments={attachments}
+                        onAttachmentsChange={setAttachments}
+                        maxFiles={5}
+                        maxSize={5 * 1024 * 1024}
                       />
-                      <p className="text-xs text-muted-foreground">
-                        Max 5 files, 5MB each. Images and PDFs only.
-                      </p>
                     </div>
 
                     <Button
@@ -421,7 +359,16 @@ const ContactSupport = () => {
               ) : tickets && tickets.length > 0 ? (
                 <div className="space-y-3">
                   {tickets.map((ticket) => (
-                    <Card key={ticket.id}>
+                    <Card key={ticket.id} className="overflow-hidden">
+                      {/* Status Tracker */}
+                      <div className="border-b bg-muted/30">
+                        <TicketStatusTracker
+                          status={ticket.status}
+                          createdAt={ticket.created_at}
+                          respondedAt={ticket.responded_at}
+                          resolvedAt={ticket.resolved_at}
+                        />
+                      </div>
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex items-start gap-3 flex-1">
@@ -451,7 +398,7 @@ const ContactSupport = () => {
                                       rel="noopener noreferrer"
                                       className="flex items-center gap-1 text-xs text-primary hover:underline"
                                     >
-                                      <Image className="h-3 w-3" />
+                                      <FileImage className="h-3 w-3" />
                                       Attachment {idx + 1}
                                     </a>
                                   ))}
@@ -509,7 +456,10 @@ const ContactSupport = () => {
           </Card>
         )}
 
-        {/* FAQ Link */}
+        {/* FAQ Section */}
+        <FAQSection />
+
+        {/* Refund Policy Link */}
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -526,6 +476,9 @@ const ContactSupport = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Live Chat Widget */}
+      <LiveChatWidget />
     </div>
   );
 };
