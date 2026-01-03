@@ -66,19 +66,10 @@ const PenaltyRemittanceTracking = () => {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      // Fetch unremitted penalties grouped by salon
+      // Fetch unremitted penalties with salon info
       const { data: penalties, error: penaltiesError } = await supabase
         .from('cancellation_penalties')
-        .select(`
-          id,
-          penalty_amount,
-          salon_name,
-          service_name,
-          paid_at,
-          user_id,
-          collecting_salon_id,
-          salon:salons!cancellation_penalties_collecting_salon_id_fkey(id, name, image_url)
-        `)
+        .select('id, penalty_amount, salon_name, service_name, paid_at, user_id, collecting_salon_id')
         .eq('is_paid', true)
         .eq('remitted_to_platform', false)
         .eq('is_waived', false)
@@ -86,12 +77,31 @@ const PenaltyRemittanceTracking = () => {
 
       if (penaltiesError) throw penaltiesError;
 
+      // Get salon details separately
+      const salonIds = [...new Set((penalties || []).map(p => p.collecting_salon_id).filter(Boolean))];
+      
+      let salonsMap: Record<string, { name: string; image_url: string | null }> = {};
+      if (salonIds.length > 0) {
+        const { data: salons } = await supabase
+          .from('salons')
+          .select('id, name, image_url')
+          .in('id', salonIds);
+        
+        salonsMap = (salons || []).reduce((acc, s) => {
+          acc[s.id] = { name: s.name, image_url: s.image_url };
+          return acc;
+        }, {} as Record<string, { name: string; image_url: string | null }>);
+      }
+
+      if (penaltiesError) throw penaltiesError;
+
       // Group by salon
       const salonMap = new Map<string, SalonPendingPenalties>();
       
-      (penalties || []).forEach((penalty: any) => {
+      (penalties || []).forEach((penalty) => {
         if (!penalty.collecting_salon_id) return;
         
+        const salonInfo = salonsMap[penalty.collecting_salon_id];
         const existing = salonMap.get(penalty.collecting_salon_id);
         const penaltyData = {
           id: penalty.id,
@@ -109,8 +119,8 @@ const PenaltyRemittanceTracking = () => {
         } else {
           salonMap.set(penalty.collecting_salon_id, {
             salon_id: penalty.collecting_salon_id,
-            salon_name: penalty.salon?.name || 'Unknown',
-            salon_image: penalty.salon?.image_url,
+            salon_name: salonInfo?.name || 'Unknown',
+            salon_image: salonInfo?.image_url || null,
             pending_count: 1,
             pending_amount: penalty.penalty_amount || 0,
             penalties: [penaltyData]
@@ -125,15 +135,31 @@ const PenaltyRemittanceTracking = () => {
       // Fetch remittance history
       const { data: remittances, error: remittanceError } = await supabase
         .from('salon_penalty_remittances')
-        .select(`
-          *,
-          salon:salons(name)
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
         .limit(50);
 
       if (remittanceError) throw remittanceError;
-      setRemittanceHistory((remittances || []) as unknown as RemittanceRecord[]);
+      
+      // Get salon names for remittances
+      const remittanceSalonIds = [...new Set((remittances || []).map(r => r.salon_id))];
+      let remittanceSalonsMap: Record<string, string> = {};
+      if (remittanceSalonIds.length > 0) {
+        const { data: rSalons } = await supabase
+          .from('salons')
+          .select('id, name')
+          .in('id', remittanceSalonIds);
+        
+        remittanceSalonsMap = (rSalons || []).reduce((acc, s) => {
+          acc[s.id] = s.name;
+          return acc;
+        }, {} as Record<string, string>);
+      }
+      
+      setRemittanceHistory((remittances || []).map(r => ({
+        ...r,
+        salon: { name: remittanceSalonsMap[r.salon_id] || 'Unknown' }
+      })) as RemittanceRecord[]);
     } catch (err) {
       console.error('Error fetching penalty remittance data:', err);
       toast({ title: 'Error', description: 'Failed to load data', variant: 'destructive' });

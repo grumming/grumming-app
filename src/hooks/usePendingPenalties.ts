@@ -46,18 +46,17 @@ export function usePendingPenalties() {
   };
 
   const markPenaltiesAsPaid = async (bookingId: string, collectingSalonId?: string) => {
-    if (!user || penalties.length === 0) return;
+    if (!user || penalties.length === 0) {
+      console.log('markPenaltiesAsPaid: No user or no pending penalties');
+      return;
+    }
 
     // Mark all pending penalties as paid for this booking
     const penaltyIds = penalties.map(p => p.id);
+    console.log('markPenaltiesAsPaid: Marking penalties as paid', { penaltyIds, bookingId, collectingSalonId });
     
     // Build update object - include collecting_salon_id for cash payments
-    const updateData: {
-      is_paid: boolean;
-      paid_at: string;
-      paid_booking_id: string;
-      collecting_salon_id?: string;
-    } = { 
+    const updateData: Record<string, unknown> = { 
       is_paid: true, 
       paid_at: new Date().toISOString(),
       paid_booking_id: bookingId
@@ -68,10 +67,17 @@ export function usePendingPenalties() {
       updateData.collecting_salon_id = collectingSalonId;
     }
     
-    await supabase
+    const { error, count } = await supabase
       .from('cancellation_penalties')
       .update(updateData)
-      .in('id', penaltyIds);
+      .in('id', penaltyIds)
+      .eq('user_id', user.id); // Ensure we only update user's own penalties
+
+    if (error) {
+      console.error('markPenaltiesAsPaid: Error updating penalties', error);
+    } else {
+      console.log('markPenaltiesAsPaid: Updated penalties', { count });
+    }
 
     // Refresh penalties
     fetchPenalties();
