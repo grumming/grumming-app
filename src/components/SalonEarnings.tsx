@@ -15,6 +15,11 @@ interface SalonEarningsProps {
   salonName: string;
 }
 
+interface PaymentMetadata {
+  penalty_amount?: number;
+  service_amount?: number;
+}
+
 interface Payment {
   id: string;
   amount: number;
@@ -24,6 +29,7 @@ interface Payment {
   payment_method: string | null;
   created_at: string;
   booking_id: string | null;
+  metadata: PaymentMetadata | null;
 }
 
 interface Payout {
@@ -74,7 +80,12 @@ export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
         if (paymentsError) {
           console.error('Error fetching payments:', paymentsError);
         } else {
-          setPayments(paymentsData || []);
+          // Cast metadata to proper type
+          const typedPayments = (paymentsData || []).map(p => ({
+            ...p,
+            metadata: p.metadata as PaymentMetadata | null
+          }));
+          setPayments(typedPayments);
         }
 
         // Fetch payouts for this salon
@@ -327,6 +338,24 @@ export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
                         </p>
                       </div>
                     </div>
+                    {/* Show penalty if customer paid one - goes to platform */}
+                    {payment.metadata?.penalty_amount && payment.metadata.penalty_amount > 0 && (
+                      <div className="mt-3 pt-3 border-t border-border/50">
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="bg-orange-500/10 text-orange-600 border-orange-500/20 text-xs">
+                              Penalty Collected
+                            </Badge>
+                            <span className="text-muted-foreground text-xs">
+                              (paid by customer → platform)
+                            </span>
+                          </div>
+                          <span className="font-sans text-orange-600 font-medium">
+                            ₹{payment.metadata.penalty_amount.toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </motion.div>
