@@ -717,6 +717,11 @@ const SalonDetail = () => {
     }
   }, [isRetryMode, retryService, retryDate, retryTime, retryBookingId, salon, toast]);
 
+  // Clear selected time when date changes
+  useEffect(() => {
+    setSelectedTime(null);
+  }, [selectedDate]);
+
   // Fetch booked time slots for selected date
   useEffect(() => {
     const fetchBookedTimeSlots = async () => {
