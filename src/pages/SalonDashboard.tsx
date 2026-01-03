@@ -5,7 +5,8 @@ import {
   ArrowLeft, Store, Calendar, Clock, Star, Users, TrendingUp,
   Package, MessageSquare, Settings, Bell, Loader2, AlertTriangle,
   CheckCircle, XCircle, Eye, Edit2, ChevronRight, ChevronLeft, IndianRupee,
-  Send, Reply, Plus, Trash2, LogOut, User, HelpCircle, RefreshCw, KeyRound
+  Send, Reply, Plus, Trash2, LogOut, User, HelpCircle, RefreshCw, KeyRound,
+  Scissors, Award
 } from 'lucide-react';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { Button } from '@/components/ui/button';
@@ -91,6 +92,18 @@ interface DashboardStats {
   totalReviews: number;
 }
 
+interface Stylist {
+  id: string;
+  name: string;
+  bio: string | null;
+  photo_url: string | null;
+  specialties: string[] | null;
+  experience_years: number | null;
+  rating: number | null;
+  total_reviews: number | null;
+  is_available: boolean;
+}
+
 const SalonDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -130,6 +143,19 @@ const SalonDashboard = () => {
   });
   const [isSubmittingService, setIsSubmittingService] = useState(false);
   const [deleteServiceId, setDeleteServiceId] = useState<string | null>(null);
+
+  // Stylist management state
+  const [stylists, setStylists] = useState<Stylist[]>([]);
+  const [isStylistDialogOpen, setIsStylistDialogOpen] = useState(false);
+  const [editingStylist, setEditingStylist] = useState<Stylist | null>(null);
+  const [stylistForm, setStylistForm] = useState({
+    name: '',
+    bio: '',
+    experience_years: '1',
+    specialties: ''
+  });
+  const [isSubmittingStylist, setIsSubmittingStylist] = useState(false);
+  const [deleteStylistId, setDeleteStylistId] = useState<string | null>(null);
 
   // Settings dialog state
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
@@ -226,6 +252,15 @@ const SalonDashboard = () => {
         .order('category');
 
       setServices(servicesData || []);
+
+      // Fetch stylists
+      const { data: stylistsData } = await supabase
+        .from('stylists')
+        .select('*')
+        .eq('salon_id', selectedSalonId)
+        .order('name');
+
+      setStylists(stylistsData || []);
 
       // Fetch bookings for this salon
       const { data: bookingsData } = await supabase
@@ -724,6 +759,111 @@ const SalonDashboard = () => {
     }
 
     setDeleteServiceId(null);
+  };
+
+  // Stylist handlers
+  const handleOpenAddStylist = () => {
+    setEditingStylist(null);
+    setStylistForm({ name: '', bio: '', experience_years: '1', specialties: '' });
+    setIsStylistDialogOpen(true);
+  };
+
+  const handleOpenEditStylist = (stylist: Stylist) => {
+    setEditingStylist(stylist);
+    setStylistForm({
+      name: stylist.name,
+      bio: stylist.bio || '',
+      experience_years: stylist.experience_years?.toString() || '1',
+      specialties: stylist.specialties?.join(', ') || ''
+    });
+    setIsStylistDialogOpen(true);
+  };
+
+  const handleToggleStylistAvailability = async (stylistId: string, currentAvailability: boolean) => {
+    const { error } = await supabase
+      .from('stylists')
+      .update({ is_available: !currentAvailability })
+      .eq('id', stylistId);
+
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } else {
+      setStylists(stylists.map(s => 
+        s.id === stylistId ? { ...s, is_available: !currentAvailability } : s
+      ));
+    }
+  };
+
+  const handleSaveStylist = async () => {
+    if (!selectedSalonId || !stylistForm.name.trim()) {
+      toast({ title: 'Error', description: 'Stylist name is required', variant: 'destructive' });
+      return;
+    }
+
+    setIsSubmittingStylist(true);
+
+    try {
+      const specialtiesArray = stylistForm.specialties
+        .split(',')
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+
+      const stylistData = {
+        salon_id: selectedSalonId,
+        name: stylistForm.name.trim(),
+        bio: stylistForm.bio.trim() || null,
+        experience_years: parseInt(stylistForm.experience_years) || 1,
+        specialties: specialtiesArray.length > 0 ? specialtiesArray : null
+      };
+
+      if (editingStylist) {
+        const { data, error } = await supabase
+          .from('stylists')
+          .update(stylistData)
+          .eq('id', editingStylist.id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        setStylists(stylists.map(s => s.id === editingStylist.id ? { ...s, ...data } : s));
+        toast({ title: 'Success', description: 'Stylist updated' });
+      } else {
+        const { data, error } = await supabase
+          .from('stylists')
+          .insert({ ...stylistData, is_available: true })
+          .select()
+          .single();
+
+        if (error) throw error;
+        setStylists([...stylists, data]);
+        toast({ title: 'Success', description: 'Stylist added' });
+      }
+
+      setIsStylistDialogOpen(false);
+      setEditingStylist(null);
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    }
+
+    setIsSubmittingStylist(false);
+  };
+
+  const handleDeleteStylist = async () => {
+    if (!deleteStylistId) return;
+
+    const { error } = await supabase
+      .from('stylists')
+      .delete()
+      .eq('id', deleteStylistId);
+
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } else {
+      setStylists(stylists.filter(s => s.id !== deleteStylistId));
+      toast({ title: 'Success', description: 'Stylist removed' });
+    }
+
+    setDeleteStylistId(null);
   };
 
   const handleSubmitResponse = async () => {
@@ -1502,13 +1642,14 @@ const SalonDashboard = () => {
               </Tabs>
             </TabsContent>
 
-            {/* Manage Tab - with nested tabs for Reviews, Services, Bank Account */}
+            {/* Manage Tab - with nested tabs for Reviews, Services, Stylists, Bank Account */}
             <TabsContent value="manage" className="space-y-4">
               <Tabs defaultValue="reviews" className="space-y-4">
-                <TabsList className="grid w-full grid-cols-3 bg-muted/50">
+                <TabsList className="grid w-full grid-cols-4 bg-muted/50">
                   <TabsTrigger value="reviews" className="text-sm">Reviews</TabsTrigger>
                   <TabsTrigger value="services" className="text-sm">Services</TabsTrigger>
-                  <TabsTrigger value="bank" className="text-sm">Bank Account</TabsTrigger>
+                  <TabsTrigger value="stylists" className="text-sm">Stylists</TabsTrigger>
+                  <TabsTrigger value="bank" className="text-sm">Bank</TabsTrigger>
                 </TabsList>
 
                 {/* Reviews Sub-Tab */}
@@ -1682,6 +1823,118 @@ const SalonDashboard = () => {
                                   size="icon"
                                   className="text-destructive hover:text-destructive"
                                   onClick={() => setDeleteServiceId(service.id)}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                {/* Stylists Sub-Tab */}
+                <TabsContent value="stylists" className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle>Team Members</CardTitle>
+                          <CardDescription>Manage your salon stylists</CardDescription>
+                        </div>
+                        <Button onClick={handleOpenAddStylist}>
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add Stylist
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {stylists.length === 0 ? (
+                        <div className="text-center py-12">
+                          <Scissors className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
+                          <h3 className="font-medium">No stylists yet</h3>
+                          <p className="text-sm text-muted-foreground mt-1 mb-4">
+                            Add stylists to showcase your team
+                          </p>
+                          <Button onClick={handleOpenAddStylist}>
+                            <Plus className="w-4 h-4 mr-2" />
+                            Add Your First Stylist
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {stylists.map(stylist => (
+                            <motion.div 
+                              key={stylist.id} 
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                            >
+                              <div className="flex items-center gap-3 flex-1">
+                                <Avatar className="w-12 h-12">
+                                  <AvatarImage src={stylist.photo_url || ''} />
+                                  <AvatarFallback className="bg-primary/10 text-primary">
+                                    {stylist.name.charAt(0)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-medium">{stylist.name}</p>
+                                    {!stylist.is_available && (
+                                      <Badge variant="secondary">Unavailable</Badge>
+                                    )}
+                                  </div>
+                                  <div className="flex flex-wrap items-center gap-2 mt-1">
+                                    {stylist.experience_years && (
+                                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                        <Award className="w-3 h-3" />
+                                        {stylist.experience_years} yr{stylist.experience_years > 1 ? 's' : ''} exp
+                                      </span>
+                                    )}
+                                    {stylist.rating && (
+                                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                        <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                                        {stylist.rating.toFixed(1)}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {stylist.specialties && stylist.specialties.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mt-2">
+                                      {stylist.specialties.slice(0, 3).map((spec, i) => (
+                                        <Badge key={i} variant="outline" className="text-xs">
+                                          {spec}
+                                        </Badge>
+                                      ))}
+                                      {stylist.specialties.length > 3 && (
+                                        <Badge variant="outline" className="text-xs">
+                                          +{stylist.specialties.length - 3}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 mr-2">
+                                  <Switch
+                                    checked={stylist.is_available}
+                                    onCheckedChange={() => handleToggleStylistAvailability(stylist.id, stylist.is_available)}
+                                  />
+                                </div>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  onClick={() => handleOpenEditStylist(stylist)}
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  className="text-destructive hover:text-destructive"
+                                  onClick={() => setDeleteStylistId(stylist.id)}
                                 >
                                   <Trash2 className="w-4 h-4" />
                                 </Button>
@@ -1906,6 +2159,105 @@ const SalonDashboard = () => {
             </Button>
             <Button variant="destructive" onClick={handleDeleteService}>
               Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add/Edit Stylist Dialog */}
+      <Dialog open={isStylistDialogOpen} onOpenChange={setIsStylistDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Scissors className="w-5 h-5 text-primary" />
+              {editingStylist ? 'Edit Stylist' : 'Add New Stylist'}
+            </DialogTitle>
+            <DialogDescription>
+              {editingStylist ? 'Update the stylist details' : 'Add a new team member to your salon'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Stylist Name *</Label>
+              <Input
+                value={stylistForm.name}
+                onChange={(e) => setStylistForm({ ...stylistForm, name: e.target.value })}
+                placeholder="e.g., Rahul Kumar"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Bio / Description</Label>
+              <Textarea
+                value={stylistForm.bio}
+                onChange={(e) => setStylistForm({ ...stylistForm, bio: e.target.value })}
+                placeholder="Brief description of the stylist's expertise..."
+                rows={3}
+                maxLength={300}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Years of Experience</Label>
+              <Select 
+                value={stylistForm.experience_years} 
+                onValueChange={(v) => setStylistForm({ ...stylistForm, experience_years: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1 year</SelectItem>
+                  <SelectItem value="2">2 years</SelectItem>
+                  <SelectItem value="3">3 years</SelectItem>
+                  <SelectItem value="5">5 years</SelectItem>
+                  <SelectItem value="7">7 years</SelectItem>
+                  <SelectItem value="10">10+ years</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Specialties</Label>
+              <Input
+                value={stylistForm.specialties}
+                onChange={(e) => setStylistForm({ ...stylistForm, specialties: e.target.value })}
+                placeholder="e.g., Haircuts, Beard, Hair Color"
+              />
+              <p className="text-xs text-muted-foreground">
+                Separate multiple specialties with commas
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsStylistDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveStylist} disabled={isSubmittingStylist || !stylistForm.name.trim()}>
+              {isSubmittingStylist && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {editingStylist ? 'Save Changes' : 'Add Stylist'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Stylist Confirmation */}
+      <Dialog open={!!deleteStylistId} onOpenChange={() => setDeleteStylistId(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Remove Stylist</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to remove this stylist? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteStylistId(null)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteStylist}>
+              Remove
             </Button>
           </DialogFooter>
         </DialogContent>
