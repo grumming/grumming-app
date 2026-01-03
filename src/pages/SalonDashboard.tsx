@@ -664,7 +664,7 @@ const SalonDashboard = () => {
           .from('salon_services')
           .update({
             name: serviceForm.name.trim(),
-            price: parseFloat(serviceForm.price) || 49,
+            price: 49, // Fixed price for all services
             duration: serviceForm.duration,
             category: serviceForm.category
           })
@@ -674,7 +674,7 @@ const SalonDashboard = () => {
 
         setServices(services.map(s => 
           s.id === editingService.id 
-            ? { ...s, name: serviceForm.name.trim(), price: parseFloat(serviceForm.price) || 49, duration: serviceForm.duration, category: serviceForm.category }
+            ? { ...s, name: serviceForm.name.trim(), price: 49, duration: serviceForm.duration, category: serviceForm.category }
             : s
         ));
         toast({ title: 'Success', description: 'Service updated successfully' });
@@ -685,7 +685,7 @@ const SalonDashboard = () => {
           .insert({
             salon_id: selectedSalonId,
             name: serviceForm.name.trim(),
-            price: parseFloat(serviceForm.price) || 49,
+            price: 49, // Fixed price for all services
             duration: serviceForm.duration,
             category: serviceForm.category,
             is_active: true
@@ -1824,12 +1824,16 @@ const SalonDashboard = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Price (₹)</Label>
-                <Input
-                  type="number"
-                  value={serviceForm.price}
-                  onChange={(e) => setServiceForm({ ...serviceForm, price: e.target.value })}
-                  min="1"
-                />
+                <div className="relative">
+                  <Input
+                    type="number"
+                    value="49"
+                    readOnly
+                    disabled
+                    className="bg-muted cursor-not-allowed"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">Fixed</span>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>Duration</Label>
