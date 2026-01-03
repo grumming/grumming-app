@@ -534,6 +534,7 @@ const SalonDetail = () => {
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [bookedTimeSlots, setBookedTimeSlots] = useState<string[]>([]);
   const [isBooking, setIsBooking] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('upi');
   const [selectedSavedPaymentMethod, setSelectedSavedPaymentMethod] = useState<string | null>(null);
@@ -715,6 +716,45 @@ const SalonDetail = () => {
       });
     }
   }, [isRetryMode, retryService, retryDate, retryTime, retryBookingId, salon, toast]);
+
+  // Fetch booked time slots for selected date
+  useEffect(() => {
+    const fetchBookedTimeSlots = async () => {
+      if (!selectedDate || !id) {
+        setBookedTimeSlots([]);
+        return;
+      }
+
+      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+      
+      // Fetch bookings for this salon on the selected date
+      const { data: bookings, error } = await supabase
+        .from('bookings')
+        .select('booking_time')
+        .or(`salon_id.eq.${id},salon_name.eq.${salon?.name || ''}`)
+        .eq('booking_date', formattedDate)
+        .in('status', ['upcoming', 'confirmed', 'pending']);
+
+      if (error) {
+        console.error('Error fetching booked time slots:', error);
+        setBookedTimeSlots([]);
+        return;
+      }
+
+      // Convert booking times to display format (e.g., "10:00" -> "10:00 AM")
+      const bookedSlots = (bookings || []).map(b => {
+        const [hours, minutes] = b.booking_time.split(':');
+        const hour = parseInt(hours);
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+        return `${displayHour}:${minutes} ${ampm}`;
+      });
+
+      setBookedTimeSlots(bookedSlots);
+    };
+
+    fetchBookedTimeSlots();
+  }, [selectedDate, id, salon?.name]);
 
   // Show loading state while fetching from database
   if (isSalonLoading) {
@@ -1875,19 +1915,26 @@ const SalonDetail = () => {
                     <h4 className="font-semibold text-sm">Select Time</h4>
                   </div>
                   <div className="grid grid-cols-4 gap-2">
-                    {timeSlots.map((time) => (
-                      <button
-                        key={time}
-                        onClick={() => setSelectedTime(time)}
-                        className={`p-2.5 rounded-xl text-sm font-medium border-2 transition-all hover:scale-[1.02] ${
-                          selectedTime === time
-                            ? 'bg-primary text-primary-foreground border-primary shadow-md'
-                            : 'border-border hover:border-primary bg-muted/20'
-                        }`}
-                      >
-                        {time}
-                      </button>
-                    ))}
+                    {timeSlots.map((time) => {
+                      const isOccupied = bookedTimeSlots.includes(time);
+                      return (
+                        <button
+                          key={time}
+                          onClick={() => !isOccupied && setSelectedTime(time)}
+                          disabled={isOccupied}
+                          className={`p-2.5 rounded-xl text-sm font-medium border-2 transition-all ${
+                            isOccupied
+                              ? 'bg-muted/50 border-border text-muted-foreground cursor-not-allowed opacity-60'
+                              : selectedTime === time
+                                ? 'bg-primary text-primary-foreground border-primary shadow-md'
+                                : 'border-border hover:border-primary bg-muted/20 hover:scale-[1.02]'
+                          }`}
+                        >
+                          <span className={isOccupied ? 'line-through' : ''}>{time}</span>
+                          {isOccupied && <span className="block text-[10px] font-normal">Occupied</span>}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
