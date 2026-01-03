@@ -1266,20 +1266,17 @@ const SalonDashboard = () => {
                               
                               <div className="flex gap-2 flex-wrap justify-end">
                                 <Button 
-                                  size="sm" 
+                                  size="icon"
                                   variant="ghost"
-                                  className="relative gap-2 px-4 h-9 bg-gradient-to-r from-primary/5 to-primary/10 hover:from-primary/10 hover:to-primary/20 border border-primary/20 hover:border-primary/40 rounded-full text-primary hover:text-primary font-medium shadow-sm hover:shadow-md transition-all duration-200"
+                                  className="relative h-9 w-9 rounded-full bg-primary/10 hover:bg-primary/20 border border-primary/20 hover:border-primary/30 text-primary transition-all duration-200"
                                   onClick={() => {
                                     setSelectedBookingForChat(booking);
                                     setIsChatDialogOpen(true);
                                   }}
                                 >
-                                  <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
-                                    <MessageSquare className="w-3 h-3" />
-                                  </div>
-                                  <span className="text-xs">Message</span>
+                                  <MessageSquare className="w-4 h-4" />
                                   {booking.unread_count && booking.unread_count > 0 && (
-                                    <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 ring-2 ring-background shadow-sm animate-pulse">
+                                    <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-1 ring-2 ring-background">
                                       {booking.unread_count > 9 ? '9+' : booking.unread_count}
                                     </span>
                                   )}
@@ -1368,18 +1365,15 @@ const SalonDashboard = () => {
                                   
                                   <div className="flex gap-2 flex-wrap justify-end">
                                     <Button 
-                                      size="sm" 
+                                      size="icon"
                                       variant="ghost"
-                                      className="relative gap-2 px-4 h-9 bg-gradient-to-r from-primary/5 to-primary/10 hover:from-primary/10 hover:to-primary/20 border border-primary/20 hover:border-primary/40 rounded-full text-primary hover:text-primary font-medium shadow-sm hover:shadow-md transition-all duration-200"
+                                      className="relative h-9 w-9 rounded-full bg-primary/10 hover:bg-primary/20 border border-primary/20 hover:border-primary/30 text-primary transition-all duration-200"
                                       onClick={() => {
                                         setSelectedBookingForChat(booking);
                                         setIsChatDialogOpen(true);
                                       }}
                                     >
-                                      <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
-                                        <MessageSquare className="w-3 h-3" />
-                                      </div>
-                                      <span className="text-xs">Message</span>
+                                      <MessageSquare className="w-4 h-4" />
                                     </Button>
                                   </div>
                                 </motion.div>
@@ -1459,18 +1453,15 @@ const SalonDashboard = () => {
                               
                               <div className="flex gap-2 flex-wrap justify-end">
                                 <Button 
-                                  size="sm" 
+                                  size="icon"
                                   variant="ghost"
-                                  className="relative gap-2 px-4 h-9 bg-gradient-to-r from-primary/5 to-primary/10 hover:from-primary/10 hover:to-primary/20 border border-primary/20 hover:border-primary/40 rounded-full text-primary hover:text-primary font-medium shadow-sm hover:shadow-md transition-all duration-200"
+                                  className="relative h-9 w-9 rounded-full bg-primary/10 hover:bg-primary/20 border border-primary/20 hover:border-primary/30 text-primary transition-all duration-200"
                                   onClick={() => {
                                     setSelectedBookingForChat(booking);
                                     setIsChatDialogOpen(true);
                                   }}
                                 >
-                                  <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
-                                    <MessageSquare className="w-3 h-3" />
-                                  </div>
-                                  <span className="text-xs">Message</span>
+                                  <MessageSquare className="w-4 h-4" />
                                 </Button>
                                 <Button 
                                   size="sm" 
