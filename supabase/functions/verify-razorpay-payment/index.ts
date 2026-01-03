@@ -73,26 +73,31 @@ serve(async (req) => {
         throw new Error('Booking not found');
       }
 
-      const amount = booking.service_price;
-      const feePercentage = 8; // Platform takes 8% commission
-      const platformFee = Math.round(amount * feePercentage) / 100;
-      const salonAmount = amount - platformFee;
+      // IMPORTANT: Only use service_price for salon earnings calculation
+      // Penalties are platform revenue and NOT included in salon earnings
+      const serviceAmount = parseFloat(booking.service_price);
+      const feePercentage = 8; // Platform takes 8% commission on SERVICE ONLY
+      const platformFee = Math.round(serviceAmount * feePercentage) / 100;
+      const salonAmount = serviceAmount - platformFee;
+
+      console.log(`Payment breakdown - Service: ₹${serviceAmount}, Platform Fee (8%): ₹${platformFee}, Salon Amount: ₹${salonAmount}`);
 
       // Create payment record in payments table
+      // Store only the SERVICE amount, not the total (which may include penalty)
       const { error: paymentError } = await supabase
         .from('payments')
         .insert({
           booking_id,
           user_id: booking.user_id,
           salon_id: booking.salon_id,
-          amount,
+          amount: serviceAmount, // Only service amount, NOT including penalty
           currency: 'INR',
           status: 'captured',
           razorpay_order_id,
           razorpay_payment_id,
           payment_method: 'razorpay',
           platform_fee: platformFee,
-          salon_amount: salonAmount,
+          salon_amount: salonAmount, // Salon gets 92% of service price only
           fee_percentage: feePercentage,
           captured_at: new Date().toISOString(),
         });
@@ -101,7 +106,28 @@ serve(async (req) => {
         console.error('Failed to create payment record:', paymentError);
         // Continue - don't fail the whole payment for this
       } else {
-        console.log('Payment record created successfully');
+        console.log('Payment record created successfully with salon_amount:', salonAmount);
+      }
+
+      // Mark any pending penalties as paid for this user
+      // Penalties go to platform, NOT to salons
+      const { data: paidPenalties, error: penaltyError } = await supabase
+        .from('cancellation_penalties')
+        .update({ 
+          is_paid: true, 
+          paid_at: new Date().toISOString(),
+          paid_booking_id: booking_id
+        })
+        .eq('user_id', booking.user_id)
+        .eq('is_paid', false)
+        .eq('is_waived', false)
+        .select('id, penalty_amount');
+
+      if (penaltyError) {
+        console.error('Failed to update penalties:', penaltyError);
+      } else if (paidPenalties && paidPenalties.length > 0) {
+        const totalPenalty = paidPenalties.reduce((sum, p) => sum + parseFloat(p.penalty_amount), 0);
+        console.log(`Marked ${paidPenalties.length} penalties as paid, total: ₹${totalPenalty} (platform revenue)`);
       }
 
       // Store payment_id for future refunds and update status
@@ -130,7 +156,7 @@ serve(async (req) => {
             body: JSON.stringify({
               booking_id,
               payment_id: razorpay_payment_id,
-              amount: booking.service_price,
+              amount: serviceAmount, // Send service amount for receipt
             }),
           });
           
