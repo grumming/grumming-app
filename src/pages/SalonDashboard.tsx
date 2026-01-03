@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { 
   ArrowLeft, Store, Calendar, Clock, Star, Users, TrendingUp,
   Package, MessageSquare, Settings, Bell, Loader2, AlertTriangle,
-  CheckCircle, XCircle, Eye, Edit2, ChevronRight, IndianRupee,
+  CheckCircle, XCircle, Eye, Edit2, ChevronRight, ChevronLeft, IndianRupee,
   Send, Reply, Plus, Trash2, LogOut, User, HelpCircle, RefreshCw, KeyRound
 } from 'lucide-react';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
@@ -173,6 +173,10 @@ const SalonDashboard = () => {
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const [selectedBookingForCancel, setSelectedBookingForCancel] = useState<Booking | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+
+  // Pagination state for completed bookings
+  const [completedPage, setCompletedPage] = useState(1);
+  const COMPLETED_PER_PAGE = 10;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const PULL_THRESHOLD = 80;
@@ -1315,60 +1319,101 @@ const SalonDashboard = () => {
                       <CardDescription>Successfully completed appointments</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      {bookings.filter(b => b.status === 'completed').length === 0 ? (
-                        <p className="text-center text-muted-foreground py-8">No completed bookings yet</p>
-                      ) : (
-                        <div className="space-y-3">
-                          {bookings
-                            .filter(b => b.status === 'completed')
-                            .sort((a, b) => {
-                              // Sort by date descending (most recent first), then by time descending
-                              const dateCompare = b.booking_date.localeCompare(a.booking_date);
-                              if (dateCompare !== 0) return dateCompare;
-                              return b.booking_time.localeCompare(a.booking_time);
-                            })
-                            .map(booking => (
-                            <motion.div
-                              key={booking.id}
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              className="flex items-center justify-between p-4 border rounded-lg bg-muted/20"
-                            >
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2">
-                                  <p className="font-medium">{booking.service_name}</p>
-                                  <Badge variant="default" className="bg-green-500/10 text-green-600 border-green-200">
-                                    <CheckCircle className="w-3 h-3 mr-1" />
-                                    Completed
-                                  </Badge>
-                                </div>
-                                <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                                  <User className="w-3 h-3" /> {booking.customer_name}
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                  {getBookingDateLabel(booking.booking_date)} at {booking.booking_time}
-                                </p>
-                                <p className="text-sm font-medium mt-1">₹{booking.service_price}</p>
-                              </div>
-                              
-                              <div className="flex gap-2 flex-wrap justify-end">
-                                <Button 
-                                  size="sm" 
-                                  variant="outline"
-                                  className="relative"
-                                  onClick={() => {
-                                    setSelectedBookingForChat(booking);
-                                    setIsChatDialogOpen(true);
-                                  }}
+                      {(() => {
+                        const completedBookings = bookings
+                          .filter(b => b.status === 'completed')
+                          .sort((a, b) => {
+                            const dateCompare = b.booking_date.localeCompare(a.booking_date);
+                            if (dateCompare !== 0) return dateCompare;
+                            return b.booking_time.localeCompare(a.booking_time);
+                          });
+                        
+                        const totalCompleted = completedBookings.length;
+                        const totalPages = Math.ceil(totalCompleted / COMPLETED_PER_PAGE);
+                        const startIndex = (completedPage - 1) * COMPLETED_PER_PAGE;
+                        const paginatedBookings = completedBookings.slice(startIndex, startIndex + COMPLETED_PER_PAGE);
+                        
+                        if (totalCompleted === 0) {
+                          return <p className="text-center text-muted-foreground py-8">No completed bookings yet</p>;
+                        }
+                        
+                        return (
+                          <>
+                            <div className="space-y-3">
+                              {paginatedBookings.map(booking => (
+                                <motion.div
+                                  key={booking.id}
+                                  initial={{ opacity: 0 }}
+                                  animate={{ opacity: 1 }}
+                                  className="flex items-center justify-between p-4 border rounded-lg bg-muted/20"
                                 >
-                                  <MessageSquare className="w-4 h-4 mr-1" />
-                                  Message
-                                </Button>
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2">
+                                      <p className="font-medium">{booking.service_name}</p>
+                                      <Badge variant="default" className="bg-green-500/10 text-green-600 border-green-200">
+                                        <CheckCircle className="w-3 h-3 mr-1" />
+                                        Completed
+                                      </Badge>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                                      <User className="w-3 h-3" /> {booking.customer_name}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                      {getBookingDateLabel(booking.booking_date)} at {booking.booking_time}
+                                    </p>
+                                    <p className="text-sm font-medium mt-1">₹{booking.service_price}</p>
+                                  </div>
+                                  
+                                  <div className="flex gap-2 flex-wrap justify-end">
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline"
+                                      className="relative"
+                                      onClick={() => {
+                                        setSelectedBookingForChat(booking);
+                                        setIsChatDialogOpen(true);
+                                      }}
+                                    >
+                                      <MessageSquare className="w-4 h-4 mr-1" />
+                                      Message
+                                    </Button>
+                                  </div>
+                                </motion.div>
+                              ))}
+                            </div>
+                            
+                            {/* Pagination Controls */}
+                            {totalPages > 1 && (
+                              <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                                <p className="text-sm text-muted-foreground">
+                                  Showing {startIndex + 1}-{Math.min(startIndex + COMPLETED_PER_PAGE, totalCompleted)} of {totalCompleted}
+                                </p>
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setCompletedPage(p => Math.max(1, p - 1))}
+                                    disabled={completedPage === 1}
+                                  >
+                                    <ChevronLeft className="w-4 h-4" />
+                                  </Button>
+                                  <span className="text-sm font-medium px-2">
+                                    {completedPage} / {totalPages}
+                                  </span>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setCompletedPage(p => Math.min(totalPages, p + 1))}
+                                    disabled={completedPage === totalPages}
+                                  >
+                                    <ChevronRight className="w-4 h-4" />
+                                  </Button>
+                                </div>
                               </div>
-                            </motion.div>
-                          ))}
-                        </div>
-                      )}
+                            )}
+                          </>
+                        );
+                      })()}
                     </CardContent>
                   </Card>
                 </TabsContent>
