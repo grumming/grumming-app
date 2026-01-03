@@ -179,13 +179,18 @@ const AdminDashboard = () => {
         const pendingPenalties = penaltiesData.filter(p => !p.is_paid && !p.is_waived).reduce((sum, p) => sum + parseFloat(String(p.penalty_amount)), 0);
         const waivedPenalties = penaltiesData.filter(p => p.is_waived).reduce((sum, p) => sum + parseFloat(String(p.penalty_amount)), 0);
         
-        // Fetch platform commission from payments
+        // Fetch platform commission from payments (excluding penalties embedded in platform_fee)
         const { data: paymentsData } = await supabase
           .from('payments')
-          .select('platform_fee')
+          .select('platform_fee, metadata')
           .eq('status', 'captured');
         
-        const totalCommission = paymentsData?.reduce((sum, p) => sum + parseFloat(String(p.platform_fee || 0)), 0) || 0;
+        // Calculate commission: platform_fee minus any penalty_amount stored in metadata
+        const totalCommission = paymentsData?.reduce((sum, p) => {
+          const platformFee = parseFloat(String(p.platform_fee || 0));
+          const penaltyInFee = parseFloat(String((p.metadata as any)?.penalty_amount || 0));
+          return sum + (platformFee - penaltyInFee);
+        }, 0) || 0;
         
         // Fetch reschedule fees
         const { data: rescheduleData } = await supabase
