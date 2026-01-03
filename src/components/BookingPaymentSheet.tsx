@@ -113,6 +113,12 @@ export function BookingPaymentSheet({
           .update({ payment_method: 'salon' })
           .eq('id', booking.id);
 
+        // Mark any pending penalties as paid for cash payments too
+        // Penalties are platform revenue, collected when customer pays at salon
+        if (hasPenalties) {
+          await markPenaltiesAsPaid(booking.id);
+        }
+
         toast({
           title: 'Booking Confirmed!',
           description: `Pay ₹${totalAmount} at ${booking.salon_name}`,
