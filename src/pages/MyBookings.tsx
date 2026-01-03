@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, Calendar, Clock, 
-  Loader2, AlertCircle, CheckCircle2, Star, CreditCard, MessageCircle, Wallet, KeyRound, RefreshCw 
+  Loader2, AlertCircle, CheckCircle2, Star, CreditCard, MessageCircle, Wallet, KeyRound, RefreshCw, Scissors 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -32,6 +32,8 @@ interface Booking {
   completion_pin?: string;
   payment_id?: string | null;
   payment_method?: string | null;
+  stylist_id?: string | null;
+  stylist_name?: string | null;
 }
 
 const MyBookings = () => {
@@ -213,6 +215,12 @@ const MyBookings = () => {
                             <div>
                               <h3 className="font-semibold text-lg">{booking.salon_name}</h3>
                               <p className="text-sm text-muted-foreground">{booking.service_name}</p>
+                              {booking.stylist_name && (
+                                <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                                  <Scissors className="w-3 h-3" />
+                                  <span>with {booking.stylist_name}</span>
+                                </p>
+                              )}
                             </div>
                             {getStatusBadge(booking.status, booking.booking_date)}
                           </div>
@@ -327,6 +335,12 @@ const MyBookings = () => {
                             <div>
                               <h3 className="font-semibold text-lg">{booking.salon_name}</h3>
                               <p className="text-sm text-muted-foreground">{booking.service_name}</p>
+                              {booking.stylist_name && (
+                                <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                                  <Scissors className="w-3 h-3" />
+                                  <span>with {booking.stylist_name}</span>
+                                </p>
+                              )}
                             </div>
                             {getStatusBadge(booking.status, booking.booking_date)}
                           </div>
