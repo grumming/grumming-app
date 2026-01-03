@@ -106,6 +106,7 @@ export type Database = {
       cancellation_penalties: {
         Row: {
           booking_id: string
+          collecting_salon_id: string | null
           created_at: string
           id: string
           is_paid: boolean
@@ -115,6 +116,9 @@ export type Database = {
           paid_booking_id: string | null
           penalty_amount: number
           penalty_percentage: number
+          remitted_at: string | null
+          remitted_payout_id: string | null
+          remitted_to_platform: boolean | null
           salon_name: string
           service_name: string
           updated_at: string
@@ -125,6 +129,7 @@ export type Database = {
         }
         Insert: {
           booking_id: string
+          collecting_salon_id?: string | null
           created_at?: string
           id?: string
           is_paid?: boolean
@@ -134,6 +139,9 @@ export type Database = {
           paid_booking_id?: string | null
           penalty_amount: number
           penalty_percentage?: number
+          remitted_at?: string | null
+          remitted_payout_id?: string | null
+          remitted_to_platform?: boolean | null
           salon_name: string
           service_name: string
           updated_at?: string
@@ -144,6 +152,7 @@ export type Database = {
         }
         Update: {
           booking_id?: string
+          collecting_salon_id?: string | null
           created_at?: string
           id?: string
           is_paid?: boolean
@@ -153,6 +162,9 @@ export type Database = {
           paid_booking_id?: string | null
           penalty_amount?: number
           penalty_percentage?: number
+          remitted_at?: string | null
+          remitted_payout_id?: string | null
+          remitted_to_platform?: boolean | null
           salon_name?: string
           service_name?: string
           updated_at?: string
@@ -170,10 +182,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "cancellation_penalties_collecting_salon_id_fkey"
+            columns: ["collecting_salon_id"]
+            isOneToOne: false
+            referencedRelation: "salons"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "cancellation_penalties_paid_booking_id_fkey"
             columns: ["paid_booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cancellation_penalties_remitted_payout_id_fkey"
+            columns: ["remitted_payout_id"]
+            isOneToOne: false
+            referencedRelation: "salon_payouts"
             referencedColumns: ["id"]
           },
         ]
@@ -1186,6 +1212,48 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "salon_payouts_salon_id_fkey"
+            columns: ["salon_id"]
+            isOneToOne: false
+            referencedRelation: "salons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_penalty_remittances: {
+        Row: {
+          created_at: string | null
+          id: string
+          payout_id: string | null
+          penalty_ids: string[]
+          salon_id: string
+          total_amount: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          payout_id?: string | null
+          penalty_ids: string[]
+          salon_id: string
+          total_amount: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          payout_id?: string | null
+          penalty_ids?: string[]
+          salon_id?: string
+          total_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_penalty_remittances_payout_id_fkey"
+            columns: ["payout_id"]
+            isOneToOne: false
+            referencedRelation: "salon_payouts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_penalty_remittances_salon_id_fkey"
             columns: ["salon_id"]
             isOneToOne: false
             referencedRelation: "salons"
