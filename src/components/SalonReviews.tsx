@@ -10,11 +10,12 @@ interface Review {
   id: string;
   rating: number;
   review_text: string | null;
+  owner_response: string | null;
+  owner_response_at: string | null;
   created_at: string;
-  profiles?: {
-    full_name: string | null;
-    avatar_url: string | null;
-  };
+  user_id: string;
+  reviewer_name: string;
+  reviewer_avatar: string | null;
 }
 
 interface SalonReviewsProps {
@@ -34,21 +35,18 @@ export const SalonReviews = ({ salonId, salonName }: SalonReviewsProps) => {
   const fetchReviews = async () => {
     setLoading(true);
     
-    // Generate possible slug from salon name for legacy data compatibility
-    const possibleSlug = salonName?.toLowerCase().replace(/\s+/g, '-') || '';
-    
-    // Fetch reviews matching either UUID or legacy slug format
+    // Use the database function to fetch reviews with profile data
     const { data, error } = await supabase
-      .from('reviews')
-      .select('*')
-      .or(`salon_id.eq.${salonId},salon_id.eq.${possibleSlug}`)
-      .order('created_at', { ascending: false });
+      .rpc('get_salon_reviews_with_profiles', {
+        p_salon_id: salonId,
+        p_salon_name: salonName || null
+      });
 
     if (!error && data) {
-      setReviews(data);
+      setReviews(data as Review[]);
       
       if (data.length > 0) {
-        const avg = data.reduce((sum, r) => sum + r.rating, 0) / data.length;
+        const avg = data.reduce((sum: number, r: Review) => sum + r.rating, 0) / data.length;
         setStats({ average: Math.round(avg * 10) / 10, count: data.length });
       }
     }
@@ -106,16 +104,14 @@ export const SalonReviews = ({ salonId, salonName }: SalonReviewsProps) => {
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
               <Avatar className="w-10 h-10">
-                <AvatarImage src={review.profiles?.avatar_url || undefined} />
+                <AvatarImage src={review.reviewer_avatar || undefined} />
                 <AvatarFallback className="bg-primary/10 text-primary">
-                  {review.profiles?.full_name?.charAt(0) || 'U'}
+                  {review.reviewer_name?.charAt(0) || 'U'}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1">
-                  <h4 className="font-medium">
-                    {review.profiles?.full_name || 'Anonymous User'}
-                  </h4>
+                  <h4 className="font-medium">{review.reviewer_name}</h4>
                   <span className="text-xs text-muted-foreground">
                     {format(parseISO(review.created_at), 'MMM dd, yyyy')}
                   </span>
@@ -132,6 +128,19 @@ export const SalonReviews = ({ salonId, salonName }: SalonReviewsProps) => {
                 </div>
                 {review.review_text && (
                   <p className="text-sm text-muted-foreground">{review.review_text}</p>
+                )}
+                
+                {/* Owner Response */}
+                {review.owner_response && (
+                  <div className="mt-3 pl-3 border-l-2 border-primary/30 bg-muted/30 rounded-r-md p-3">
+                    <p className="text-xs font-medium text-primary mb-1">Owner Response</p>
+                    <p className="text-sm text-muted-foreground">{review.owner_response}</p>
+                    {review.owner_response_at && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {format(parseISO(review.owner_response_at), 'MMM dd, yyyy')}
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
