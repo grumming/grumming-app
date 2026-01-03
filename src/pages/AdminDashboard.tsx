@@ -41,6 +41,7 @@ import SalonPayoutManagement from '@/components/admin/SalonPayoutManagement';
 import { CommissionReports } from '@/components/admin/CommissionReports';
 import { SalonCommissionReport } from '@/components/admin/SalonCommissionReport';
 import { RescheduleCommissionManagement } from '@/components/admin/RescheduleCommissionManagement';
+import { CancellationPenaltyManagement } from '@/components/admin/CancellationPenaltyManagement';
 import RecentUsers from '@/components/admin/RecentUsers';
 import { getDisplayContact } from '@/utils/displayUtils';
 
@@ -333,6 +334,7 @@ const AdminDashboard = () => {
               </TabsTrigger>
               <TabsTrigger value="support">Support</TabsTrigger>
               <TabsTrigger value="refunds">Refunds</TabsTrigger>
+              <TabsTrigger value="penalties">Penalties</TabsTrigger>
               <TabsTrigger value="reschedule">
                 <RefreshCw className="w-4 h-4 mr-1" />
                 Reschedule
@@ -462,6 +464,11 @@ const AdminDashboard = () => {
             {/* Refunds Tab */}
             <TabsContent value="refunds" className="space-y-6">
               <RefundManagement />
+            </TabsContent>
+
+            {/* Cancellation Penalties Tab */}
+            <TabsContent value="penalties" className="space-y-6">
+              <CancellationPenaltyManagement />
             </TabsContent>
 
             {/* Reschedule Commission Tab */}

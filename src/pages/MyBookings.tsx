@@ -30,6 +30,8 @@ interface Booking {
   created_at: string;
   has_review?: boolean;
   completion_pin?: string;
+  payment_id?: string | null;
+  payment_method?: string | null;
 }
 
 const MyBookings = () => {
