@@ -1893,6 +1893,20 @@ export type Database = {
     }
     Functions: {
       generate_referral_code: { Args: never; Returns: string }
+      get_salon_reviews_with_profiles: {
+        Args: { p_salon_id: string; p_salon_name?: string }
+        Returns: {
+          created_at: string
+          id: string
+          owner_response: string
+          owner_response_at: string
+          rating: number
+          review_text: string
+          reviewer_avatar: string
+          reviewer_name: string
+          user_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
