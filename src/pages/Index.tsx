@@ -6,6 +6,7 @@ import FeaturedSalons from "@/components/FeaturedSalons";
 import BottomNav from "@/components/BottomNav";
 import WelcomeBanner from "@/components/WelcomeBanner";
 import SalonApprovalBanner from "@/components/SalonApprovalBanner";
+import PenaltyWarningBanner from "@/components/PenaltyWarningBanner";
 import Footer from "@/components/Footer";
 import BackToTop from "@/components/BackToTop";
 import { usePendingProfile } from "@/hooks/usePendingProfile";
@@ -24,6 +25,7 @@ const Index = () => {
       <Header />
       <main className="pt-16 pb-24 flex-1">
         <SalonApprovalBanner />
+        <PenaltyWarningBanner />
         <WelcomeBanner />
         <FirstBookingBanner />
         <CashbackBanner />
