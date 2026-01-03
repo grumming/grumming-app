@@ -5,7 +5,7 @@ import confetti from 'canvas-confetti';
 import { 
   ArrowLeft, Star, MapPin, Clock, Phone, Heart, Share2, 
   ChevronRight, Calendar, Check, User, MessageSquare, CreditCard, Gift, X,
-  Tag, Loader2, Wallet, Ticket, Navigation, Car, ChevronDown, Sparkles
+  Tag, Loader2, Wallet, Ticket, Navigation, Car, ChevronDown, Sparkles, AlertTriangle
 } from 'lucide-react';
 import BackToTop from '@/components/BackToTop';
 import SalonMap from '@/components/SalonMap';
@@ -34,6 +34,7 @@ import { useFavorites } from '@/contexts/FavoritesContext';
 import { useRecentSearches } from '@/hooks/useRecentSearches';
 import { allSalonsList } from '@/data/salonsData';
 import { useSalonById } from '@/hooks/useSalons';
+import { usePendingPenalties } from '@/hooks/usePendingPenalties';
 
 // Mock salon data - in production this would come from database
 const salonsData: Record<string, any> = {
@@ -519,6 +520,7 @@ const SalonDetail = () => {
   const { wallet, useCredits, isLoading: isWalletLoading } = useWallet();
   const { isFavorite: checkIsFavorite, toggleFavorite } = useFavorites();
   const { addRecentSearch } = useRecentSearches();
+  const { hasPenalties, totalPenalty, penalties, markPenaltiesAsPaid, loading: isPenaltiesLoading } = usePendingPenalties();
   
   // Retry payment mode
   const isRetryMode = searchParams.get('retry') === 'true';
@@ -780,7 +782,8 @@ const SalonDetail = () => {
   };
   
   const promoDiscount = calculatePromoDiscount();
-  const totalPrice = Math.max(0, subtotalPrice - rewardDiscount - walletCreditsDiscount - voucherDiscount - promoDiscount);
+  const servicePrice = Math.max(0, subtotalPrice - rewardDiscount - walletCreditsDiscount - voucherDiscount - promoDiscount);
+  const totalPrice = servicePrice + totalPenalty; // Add penalty to total
   const totalDiscount = rewardDiscount + walletCreditsDiscount + voucherDiscount + promoDiscount;
   const totalDuration = selectedServicesData.reduce((sum: string, s: any) => {
     const match = s.duration.match(/(\d+\.?\d*)/);
@@ -942,8 +945,9 @@ const SalonDetail = () => {
     const walletPaymentAmount = splitWalletAmount;
     const remainingAmount = totalPrice - splitWalletAmount;
 
-    // When total is 0 (fully covered by credits), skip payment gateway and confirm directly
-    const isFullyCoveredByCredits = totalPrice === 0;
+    // When service price is 0 (fully covered by credits), skip payment gateway and confirm directly
+    // Note: Even if penalties exist, we still need payment if totalPrice > 0
+    const isFullyCoveredByCredits = servicePrice === 0 && totalPenalty === 0;
 
     // Create new booking or update existing one (retry mode)
     const bookingStatus = isFullyCoveredByCredits 
@@ -1047,6 +1051,11 @@ const SalonDetail = () => {
             booking_id: bookingData.id 
           })
           .eq('id', appliedVoucher.id);
+      }
+
+      // Mark pending penalties as paid
+      if (hasPenalties) {
+        await markPenaltiesAsPaid(bookingData.id);
       }
 
       setIsBooking(false);
@@ -1250,6 +1259,11 @@ const SalonDetail = () => {
             .eq('id', appliedVoucher.id);
         }
 
+        // Mark pending penalties as paid
+        if (hasPenalties) {
+          await markPenaltiesAsPaid(bookingData.id);
+        }
+
         setShowBookingModal(false);
         setSelectedServices([]);
         setApplyReward(false);
@@ -1332,6 +1346,11 @@ const SalonDetail = () => {
             booking_id: bookingData.id 
           })
           .eq('id', appliedVoucher.id);
+      }
+
+      // Mark pending penalties as paid
+      if (hasPenalties) {
+        await markPenaltiesAsPaid(bookingData.id);
       }
 
       setIsBooking(false);
@@ -2241,10 +2260,36 @@ const SalonDetail = () => {
                   )}
                 </div>
 
+                {/* Pending Penalty Warning */}
+                {hasPenalties && (
+                  <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/30">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-destructive/20 flex items-center justify-center flex-shrink-0">
+                        <AlertTriangle className="w-5 h-5 text-destructive" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-destructive text-sm">
+                          Cancellation Penalty
+                        </h4>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          You have a pending penalty of{" "}
+                          <span className="font-semibold text-destructive">₹{totalPenalty}</span>{" "}
+                          from a previous booking cancellation. This will be added to your payment.
+                        </p>
+                        {penalties.length > 1 && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            ({penalties.length} penalties combined)
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Total Section */}
                 <div className="bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5 rounded-xl p-4 space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Subtotal</span>
+                    <span className="text-sm text-muted-foreground">Services</span>
                     <span className="text-sm">₹{subtotalPrice}</span>
                   </div>
                   {totalDiscount > 0 && (
@@ -2253,16 +2298,22 @@ const SalonDetail = () => {
                       <span className="text-sm font-semibold">-₹{totalDiscount}</span>
                     </div>
                   )}
+                  {totalPenalty > 0 && (
+                    <div className="flex justify-between items-center text-destructive">
+                      <span className="text-sm">Cancellation Penalty</span>
+                      <span className="text-sm font-semibold">+₹{totalPenalty}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center pt-2 border-t border-border/50">
                     <span className="font-semibold">Total Amount</span>
                     <div className="flex items-center gap-2">
-                      {totalDiscount > 0 && (
+                      {(totalDiscount > 0 || totalPenalty > 0) && (
                         <span className="text-sm text-muted-foreground line-through">₹{subtotalPrice}</span>
                       )}
                       <span className="text-xl font-bold text-primary">₹{totalPrice}</span>
                     </div>
                   </div>
-                  {totalDiscount > 0 && (
+                  {totalDiscount > 0 && !hasPenalties && (
                     <div className="flex items-center justify-center gap-2 pt-2">
                       <div className="w-6 h-6 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
                         <Check className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
