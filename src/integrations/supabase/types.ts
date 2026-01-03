@@ -109,6 +109,7 @@ export type Database = {
           created_at: string
           id: string
           is_paid: boolean
+          is_waived: boolean
           original_service_price: number
           paid_at: string | null
           paid_booking_id: string | null
@@ -118,12 +119,16 @@ export type Database = {
           service_name: string
           updated_at: string
           user_id: string
+          waived_at: string | null
+          waived_by: string | null
+          waived_reason: string | null
         }
         Insert: {
           booking_id: string
           created_at?: string
           id?: string
           is_paid?: boolean
+          is_waived?: boolean
           original_service_price: number
           paid_at?: string | null
           paid_booking_id?: string | null
@@ -133,12 +138,16 @@ export type Database = {
           service_name: string
           updated_at?: string
           user_id: string
+          waived_at?: string | null
+          waived_by?: string | null
+          waived_reason?: string | null
         }
         Update: {
           booking_id?: string
           created_at?: string
           id?: string
           is_paid?: boolean
+          is_waived?: boolean
           original_service_price?: number
           paid_at?: string | null
           paid_booking_id?: string | null
@@ -148,6 +157,9 @@ export type Database = {
           service_name?: string
           updated_at?: string
           user_id?: string
+          waived_at?: string | null
+          waived_by?: string | null
+          waived_reason?: string | null
         }
         Relationships: [
           {

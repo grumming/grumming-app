@@ -4,10 +4,21 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Search, AlertTriangle, CheckCircle2, DollarSign, TrendingUp } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Loader2, Search, AlertTriangle, CheckCircle2, DollarSign, TrendingUp, XCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface CancellationPenalty {
   id: string;
@@ -19,7 +30,10 @@ interface CancellationPenalty {
   salon_name: string;
   service_name: string;
   is_paid: boolean;
+  is_waived: boolean;
   paid_at: string | null;
+  waived_at: string | null;
+  waived_reason: string | null;
   paid_booking_id: string | null;
   created_at: string;
   profile?: {
@@ -33,7 +47,11 @@ export function CancellationPenaltyManagement() {
   const [penalties, setPenalties] = useState<CancellationPenalty[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filter, setFilter] = useState<'all' | 'pending' | 'paid'>('all');
+  const [filter, setFilter] = useState<'all' | 'pending' | 'paid' | 'waived'>('all');
+  const [waiveDialogOpen, setWaiveDialogOpen] = useState(false);
+  const [selectedPenalty, setSelectedPenalty] = useState<CancellationPenalty | null>(null);
+  const [waiveReason, setWaiveReason] = useState('');
+  const [waiving, setWaiving] = useState(false);
 
   useEffect(() => {
     fetchPenalties();
@@ -101,11 +119,56 @@ export function CancellationPenaltyManagement() {
     fetchPenalties();
   };
 
+  const openWaiveDialog = (penalty: CancellationPenalty) => {
+    setSelectedPenalty(penalty);
+    setWaiveReason('');
+    setWaiveDialogOpen(true);
+  };
+
+  const handleWaivePenalty = async () => {
+    if (!selectedPenalty) return;
+    
+    setWaiving(true);
+    
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    const { error } = await supabase
+      .from('cancellation_penalties')
+      .update({ 
+        is_waived: true,
+        waived_at: new Date().toISOString(),
+        waived_by: user?.id,
+        waived_reason: waiveReason || 'Admin waived penalty'
+      })
+      .eq('id', selectedPenalty.id);
+
+    setWaiving(false);
+
+    if (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to waive penalty',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    toast({
+      title: 'Penalty Waived',
+      description: `₹${selectedPenalty.penalty_amount} penalty waived for ${selectedPenalty.profile?.full_name || 'user'}.`,
+    });
+    
+    setWaiveDialogOpen(false);
+    setSelectedPenalty(null);
+    fetchPenalties();
+  };
+
   const filteredPenalties = penalties.filter(penalty => {
     const matchesFilter = 
       filter === 'all' ||
-      (filter === 'pending' && !penalty.is_paid) ||
-      (filter === 'paid' && penalty.is_paid);
+      (filter === 'pending' && !penalty.is_paid && !penalty.is_waived) ||
+      (filter === 'paid' && penalty.is_paid) ||
+      (filter === 'waived' && penalty.is_waived);
 
     const matchesSearch = 
       !searchQuery ||
@@ -117,9 +180,10 @@ export function CancellationPenaltyManagement() {
     return matchesFilter && matchesSearch;
   });
 
-  const totalPending = penalties.filter(p => !p.is_paid).reduce((sum, p) => sum + Number(p.penalty_amount), 0);
+  const totalPending = penalties.filter(p => !p.is_paid && !p.is_waived).reduce((sum, p) => sum + Number(p.penalty_amount), 0);
   const totalCollected = penalties.filter(p => p.is_paid).reduce((sum, p) => sum + Number(p.penalty_amount), 0);
-  const pendingCount = penalties.filter(p => !p.is_paid).length;
+  const totalWaived = penalties.filter(p => p.is_waived).reduce((sum, p) => sum + Number(p.penalty_amount), 0);
+  const pendingCount = penalties.filter(p => !p.is_paid && !p.is_waived).length;
 
   if (loading) {
     return (
@@ -132,7 +196,7 @@ export function CancellationPenaltyManagement() {
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -162,12 +226,25 @@ export function CancellationPenaltyManagement() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <XCircle className="w-4 h-4 text-blue-500" />
+              Waived
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-blue-600 font-sans">₹{totalWaived.toLocaleString()}</p>
+            <p className="text-sm text-muted-foreground">{penalties.filter(p => p.is_waived).length} penalties</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-primary" />
               Total Penalties
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold font-sans">₹{(totalPending + totalCollected).toLocaleString()}</p>
+            <p className="text-2xl font-bold font-sans">₹{(totalPending + totalCollected + totalWaived).toLocaleString()}</p>
             <p className="text-sm text-muted-foreground">{penalties.length} total</p>
           </CardContent>
         </Card>
@@ -205,6 +282,13 @@ export function CancellationPenaltyManagement() {
             onClick={() => setFilter('paid')}
           >
             Paid
+          </Button>
+          <Button
+            variant={filter === 'waived' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setFilter('waived')}
+          >
+            Waived
           </Button>
         </div>
       </div>
@@ -250,7 +334,7 @@ export function CancellationPenaltyManagement() {
                       <TableCell>{penalty.service_name}</TableCell>
                       <TableCell className="text-right font-sans">₹{penalty.original_service_price}</TableCell>
                       <TableCell className="text-right">
-                        <span className="font-semibold text-red-600 font-sans">
+                        <span className={`font-semibold font-sans ${penalty.is_waived ? 'line-through text-muted-foreground' : 'text-red-600'}`}>
                           ₹{penalty.penalty_amount}
                         </span>
                         <span className="text-xs text-muted-foreground ml-1">
@@ -258,7 +342,9 @@ export function CancellationPenaltyManagement() {
                         </span>
                       </TableCell>
                       <TableCell>
-                        {penalty.is_paid ? (
+                        {penalty.is_waived ? (
+                          <Badge className="bg-blue-500">Waived</Badge>
+                        ) : penalty.is_paid ? (
                           <Badge className="bg-green-500">Paid</Badge>
                         ) : (
                           <Badge variant="secondary" className="bg-amber-100 text-amber-700">Pending</Badge>
@@ -268,19 +354,39 @@ export function CancellationPenaltyManagement() {
                         {format(parseISO(penalty.created_at), 'MMM d, yyyy')}
                       </TableCell>
                       <TableCell>
-                        {!penalty.is_paid && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleMarkAsPaid(penalty.id)}
-                          >
-                            Mark Paid
-                          </Button>
+                        {!penalty.is_paid && !penalty.is_waived && (
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleMarkAsPaid(penalty.id)}
+                            >
+                              Mark Paid
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                              onClick={() => openWaiveDialog(penalty)}
+                            >
+                              Waive
+                            </Button>
+                          </div>
                         )}
                         {penalty.is_paid && penalty.paid_at && (
                           <span className="text-xs text-muted-foreground">
                             Paid {format(parseISO(penalty.paid_at), 'MMM d')}
                           </span>
+                        )}
+                        {penalty.is_waived && penalty.waived_at && (
+                          <div className="text-xs text-muted-foreground">
+                            <p>Waived {format(parseISO(penalty.waived_at), 'MMM d')}</p>
+                            {penalty.waived_reason && (
+                              <p className="italic truncate max-w-[150px]" title={penalty.waived_reason}>
+                                {penalty.waived_reason}
+                              </p>
+                            )}
+                          </div>
                         )}
                       </TableCell>
                     </TableRow>
@@ -291,6 +397,54 @@ export function CancellationPenaltyManagement() {
           )}
         </CardContent>
       </Card>
+
+      {/* Waive Confirmation Dialog */}
+      <AlertDialog open={waiveDialogOpen} onOpenChange={setWaiveDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Waive Cancellation Penalty?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-4">
+                <p>
+                  You are about to waive the ₹{selectedPenalty?.penalty_amount} penalty for{' '}
+                  <strong>{selectedPenalty?.profile?.full_name || 'this user'}</strong>.
+                </p>
+                <p className="text-sm">
+                  This action cannot be undone. The user will no longer need to pay this penalty on their next booking.
+                </p>
+                <div className="pt-2">
+                  <label className="text-sm font-medium text-foreground">
+                    Reason for waiving (optional)
+                  </label>
+                  <Textarea
+                    placeholder="e.g., First-time customer, technical issue, customer complaint..."
+                    value={waiveReason}
+                    onChange={(e) => setWaiveReason(e.target.value)}
+                    className="mt-1.5"
+                  />
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={waiving}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleWaivePenalty}
+              disabled={waiving}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {waiving ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Waiving...
+                </>
+              ) : (
+                'Waive Penalty'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
