@@ -21,6 +21,7 @@ interface PaymentOptions {
   customerName?: string;
   customerEmail?: string;
   customerPhone?: string;
+  penaltyAmount?: number; // Cancellation penalty from previous booking (platform revenue)
 }
 
 interface PaymentResult {
@@ -150,6 +151,7 @@ export const useRazorpay = () => {
             amount: options.amount,
             currency: 'INR',
             booking_id: options.bookingId,
+            penalty_amount: options.penaltyAmount || 0, // Pass penalty for platform revenue
             receipt: `booking_${options.bookingId}`,
             notes: {
               salon: options.salonName,

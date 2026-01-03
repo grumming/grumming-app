@@ -1220,6 +1220,7 @@ const SalonDetail = () => {
         salonName: salon.name,
         serviceName: serviceNames,
         customerPhone: user.phone || '',
+        penaltyAmount: totalPenalty, // Pass penalty as platform revenue (not salon revenue)
       });
 
       setIsBooking(false);

@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { amount, currency = 'INR', receipt, notes, booking_id } = await req.json();
+    const { amount, currency = 'INR', receipt, notes, booking_id, penalty_amount = 0 } = await req.json();
 
     // Validate booking_id is required for payment security
     if (!booking_id) {
@@ -67,13 +67,15 @@ serve(async (req) => {
       });
     }
 
-    // Use the amount from the database for security (server-side validation)
-    const validatedAmount = parseFloat(booking.service_price);
-    console.log(`Creating order for validated amount: ${validatedAmount} ${currency} for booking: ${booking_id}`);
+    // Calculate total amount: service price + any penalty
+    // Penalty is platform revenue, not salon revenue
+    const servicePrice = parseFloat(booking.service_price);
+    const penaltyAmount = parseFloat(penalty_amount) || 0;
+    const totalAmount = servicePrice + penaltyAmount;
+    
+    console.log(`Creating order - Service: ${servicePrice}, Penalty: ${penaltyAmount}, Total: ${totalAmount} ${currency} for booking: ${booking_id}`);
 
-    console.log(`Creating order for validated amount: ${validatedAmount} ${currency} for booking: ${booking_id}`);
-
-    // Create Razorpay order with validated amount
+    // Create Razorpay order with total amount (service + penalty)
     const auth = btoa(`${keyId}:${keySecret}`);
     
     const orderResponse = await fetch('https://api.razorpay.com/v1/orders', {
@@ -83,10 +85,10 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        amount: Math.round(validatedAmount * 100), // Razorpay expects amount in paise
+        amount: Math.round(totalAmount * 100), // Razorpay expects amount in paise
         currency,
         receipt: receipt || `receipt_${Date.now()}`,
-        notes: { ...notes, booking_id },
+        notes: { ...notes, booking_id, service_price: servicePrice, penalty_amount: penaltyAmount },
       }),
     });
 
