@@ -31,7 +31,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useSalonOwner } from '@/hooks/useSalonOwner';
 import { supabase } from '@/integrations/supabase/client';
-import { format, subDays, isToday, isTomorrow, parseISO, isBefore, parse } from 'date-fns';
+import { format, subDays, isToday, isTomorrow, parseISO, isBefore, parse, addDays } from 'date-fns';
 import SalonOwnerBottomNav from '@/components/SalonOwnerBottomNav';
 import SalonSettingsDialog from '@/components/SalonSettingsDialog';
 import SalonOwnerChatDialog from '@/components/SalonOwnerChatDialog';
@@ -161,10 +161,13 @@ const SalonDashboard = () => {
   const [isChatDialogOpen, setIsChatDialogOpen] = useState(false);
   const [selectedBookingForChat, setSelectedBookingForChat] = useState<Booking | null>(null);
 
-  // Restore confirmation dialog state
+  // Restore/Reschedule confirmation dialog state
   const [isRestoreDialogOpen, setIsRestoreDialogOpen] = useState(false);
   const [selectedBookingForRestore, setSelectedBookingForRestore] = useState<Booking | null>(null);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [isRescheduling, setIsRescheduling] = useState(false);
+  const [rescheduleDate, setRescheduleDate] = useState<string>('');
+  const [rescheduleTime, setRescheduleTime] = useState<string>('');
 
   // Cancel confirmation dialog state
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
@@ -451,26 +454,44 @@ const SalonDashboard = () => {
     setIsPinVerifying(false);
   };
 
-  // Restore booking handler
-  const handleRestoreBooking = async () => {
+  // Restore booking handler (with optional reschedule)
+  const handleRestoreBooking = async (withReschedule = false) => {
     if (!selectedBookingForRestore) return;
     
     setIsRestoring(true);
+    
+    const updateData: { status: string; booking_date?: string; booking_time?: string } = { 
+      status: 'upcoming' 
+    };
+    
+    if (withReschedule && rescheduleDate && rescheduleTime) {
+      updateData.booking_date = rescheduleDate;
+      updateData.booking_time = rescheduleTime;
+    }
+    
     const { error } = await supabase
       .from('bookings')
-      .update({ status: 'upcoming' })
+      .update(updateData)
       .eq('id', selectedBookingForRestore.id);
 
     if (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } else {
-      toast({ title: 'Success', description: 'Booking restored to upcoming' });
+      toast({ 
+        title: 'Success', 
+        description: withReschedule 
+          ? 'Booking rescheduled successfully' 
+          : 'Booking restored to upcoming' 
+      });
       await fetchSalonData(false);
     }
     
     setIsRestoring(false);
     setIsRestoreDialogOpen(false);
     setSelectedBookingForRestore(null);
+    setIsRescheduling(false);
+    setRescheduleDate('');
+    setRescheduleTime('');
   };
 
   // Cancel booking handler
@@ -1309,32 +1330,35 @@ const SalonDashboard = () => {
                                   <MessageSquare className="w-4 h-4 mr-1" />
                                   Message
                                 </Button>
-                                {(() => {
-                                  // Check if booking date+time has passed
-                                  const bookingDateTime = parse(
-                                    `${booking.booking_date} ${booking.booking_time}`,
-                                    'yyyy-MM-dd HH:mm:ss',
-                                    new Date()
-                                  );
-                                  const isPast = isBefore(bookingDateTime, new Date());
-                                  
-                                  return (
-                                    <Button 
-                                      size="sm" 
-                                      variant="outline"
-                                      className="text-primary hover:text-primary"
-                                      disabled={isPast}
-                                      onClick={() => {
-                                        setSelectedBookingForRestore(booking);
-                                        setIsRestoreDialogOpen(true);
-                                      }}
-                                      title={isPast ? 'Cannot restore past bookings' : 'Restore booking'}
-                                    >
-                                      <RefreshCw className="w-4 h-4 mr-1" />
-                                      Restore
-                                    </Button>
-                                  );
-                                })()}
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  className="text-primary hover:text-primary"
+                                  onClick={() => {
+                                    setSelectedBookingForRestore(booking);
+                                    // Check if original date has passed
+                                    const bookingDateTime = parse(
+                                      `${booking.booking_date} ${booking.booking_time}`,
+                                      'yyyy-MM-dd HH:mm:ss',
+                                      new Date()
+                                    );
+                                    const isPast = isBefore(bookingDateTime, new Date());
+                                    // If past, automatically enable reschedule mode
+                                    if (isPast) {
+                                      setIsRescheduling(true);
+                                      setRescheduleDate(format(addDays(new Date(), 1), 'yyyy-MM-dd'));
+                                      setRescheduleTime('10:00:00');
+                                    } else {
+                                      setIsRescheduling(false);
+                                      setRescheduleDate('');
+                                      setRescheduleTime('');
+                                    }
+                                    setIsRestoreDialogOpen(true);
+                                  }}
+                                >
+                                  <RefreshCw className="w-4 h-4 mr-1" />
+                                  Restore
+                                </Button>
                               </div>
                             </motion.div>
                           ))}
@@ -1851,29 +1875,118 @@ const SalonDashboard = () => {
         />
       )}
 
-      {/* Restore Booking Confirmation Dialog */}
-      <Dialog open={isRestoreDialogOpen} onOpenChange={setIsRestoreDialogOpen}>
+      {/* Restore/Reschedule Booking Dialog */}
+      <Dialog open={isRestoreDialogOpen} onOpenChange={(open) => {
+        setIsRestoreDialogOpen(open);
+        if (!open) {
+          setSelectedBookingForRestore(null);
+          setIsRescheduling(false);
+          setRescheduleDate('');
+          setRescheduleTime('');
+        }
+      }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <RefreshCw className="w-5 h-5 text-primary" />
-              Restore Booking
+              {isRescheduling ? 'Reschedule Booking' : 'Restore Booking'}
             </DialogTitle>
             <DialogDescription>
-              Are you sure you want to restore this cancelled booking back to upcoming?
+              {isRescheduling 
+                ? 'Choose a new date and time for this booking.'
+                : 'Restore this booking to its original schedule or reschedule to a new date.'}
             </DialogDescription>
           </DialogHeader>
           
           {selectedBookingForRestore && (
-            <div className="p-3 bg-muted/50 rounded-lg space-y-1">
-              <p className="font-medium">{selectedBookingForRestore.service_name}</p>
-              <p className="text-sm text-muted-foreground flex items-center gap-1">
-                <User className="w-3 h-3" /> {selectedBookingForRestore.customer_name}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {getBookingDateLabel(selectedBookingForRestore.booking_date)} at {selectedBookingForRestore.booking_time}
-              </p>
-              <p className="text-sm font-medium">₹{selectedBookingForRestore.service_price}</p>
+            <div className="space-y-4">
+              <div className="p-3 bg-muted/50 rounded-lg space-y-1">
+                <p className="font-medium">{selectedBookingForRestore.service_name}</p>
+                <p className="text-sm text-muted-foreground flex items-center gap-1">
+                  <User className="w-3 h-3" /> {selectedBookingForRestore.customer_name}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Original: {getBookingDateLabel(selectedBookingForRestore.booking_date)} at {selectedBookingForRestore.booking_time}
+                </p>
+                <p className="text-sm font-medium">₹{selectedBookingForRestore.service_price}</p>
+              </div>
+              
+              {/* Reschedule toggle for future bookings */}
+              {(() => {
+                const bookingDateTime = parse(
+                  `${selectedBookingForRestore.booking_date} ${selectedBookingForRestore.booking_time}`,
+                  'yyyy-MM-dd HH:mm:ss',
+                  new Date()
+                );
+                const isPast = isBefore(bookingDateTime, new Date());
+                
+                return (
+                  <>
+                    {!isPast && (
+                      <div className="flex items-center space-x-2">
+                        <Switch 
+                          id="reschedule-toggle"
+                          checked={isRescheduling}
+                          onCheckedChange={(checked) => {
+                            setIsRescheduling(checked);
+                            if (checked) {
+                              setRescheduleDate(format(addDays(new Date(), 1), 'yyyy-MM-dd'));
+                              setRescheduleTime('10:00:00');
+                            } else {
+                              setRescheduleDate('');
+                              setRescheduleTime('');
+                            }
+                          }}
+                        />
+                        <Label htmlFor="reschedule-toggle" className="text-sm">
+                          Reschedule to a different date
+                        </Label>
+                      </div>
+                    )}
+                    
+                    {isPast && (
+                      <div className="p-2 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                        <p className="text-sm text-amber-700 dark:text-amber-400">
+                          Original date has passed. Please select a new date and time.
+                        </p>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+              
+              {isRescheduling && (
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="reschedule-date">New Date</Label>
+                    <Input
+                      id="reschedule-date"
+                      type="date"
+                      value={rescheduleDate}
+                      min={format(new Date(), 'yyyy-MM-dd')}
+                      onChange={(e) => setRescheduleDate(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="reschedule-time">New Time</Label>
+                    <Select value={rescheduleTime} onValueChange={setRescheduleTime}>
+                      <SelectTrigger id="reschedule-time">
+                        <SelectValue placeholder="Select time" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {['09:00:00', '09:30:00', '10:00:00', '10:30:00', '11:00:00', '11:30:00', 
+                          '12:00:00', '12:30:00', '13:00:00', '13:30:00', '14:00:00', '14:30:00',
+                          '15:00:00', '15:30:00', '16:00:00', '16:30:00', '17:00:00', '17:30:00',
+                          '18:00:00', '18:30:00', '19:00:00', '19:30:00', '20:00:00', '20:30:00'].map(time => (
+                          <SelectItem key={time} value={time}>
+                            {format(parse(time, 'HH:mm:ss', new Date()), 'h:mm a')}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
             </div>
           )}
           
@@ -1883,23 +1996,26 @@ const SalonDashboard = () => {
               onClick={() => {
                 setIsRestoreDialogOpen(false);
                 setSelectedBookingForRestore(null);
+                setIsRescheduling(false);
+                setRescheduleDate('');
+                setRescheduleTime('');
               }}
             >
               Cancel
             </Button>
             <Button 
-              onClick={handleRestoreBooking} 
-              disabled={isRestoring}
+              onClick={() => handleRestoreBooking(isRescheduling)} 
+              disabled={isRestoring || (isRescheduling && (!rescheduleDate || !rescheduleTime))}
             >
               {isRestoring ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Restoring...
+                  {isRescheduling ? 'Rescheduling...' : 'Restoring...'}
                 </>
               ) : (
                 <>
                   <RefreshCw className="w-4 h-4 mr-2" />
-                  Restore Booking
+                  {isRescheduling ? 'Reschedule Booking' : 'Restore Booking'}
                 </>
               )}
             </Button>
