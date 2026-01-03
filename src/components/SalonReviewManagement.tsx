@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Star, MessageSquare, Send, Loader2 } from 'lucide-react';
+import { Star, MessageSquare, Send, Loader2, Pencil } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -31,6 +31,7 @@ export const SalonReviewManagement = ({ salonId, salonName }: SalonReviewManagem
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [respondingTo, setRespondingTo] = useState<string | null>(null);
+  const [editingResponse, setEditingResponse] = useState<string | null>(null);
   const [response, setResponse] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [stats, setStats] = useState({ average: 0, count: 0, pending: 0 });
@@ -65,7 +66,7 @@ export const SalonReviewManagement = ({ salonId, salonName }: SalonReviewManagem
     setLoading(false);
   };
 
-  const handleRespond = async (reviewId: string) => {
+  const handleRespond = async (reviewId: string, isEdit: boolean = false) => {
     if (!response.trim()) {
       toast.error('Please enter a response');
       return;
@@ -85,13 +86,25 @@ export const SalonReviewManagement = ({ salonId, salonName }: SalonReviewManagem
       toast.error('Failed to submit response');
       console.error('Error submitting response:', error);
     } else {
-      toast.success('Response submitted successfully');
+      toast.success(isEdit ? 'Response updated successfully' : 'Response submitted successfully');
       setRespondingTo(null);
+      setEditingResponse(null);
       setResponse('');
       fetchReviews();
     }
     
     setSubmitting(false);
+  };
+
+  const startEditing = (review: Review) => {
+    setEditingResponse(review.id);
+    setRespondingTo(null);
+    setResponse(review.owner_response || '');
+  };
+
+  const cancelEditing = () => {
+    setEditingResponse(null);
+    setResponse('');
   };
 
   if (loading) {
@@ -187,15 +200,58 @@ export const SalonReviewManagement = ({ salonId, salonName }: SalonReviewManagem
                   )}
                   
                   {/* Owner Response */}
-                  {review.owner_response ? (
+                  {review.owner_response && editingResponse !== review.id ? (
                     <div className="pl-3 border-l-2 border-primary/30 bg-muted/30 rounded-r-md p-3">
-                      <p className="text-xs font-medium text-primary mb-1">Your Response</p>
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs font-medium text-primary">Your Response</p>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-2 text-xs"
+                          onClick={() => startEditing(review)}
+                        >
+                          <Pencil className="w-3 h-3 mr-1" />
+                          Edit
+                        </Button>
+                      </div>
                       <p className="text-sm text-muted-foreground">{review.owner_response}</p>
                       {review.owner_response_at && (
                         <p className="text-xs text-muted-foreground mt-1">
                           {format(parseISO(review.owner_response_at), 'MMM dd, yyyy')}
                         </p>
                       )}
+                    </div>
+                  ) : editingResponse === review.id ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        placeholder="Edit your response..."
+                        value={response}
+                        onChange={(e) => setResponse(e.target.value)}
+                        rows={3}
+                        className="text-sm"
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => handleRespond(review.id, true)}
+                          disabled={submitting || !response.trim()}
+                        >
+                          {submitting ? (
+                            <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                          ) : (
+                            <Send className="w-4 h-4 mr-1" />
+                          )}
+                          Update
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={cancelEditing}
+                          disabled={submitting}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
                     </div>
                   ) : respondingTo === review.id ? (
                     <div className="space-y-2">
