@@ -32,6 +32,7 @@ interface Payment {
   user_id: string;
   metadata: PaymentMetadata | null;
   customerName?: string;
+  serviceName?: string;
 }
 
 interface Payout {
@@ -95,11 +96,23 @@ export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
             (profilesData || []).map(p => [p.user_id, p.full_name])
           );
           
-          // Cast metadata to proper type and add customer names
+          // Fetch booking info for service names
+          const bookingIds = [...new Set((paymentsData || []).filter(p => p.booking_id).map(p => p.booking_id as string))];
+          const { data: bookingsData } = await supabase
+            .from('bookings')
+            .select('id, service_name')
+            .in('id', bookingIds);
+          
+          const bookingsMap = new Map(
+            (bookingsData || []).map(b => [b.id, b.service_name])
+          );
+          
+          // Cast metadata to proper type and add customer names + service names
           const typedPayments = (paymentsData || []).map(p => ({
             ...p,
             metadata: p.metadata as PaymentMetadata | null,
-            customerName: profilesMap.get(p.user_id) || 'Customer'
+            customerName: profilesMap.get(p.user_id) || 'Customer',
+            serviceName: p.booking_id ? bookingsMap.get(p.booking_id) || undefined : undefined
           }));
           setPayments(typedPayments);
         }
@@ -386,7 +399,7 @@ export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
                             </span>
                           </div>
                           <p className="text-xs text-muted-foreground">
-                            Service earnings (after 8% commission)
+                            {payment.serviceName || 'Service'} • after 8% commission
                           </p>
                         </div>
                       </div>
