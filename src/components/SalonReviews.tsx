@@ -19,25 +19,29 @@ interface Review {
 
 interface SalonReviewsProps {
   salonId: string;
+  salonName?: string;
 }
 
-export const SalonReviews = ({ salonId }: SalonReviewsProps) => {
+export const SalonReviews = ({ salonId, salonName }: SalonReviewsProps) => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ average: 0, count: 0 });
 
   useEffect(() => {
     fetchReviews();
-  }, [salonId]);
+  }, [salonId, salonName]);
 
   const fetchReviews = async () => {
     setLoading(true);
     
-    // Note: We can't join profiles directly due to RLS, so we fetch reviews only
+    // Generate possible slug from salon name for legacy data compatibility
+    const possibleSlug = salonName?.toLowerCase().replace(/\s+/g, '-') || '';
+    
+    // Fetch reviews matching either UUID or legacy slug format
     const { data, error } = await supabase
       .from('reviews')
       .select('*')
-      .eq('salon_id', salonId)
+      .or(`salon_id.eq.${salonId},salon_id.eq.${possibleSlug}`)
       .order('created_at', { ascending: false });
 
     if (!error && data) {

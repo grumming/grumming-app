@@ -1833,7 +1833,7 @@ const SalonDetail = () => {
             ))}
 
             {/* Real reviews from database */}
-            <SalonReviews salonId={id || ''} />
+            <SalonReviews salonId={id || ''} salonName={salon?.name} />
           </TabsContent>
 
           {/* Location Tab */}
