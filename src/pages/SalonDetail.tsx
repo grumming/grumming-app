@@ -725,6 +725,9 @@ const SalonDetail = () => {
     setSelectedTime(null);
   }, [selectedDate]);
 
+  // State for stylist-specific booked slots
+  const [stylistBookedSlots, setStylistBookedSlots] = useState<string[]>([]);
+
   // Fetch booked time slots for selected date
   useEffect(() => {
     const fetchBookedTimeSlots = async () => {
@@ -763,6 +766,45 @@ const SalonDetail = () => {
 
     fetchBookedTimeSlots();
   }, [selectedDate, id, salon?.name]);
+
+  // Fetch stylist-specific booked slots when a stylist is selected
+  useEffect(() => {
+    const fetchStylistBookedSlots = async () => {
+      if (!selectedDate || !selectedStylist) {
+        setStylistBookedSlots([]);
+        return;
+      }
+
+      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+      
+      // Fetch bookings for the selected stylist on the selected date
+      const { data: bookings, error } = await supabase
+        .from('bookings')
+        .select('booking_time')
+        .eq('stylist_id', selectedStylist.id)
+        .eq('booking_date', formattedDate)
+        .in('status', ['upcoming', 'confirmed', 'pending']);
+
+      if (error) {
+        console.error('Error fetching stylist booked slots:', error);
+        setStylistBookedSlots([]);
+        return;
+      }
+
+      // Convert booking times to display format
+      const bookedSlots = (bookings || []).map(b => {
+        const [hours, minutes] = b.booking_time.split(':');
+        const hour = parseInt(hours);
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+        return `${displayHour}:${minutes} ${ampm}`;
+      });
+
+      setStylistBookedSlots(bookedSlots);
+    };
+
+    fetchStylistBookedSlots();
+  }, [selectedDate, selectedStylist]);
 
   // Fetch available stylists for this salon
   useEffect(() => {
@@ -1957,10 +1999,16 @@ const SalonDetail = () => {
                       <Clock className="w-4 h-4 text-primary" />
                     </div>
                     <h4 className="font-semibold text-sm">Select Time</h4>
+                    {selectedStylist && (
+                      <Badge variant="outline" className="text-xs bg-primary/5 border-primary/20 text-primary">
+                        {selectedStylist.name}'s availability
+                      </Badge>
+                    )}
                   </div>
                   <div className="grid grid-cols-4 gap-2">
                     {timeSlots.map((time) => {
                       const isOccupied = bookedTimeSlots.includes(time);
+                      const isStylistBusy = selectedStylist && stylistBookedSlots.includes(time);
                       
                       // Check if time slot is in the past for today's date
                       const isToday = selectedDate && format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
@@ -1976,7 +2024,7 @@ const SalonDetail = () => {
                         isPast = slotDate <= new Date();
                       }
                       
-                      const isUnavailable = isOccupied || isPast;
+                      const isUnavailable = isOccupied || isPast || isStylistBusy;
                       
                       return (
                         <button
@@ -1984,14 +2032,19 @@ const SalonDetail = () => {
                           onClick={() => !isUnavailable && setSelectedTime(time)}
                           disabled={isUnavailable}
                           className={`p-2.5 rounded-xl text-sm font-medium border-2 transition-all ${
-                            isUnavailable
-                              ? 'bg-muted/50 border-border text-muted-foreground cursor-not-allowed opacity-60'
-                              : selectedTime === time
-                                ? 'bg-primary text-primary-foreground border-primary shadow-md'
-                                : 'border-border hover:border-primary bg-muted/20 hover:scale-[1.02]'
+                            isStylistBusy && !isOccupied && !isPast
+                              ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 cursor-not-allowed'
+                              : isUnavailable
+                                ? 'bg-muted/50 border-border text-muted-foreground cursor-not-allowed opacity-60'
+                                : selectedTime === time
+                                  ? 'bg-primary text-primary-foreground border-primary shadow-md'
+                                  : 'border-border hover:border-primary bg-muted/20 hover:scale-[1.02]'
                           }`}
                         >
                           <span className={isUnavailable ? 'line-through' : ''}>{time}</span>
+                          {isStylistBusy && !isOccupied && !isPast && (
+                            <span className="block text-[10px] font-normal">Stylist Busy</span>
+                          )}
                           {isOccupied && <span className="block text-[10px] font-normal">Occupied</span>}
                           {isPast && !isOccupied && <span className="block text-[10px] font-normal">Passed</span>}
                         </button>
