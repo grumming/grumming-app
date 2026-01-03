@@ -727,6 +727,9 @@ const SalonDetail = () => {
 
   // State for stylist-specific booked slots
   const [stylistBookedSlots, setStylistBookedSlots] = useState<string[]>([]);
+  // State for stylist unavailability (off day or outside working hours)
+  const [isStylistOffDay, setIsStylistOffDay] = useState(false);
+  const [stylistWorkingHours, setStylistWorkingHours] = useState<{ start: string; end: string } | null>(null);
 
   // Fetch booked time slots for selected date
   useEffect(() => {
@@ -767,28 +770,29 @@ const SalonDetail = () => {
     fetchBookedTimeSlots();
   }, [selectedDate, id, salon?.name]);
 
-  // Fetch stylist-specific booked slots when a stylist is selected
+  // Fetch stylist-specific booked slots and availability when a stylist is selected
   useEffect(() => {
-    const fetchStylistBookedSlots = async () => {
+    const fetchStylistAvailability = async () => {
       if (!selectedDate || !selectedStylist) {
         setStylistBookedSlots([]);
+        setIsStylistOffDay(false);
+        setStylistWorkingHours(null);
         return;
       }
 
       const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+      const dayOfWeek = selectedDate.getDay(); // 0 = Sunday, 6 = Saturday
       
       // Fetch bookings for the selected stylist on the selected date
-      const { data: bookings, error } = await supabase
+      const { data: bookings, error: bookingsError } = await supabase
         .from('bookings')
         .select('booking_time')
         .eq('stylist_id', selectedStylist.id)
         .eq('booking_date', formattedDate)
         .in('status', ['upcoming', 'confirmed', 'pending']);
 
-      if (error) {
-        console.error('Error fetching stylist booked slots:', error);
-        setStylistBookedSlots([]);
-        return;
+      if (bookingsError) {
+        console.error('Error fetching stylist booked slots:', bookingsError);
       }
 
       // Convert booking times to display format
@@ -799,11 +803,46 @@ const SalonDetail = () => {
         const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
         return `${displayHour}:${minutes} ${ampm}`;
       });
-
       setStylistBookedSlots(bookedSlots);
+
+      // Check if stylist has a day off on this date
+      const { data: dayOffData } = await supabase
+        .from('stylist_days_off')
+        .select('id')
+        .eq('stylist_id', selectedStylist.id)
+        .eq('date_off', formattedDate)
+        .maybeSingle();
+
+      if (dayOffData) {
+        setIsStylistOffDay(true);
+        setStylistWorkingHours(null);
+        return;
+      }
+
+      setIsStylistOffDay(false);
+
+      // Fetch stylist's weekly schedule for this day
+      const { data: scheduleData } = await supabase
+        .from('stylist_schedules')
+        .select('start_time, end_time, is_working')
+        .eq('stylist_id', selectedStylist.id)
+        .eq('day_of_week', dayOfWeek)
+        .maybeSingle();
+
+      if (scheduleData && scheduleData.is_working) {
+        setStylistWorkingHours({
+          start: scheduleData.start_time,
+          end: scheduleData.end_time,
+        });
+      } else if (scheduleData && !scheduleData.is_working) {
+        setIsStylistOffDay(true);
+        setStylistWorkingHours(null);
+      } else {
+        setStylistWorkingHours(null);
+      }
     };
 
-    fetchStylistBookedSlots();
+    fetchStylistAvailability();
   }, [selectedDate, selectedStylist]);
 
   // Fetch available stylists for this salon
@@ -2005,10 +2044,60 @@ const SalonDetail = () => {
                       </Badge>
                     )}
                   </div>
+                  
+                  {/* Stylist Off Day Warning */}
+                  {selectedStylist && isStylistOffDay && (
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                      <p className="text-sm text-amber-700 dark:text-amber-400">
+                        {selectedStylist.name} is not available on this date. Please select a different date or stylist.
+                      </p>
+                    </div>
+                  )}
+                  
+                  {/* Working Hours Info */}
+                  {selectedStylist && stylistWorkingHours && !isStylistOffDay && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Clock className="w-3 h-3" />
+                      <span>
+                        {selectedStylist.name} works{' '}
+                        {(() => {
+                          const [startH, startM] = stylistWorkingHours.start.split(':');
+                          const [endH, endM] = stylistWorkingHours.end.split(':');
+                          const formatTime = (h: string, m: string) => {
+                            const hour = parseInt(h);
+                            const ampm = hour >= 12 ? 'PM' : 'AM';
+                            const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                            return `${displayHour}:${m} ${ampm}`;
+                          };
+                          return `${formatTime(startH, startM)} - ${formatTime(endH, endM)}`;
+                        })()}
+                      </span>
+                    </div>
+                  )}
+                  
                   <div className="grid grid-cols-4 gap-2">
                     {timeSlots.map((time) => {
                       const isOccupied = bookedTimeSlots.includes(time);
                       const isStylistBusy = selectedStylist && stylistBookedSlots.includes(time);
+                      
+                      // Check if time is outside stylist's working hours
+                      let isOutsideWorkingHours = false;
+                      if (selectedStylist && stylistWorkingHours) {
+                        const [timePart, ampm] = time.split(' ');
+                        const [hours, minutes] = timePart.split(':').map(Number);
+                        let hour24 = hours;
+                        if (ampm === 'PM' && hours !== 12) hour24 = hours + 12;
+                        if (ampm === 'AM' && hours === 12) hour24 = 0;
+                        
+                        const slotTime = hour24 * 100 + minutes;
+                        const [startH, startM] = stylistWorkingHours.start.split(':').map(Number);
+                        const [endH, endM] = stylistWorkingHours.end.split(':').map(Number);
+                        const startTime = startH * 100 + startM;
+                        const endTime = endH * 100 + endM;
+                        
+                        isOutsideWorkingHours = slotTime < startTime || slotTime >= endTime;
+                      }
                       
                       // Check if time slot is in the past for today's date
                       const isToday = selectedDate && format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
@@ -2024,7 +2113,8 @@ const SalonDetail = () => {
                         isPast = slotDate <= new Date();
                       }
                       
-                      const isUnavailable = isOccupied || isPast || isStylistBusy;
+                      const isStylistUnavailable = isStylistOffDay || isOutsideWorkingHours;
+                      const isUnavailable = isOccupied || isPast || isStylistBusy || (selectedStylist && isStylistUnavailable);
                       
                       return (
                         <button
@@ -2032,7 +2122,7 @@ const SalonDetail = () => {
                           onClick={() => !isUnavailable && setSelectedTime(time)}
                           disabled={isUnavailable}
                           className={`p-2.5 rounded-xl text-sm font-medium border-2 transition-all ${
-                            isStylistBusy && !isOccupied && !isPast
+                            (isStylistBusy || (selectedStylist && isStylistUnavailable)) && !isOccupied && !isPast
                               ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 cursor-not-allowed'
                               : isUnavailable
                                 ? 'bg-muted/50 border-border text-muted-foreground cursor-not-allowed opacity-60'
@@ -2044,6 +2134,9 @@ const SalonDetail = () => {
                           <span className={isUnavailable ? 'line-through' : ''}>{time}</span>
                           {isStylistBusy && !isOccupied && !isPast && (
                             <span className="block text-[10px] font-normal">Stylist Busy</span>
+                          )}
+                          {isOutsideWorkingHours && !isStylistBusy && !isOccupied && !isPast && (
+                            <span className="block text-[10px] font-normal">Not Working</span>
                           )}
                           {isOccupied && <span className="block text-[10px] font-normal">Occupied</span>}
                           {isPast && !isOccupied && <span className="block text-[10px] font-normal">Passed</span>}

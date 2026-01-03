@@ -1426,6 +1426,79 @@ export type Database = {
         }
         Relationships: []
       }
+      stylist_days_off: {
+        Row: {
+          created_at: string
+          date_off: string
+          id: string
+          reason: string | null
+          stylist_id: string
+        }
+        Insert: {
+          created_at?: string
+          date_off: string
+          id?: string
+          reason?: string | null
+          stylist_id: string
+        }
+        Update: {
+          created_at?: string
+          date_off?: string
+          id?: string
+          reason?: string | null
+          stylist_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stylist_days_off_stylist_id_fkey"
+            columns: ["stylist_id"]
+            isOneToOne: false
+            referencedRelation: "stylists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stylist_schedules: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          end_time: string | null
+          id: string
+          is_working: boolean
+          start_time: string | null
+          stylist_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          end_time?: string | null
+          id?: string
+          is_working?: boolean
+          start_time?: string | null
+          stylist_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          end_time?: string | null
+          id?: string
+          is_working?: boolean
+          start_time?: string | null
+          stylist_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stylist_schedules_stylist_id_fkey"
+            columns: ["stylist_id"]
+            isOneToOne: false
+            referencedRelation: "stylists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stylists: {
         Row: {
           bio: string | null

@@ -41,6 +41,7 @@ import { SalonBankAccountManager } from '@/components/SalonBankAccountManager';
 import SalonPayoutRequest from '@/components/SalonPayoutRequest';
 import { SalonPayoutHistory } from '@/components/SalonPayoutHistory';
 import { PayoutNotificationCenter } from '@/components/PayoutNotificationCenter';
+import { StylistScheduleManager } from '@/components/StylistScheduleManager';
 
 interface Booking {
   id: string;
@@ -1705,14 +1706,15 @@ const SalonDashboard = () => {
               </Tabs>
             </TabsContent>
 
-            {/* Manage Tab - with nested tabs for Reviews, Services, Stylists, Bank Account */}
+            {/* Manage Tab - with nested tabs for Reviews, Services, Stylists, Schedule, Bank Account */}
             <TabsContent value="manage" className="space-y-4">
               <Tabs defaultValue="reviews" className="space-y-4">
-                <TabsList className="grid w-full grid-cols-4 bg-muted/50">
-                  <TabsTrigger value="reviews" className="text-sm">Reviews</TabsTrigger>
-                  <TabsTrigger value="services" className="text-sm">Services</TabsTrigger>
-                  <TabsTrigger value="stylists" className="text-sm">Stylists</TabsTrigger>
-                  <TabsTrigger value="bank" className="text-sm">Bank</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-5 bg-muted/50">
+                  <TabsTrigger value="reviews" className="text-xs sm:text-sm">Reviews</TabsTrigger>
+                  <TabsTrigger value="services" className="text-xs sm:text-sm">Services</TabsTrigger>
+                  <TabsTrigger value="stylists" className="text-xs sm:text-sm">Team</TabsTrigger>
+                  <TabsTrigger value="schedule" className="text-xs sm:text-sm">Schedule</TabsTrigger>
+                  <TabsTrigger value="bank" className="text-xs sm:text-sm">Bank</TabsTrigger>
                 </TabsList>
 
                 {/* Reviews Sub-Tab */}
@@ -2008,6 +2010,20 @@ const SalonDashboard = () => {
                       )}
                     </CardContent>
                   </Card>
+                </TabsContent>
+
+                {/* Schedule Sub-Tab */}
+                <TabsContent value="schedule" className="space-y-4">
+                  {selectedSalonId && (
+                    <StylistScheduleManager
+                      salonId={selectedSalonId}
+                      stylists={stylists.map(s => ({
+                        id: s.id,
+                        name: s.name,
+                        photo_url: s.photo_url,
+                      }))}
+                    />
+                  )}
                 </TabsContent>
 
                 {/* Bank Account Sub-Tab */}
