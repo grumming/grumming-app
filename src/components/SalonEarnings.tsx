@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   IndianRupee, TrendingUp, Wallet, Calendar, ArrowUpRight, 
-  ArrowDownRight, Clock, CheckCircle, XCircle, Loader2, Building, Smartphone, Zap, Building2
+  ArrowDownRight, Clock, CheckCircle, XCircle, Loader2, Building, Smartphone, Zap, Building2, AlertTriangle, User
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -29,7 +29,9 @@ interface Payment {
   payment_method: string | null;
   created_at: string;
   booking_id: string | null;
+  user_id: string;
   metadata: PaymentMetadata | null;
+  customerName?: string;
 }
 
 interface Payout {
@@ -50,6 +52,7 @@ interface EarningsStats {
   completedPayouts: number;
   thisMonthEarnings: number;
   platformFees: number;
+  totalPenalties: number;
 }
 
 export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
@@ -61,6 +64,7 @@ export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
     completedPayouts: 0,
     thisMonthEarnings: 0,
     platformFees: 0,
+    totalPenalties: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
@@ -80,10 +84,22 @@ export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
         if (paymentsError) {
           console.error('Error fetching payments:', paymentsError);
         } else {
-          // Cast metadata to proper type
+          // Fetch customer profiles for payments
+          const userIds = [...new Set((paymentsData || []).map(p => p.user_id))];
+          const { data: profilesData } = await supabase
+            .from('profiles')
+            .select('user_id, full_name')
+            .in('user_id', userIds);
+          
+          const profilesMap = new Map(
+            (profilesData || []).map(p => [p.user_id, p.full_name])
+          );
+          
+          // Cast metadata to proper type and add customer names
           const typedPayments = (paymentsData || []).map(p => ({
             ...p,
-            metadata: p.metadata as PaymentMetadata | null
+            metadata: p.metadata as PaymentMetadata | null,
+            customerName: profilesMap.get(p.user_id) || 'Customer'
           }));
           setPayments(typedPayments);
         }
@@ -109,6 +125,12 @@ export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
         const totalEarnings = capturedPayments.reduce((sum, p) => sum + (p.salon_amount || 0), 0);
         const platformFees = capturedPayments.reduce((sum, p) => sum + (p.platform_fee || 0), 0);
         
+        // Calculate total penalties (from metadata)
+        const totalPenalties = capturedPayments.reduce((sum, p) => {
+          const meta = p.metadata as PaymentMetadata | null;
+          return sum + (meta?.penalty_amount || 0);
+        }, 0);
+        
         const pendingPayouts = (payoutsData || [])
           .filter(p => p.status === 'pending')
           .reduce((sum, p) => sum + p.amount, 0);
@@ -132,6 +154,7 @@ export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
           completedPayouts,
           thisMonthEarnings,
           platformFees,
+          totalPenalties,
         });
       } catch (error) {
         console.error('Error fetching earnings data:', error);
@@ -284,6 +307,36 @@ export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
         </motion.div>
       </div>
 
+      {/* Penalties Info Card - Shows penalties collected by platform */}
+      {stats.totalPenalties > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+        >
+          <Card className="bg-gradient-to-br from-orange-500/10 to-amber-500/5 border-orange-500/20">
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center">
+                    <AlertTriangle className="w-5 h-5 text-orange-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-orange-600">Penalties Collected by Platform</p>
+                    <p className="text-xs text-muted-foreground">
+                      From cancellation fees paid by customers
+                    </p>
+                  </div>
+                </div>
+                <p className="text-xl font-bold font-sans text-orange-600">
+                  ₹{stats.totalPenalties.toLocaleString()}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
 
       {/* Tabs for Payments and Payouts */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -325,7 +378,13 @@ export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
                           )}
                         </div>
                         <div>
-                          <p className="font-medium font-sans">₹{payment.salon_amount.toLocaleString()}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium font-sans">₹{payment.salon_amount.toLocaleString()}</p>
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                              <User className="w-3 h-3" />
+                              {payment.customerName}
+                            </span>
+                          </div>
                           <p className="text-xs text-muted-foreground">
                             Service earnings (after 8% commission)
                           </p>
