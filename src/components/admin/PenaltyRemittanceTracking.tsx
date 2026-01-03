@@ -1,21 +1,29 @@
 import { useState, useEffect } from 'react';
 import { 
   Store, AlertCircle, CheckCircle, Clock, RefreshCw,
-  ArrowDownToLine, IndianRupee, Calendar, Eye
+  ArrowDownToLine, Calendar, Eye, Download, FileText, Check
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from '@/components/ui/table';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface SalonPendingPenalties {
   salon_id: string;
@@ -50,6 +58,10 @@ const PenaltyRemittanceTracking = () => {
   const [remittanceHistory, setRemittanceHistory] = useState<RemittanceRecord[]>([]);
   const [selectedSalon, setSelectedSalon] = useState<SalonPendingPenalties | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [selectedPenalties, setSelectedPenalties] = useState<string[]>([]);
+  const [showManualRemitDialog, setShowManualRemitDialog] = useState(false);
+  const [remitNote, setRemitNote] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -133,9 +145,155 @@ const PenaltyRemittanceTracking = () => {
     fetchData();
   }, []);
 
+  const handleManualRemit = async () => {
+    if (!selectedSalon || selectedPenalties.length === 0) return;
+    
+    setIsProcessing(true);
+    try {
+      const penaltiesToRemit = selectedSalon.penalties.filter(p => selectedPenalties.includes(p.id));
+      const totalAmount = penaltiesToRemit.reduce((sum, p) => sum + p.penalty_amount, 0);
+
+      // Mark penalties as remitted
+      const { error: updateError } = await supabase
+        .from('cancellation_penalties')
+        .update({
+          remitted_to_platform: true,
+          remitted_at: new Date().toISOString()
+        })
+        .in('id', selectedPenalties);
+
+      if (updateError) throw updateError;
+
+      // Create remittance record
+      const { error: remittanceError } = await supabase
+        .from('salon_penalty_remittances')
+        .insert({
+          salon_id: selectedSalon.salon_id,
+          penalty_ids: selectedPenalties,
+          total_amount: totalAmount
+        });
+
+      if (remittanceError) throw remittanceError;
+
+      toast({ 
+        title: 'Success', 
+        description: `Manually remitted ${selectedPenalties.length} penalty/ies (₹${totalAmount.toLocaleString()})` 
+      });
+
+      setShowManualRemitDialog(false);
+      setShowDetailsDialog(false);
+      setSelectedPenalties([]);
+      setRemitNote('');
+      fetchData();
+    } catch (err) {
+      console.error('Error remitting penalties:', err);
+      toast({ title: 'Error', description: 'Failed to remit penalties', variant: 'destructive' });
+    }
+    setIsProcessing(false);
+  };
+
+  const handleExportCSV = () => {
+    // Combine pending and history data
+    const rows: string[] = [];
+    rows.push('Type,Date,Salon,Penalty Count,Amount');
+    
+    pendingBySalon.forEach(salon => {
+      rows.push(`Pending,${format(new Date(), 'yyyy-MM-dd')},${salon.salon_name},${salon.pending_count},${salon.pending_amount}`);
+    });
+    
+    remittanceHistory.forEach(record => {
+      rows.push(`Remitted,${format(new Date(record.created_at), 'yyyy-MM-dd')},${record.salon?.name || 'Unknown'},${record.penalty_ids.length},${record.total_amount}`);
+    });
+
+    const csv = rows.join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `penalty-remittance-report-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+    
+    toast({ title: 'Exported', description: 'CSV report downloaded successfully' });
+  };
+
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    
+    // Title
+    doc.setFontSize(18);
+    doc.text('Penalty Remittance Report', 14, 22);
+    doc.setFontSize(10);
+    doc.text(`Generated: ${format(new Date(), 'dd MMM yyyy HH:mm')}`, 14, 30);
+    
+    // Summary
+    doc.setFontSize(12);
+    doc.text('Summary', 14, 42);
+    doc.setFontSize(10);
+    doc.text(`Total Pending: ₹${totalPendingAmount.toLocaleString()} (${totalPendingCount} penalties from ${pendingBySalon.length} salons)`, 14, 50);
+    doc.text(`Total Remitted: ₹${totalRemitted.toLocaleString()} (${remittanceHistory.length} records)`, 14, 58);
+    
+    // Pending table
+    if (pendingBySalon.length > 0) {
+      doc.setFontSize(12);
+      doc.text('Pending Remittances', 14, 72);
+      
+      autoTable(doc, {
+        startY: 76,
+        head: [['Salon', 'Penalties', 'Amount (₹)']],
+        body: pendingBySalon.map(s => [s.salon_name, s.pending_count.toString(), s.pending_amount.toLocaleString()]),
+        theme: 'striped',
+        headStyles: { fillColor: [245, 158, 11] }
+      });
+    }
+    
+    // History table
+    if (remittanceHistory.length > 0) {
+      const finalY = (doc as any).lastAutoTable?.finalY || 90;
+      doc.setFontSize(12);
+      doc.text('Remittance History', 14, finalY + 14);
+      
+      autoTable(doc, {
+        startY: finalY + 18,
+        head: [['Date', 'Salon', 'Penalties', 'Amount (₹)']],
+        body: remittanceHistory.map(r => [
+          format(new Date(r.created_at), 'dd MMM yyyy'),
+          r.salon?.name || 'Unknown',
+          r.penalty_ids.length.toString(),
+          r.total_amount.toLocaleString()
+        ]),
+        theme: 'striped',
+        headStyles: { fillColor: [34, 197, 94] }
+      });
+    }
+    
+    doc.save(`penalty-remittance-report-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+    toast({ title: 'Exported', description: 'PDF report downloaded successfully' });
+  };
+
   const totalPendingAmount = pendingBySalon.reduce((sum, s) => sum + s.pending_amount, 0);
   const totalPendingCount = pendingBySalon.reduce((sum, s) => sum + s.pending_count, 0);
   const totalRemitted = remittanceHistory.reduce((sum, r) => sum + r.total_amount, 0);
+
+  const togglePenaltySelection = (id: string) => {
+    setSelectedPenalties(prev => 
+      prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
+    );
+  };
+
+  const selectAllPenalties = () => {
+    if (selectedSalon) {
+      if (selectedPenalties.length === selectedSalon.penalties.length) {
+        setSelectedPenalties([]);
+      } else {
+        setSelectedPenalties(selectedSalon.penalties.map(p => p.id));
+      }
+    }
+  };
+
+  const selectedTotal = selectedSalon?.penalties
+    .filter(p => selectedPenalties.includes(p.id))
+    .reduce((sum, p) => sum + p.penalty_amount, 0) || 0;
 
   return (
     <div className="space-y-6">
@@ -197,8 +355,27 @@ const PenaltyRemittanceTracking = () => {
         </Card>
       </div>
 
-      {/* Refresh Button */}
-      <div className="flex justify-end">
+      {/* Actions Bar */}
+      <div className="flex justify-between items-center">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm">
+              <Download className="w-4 h-4 mr-2" />
+              Export Report
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem onClick={handleExportCSV}>
+              <FileText className="w-4 h-4 mr-2" />
+              Export as CSV
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleExportPDF}>
+              <FileText className="w-4 h-4 mr-2" />
+              Export as PDF
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        
         <Button variant="outline" size="sm" onClick={fetchData} disabled={isLoading}>
           <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
           Refresh
@@ -273,6 +450,7 @@ const PenaltyRemittanceTracking = () => {
                         size="sm"
                         onClick={() => {
                           setSelectedSalon(salon);
+                          setSelectedPenalties([]);
                           setShowDetailsDialog(true);
                         }}
                       >
@@ -347,8 +525,13 @@ const PenaltyRemittanceTracking = () => {
         </CardContent>
       </Card>
 
-      {/* Details Dialog */}
-      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+      {/* Details Dialog with Manual Remit Option */}
+      <Dialog open={showDetailsDialog} onOpenChange={(open) => {
+        setShowDetailsDialog(open);
+        if (!open) {
+          setSelectedPenalties([]);
+        }
+      }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -356,41 +539,134 @@ const PenaltyRemittanceTracking = () => {
               {selectedSalon?.salon_name}
             </DialogTitle>
             <DialogDescription>
-              Pending penalties collected by this salon
+              Select penalties to manually mark as remitted
             </DialogDescription>
           </DialogHeader>
           
-          <ScrollArea className="max-h-[60vh]">
-            <div className="space-y-3">
+          {/* Select All */}
+          <div className="flex items-center gap-2 pb-2 border-b">
+            <Checkbox
+              checked={selectedSalon?.penalties.length === selectedPenalties.length && selectedPenalties.length > 0}
+              onCheckedChange={selectAllPenalties}
+            />
+            <span className="text-sm text-muted-foreground">
+              Select all ({selectedSalon?.penalties.length || 0})
+            </span>
+          </div>
+          
+          <ScrollArea className="max-h-[50vh]">
+            <div className="space-y-2">
               {selectedSalon?.penalties.map((penalty) => (
-                <div key={penalty.id} className="p-3 border rounded-lg">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-medium">{penalty.service_name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Collected: {penalty.paid_at ? format(new Date(penalty.paid_at), 'dd MMM yyyy') : 'N/A'}
-                      </p>
+                <div 
+                  key={penalty.id} 
+                  className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                    selectedPenalties.includes(penalty.id) 
+                      ? 'border-primary bg-primary/5' 
+                      : 'hover:bg-muted/50'
+                  }`}
+                  onClick={() => togglePenaltySelection(penalty.id)}
+                >
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      checked={selectedPenalties.includes(penalty.id)}
+                      onCheckedChange={() => togglePenaltySelection(penalty.id)}
+                    />
+                    <div className="flex-1">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-medium">{penalty.service_name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Collected: {penalty.paid_at ? format(new Date(penalty.paid_at), 'dd MMM yyyy') : 'N/A'}
+                          </p>
+                        </div>
+                        <span className="font-medium text-amber-600 font-sans">
+                          ₹{penalty.penalty_amount.toLocaleString()}
+                        </span>
+                      </div>
                     </div>
-                    <span className="font-medium text-amber-600 font-sans">
-                      ₹{penalty.penalty_amount.toLocaleString()}
-                    </span>
                   </div>
                 </div>
               ))}
             </div>
           </ScrollArea>
 
-          <div className="border-t pt-4 mt-4">
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Total Owed to Platform</span>
-              <span className="text-xl font-bold text-amber-600 font-sans">
-                ₹{selectedSalon?.pending_amount.toLocaleString()}
+          <div className="border-t pt-4 mt-2">
+            <div className="flex justify-between items-center mb-4">
+              <span className="text-muted-foreground">
+                {selectedPenalties.length > 0 
+                  ? `Selected: ${selectedPenalties.length} penalties`
+                  : 'Total Owed to Platform'}
+              </span>
+              <span className={`text-xl font-bold font-sans ${selectedPenalties.length > 0 ? 'text-primary' : 'text-amber-600'}`}>
+                ₹{(selectedPenalties.length > 0 ? selectedTotal : selectedSalon?.pending_amount || 0).toLocaleString()}
               </span>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              This amount will be automatically deducted when the salon's next payout is completed.
-            </p>
+            
+            {selectedPenalties.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                Select penalties above to manually remit them, or they will be automatically deducted from the next payout.
+              </p>
+            ) : (
+              <Button 
+                className="w-full" 
+                onClick={() => setShowManualRemitDialog(true)}
+              >
+                <Check className="w-4 h-4 mr-2" />
+                Mark {selectedPenalties.length} as Remitted
+              </Button>
+            )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manual Remit Confirmation Dialog */}
+      <Dialog open={showManualRemitDialog} onOpenChange={setShowManualRemitDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirm Manual Remittance</DialogTitle>
+            <DialogDescription>
+              You're about to mark {selectedPenalties.length} penalty/ies as remitted without an associated payout.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-amber-700 dark:text-amber-400">Amount to be remitted</span>
+                <span className="text-lg font-bold text-amber-600 font-sans">
+                  ₹{selectedTotal.toLocaleString()}
+                </span>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Note (optional)</Label>
+              <Textarea
+                placeholder="Add a note about why this is being manually remitted..."
+                value={remitNote}
+                onChange={(e) => setRemitNote(e.target.value)}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowManualRemitDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleManualRemit} disabled={isProcessing}>
+              {isProcessing ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4 mr-2" />
+                  Confirm Remittance
+                </>
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
