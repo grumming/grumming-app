@@ -363,9 +363,9 @@ export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
                           )}
                         </div>
                         <div>
-                          <p className="font-medium">₹{payment.amount.toLocaleString()}</p>
+                          <p className="font-medium font-sans">₹{payment.salon_amount.toLocaleString()}</p>
                           <p className="text-xs text-muted-foreground">
-                            Your share: ₹{payment.salon_amount.toLocaleString()}
+                            Service earnings (after 8% commission)
                           </p>
                         </div>
                       </div>
