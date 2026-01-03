@@ -369,6 +369,34 @@ const SalonPayoutManagement = () => {
           console.error('Error creating remittance record:', remittanceError);
         }
 
+        // Fetch full penalty details for notification
+        const { data: penaltyDetails } = await supabase
+          .from('cancellation_penalties')
+          .select('service_name, penalty_amount')
+          .in('id', penaltyIds);
+
+        // Send notification with penalty breakdown to salon owner
+        try {
+          await supabase.functions.invoke('send-payout-notification', {
+            body: {
+              payout_id: payoutId,
+              salon_id: payoutData.salon_id,
+              amount: payoutData.amount,
+              status: 'completed',
+              penalty_deduction: {
+                total_amount: totalAmount,
+                penalty_count: unremittedPenalties.length,
+                penalties: (penaltyDetails || []).map(p => ({
+                  service_name: p.service_name,
+                  penalty_amount: p.penalty_amount
+                }))
+              }
+            }
+          });
+        } catch (notifErr) {
+          console.error('Error sending penalty deduction notification:', notifErr);
+        }
+
         toast({ 
           title: 'Success', 
           description: `Payout completed. ${unremittedPenalties.length} penalty/ies (₹${totalAmount.toLocaleString()}) remitted to platform.` 

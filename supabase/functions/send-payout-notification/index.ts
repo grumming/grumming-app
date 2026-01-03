@@ -23,6 +23,14 @@ interface PayoutNotificationRequest {
   payout_method?: string;
   period_start?: string;
   period_end?: string;
+  penalty_deduction?: {
+    total_amount: number;
+    penalty_count: number;
+    penalties: Array<{
+      service_name: string;
+      penalty_amount: number;
+    }>;
+  };
 }
 
 // Send SMS via Twilio
@@ -88,7 +96,8 @@ const handler = async (req: Request): Promise<Response> => {
       status, 
       payout_method,
       period_start,
-      period_end 
+      period_end,
+      penalty_deduction
     }: PayoutNotificationRequest = await req.json();
 
     console.log('Processing payout notification:', { payout_id, salon_id, amount, status });
@@ -167,9 +176,13 @@ const handler = async (req: Request): Promise<Response> => {
         break;
       case 'completed':
         subject = `✅ Payout of ${formattedAmount} completed - ${salon.name}`;
-        statusMessage = 'Your payout has been successfully credited to your bank account.';
+        statusMessage = penalty_deduction && penalty_deduction.total_amount > 0
+          ? `Your payout has been successfully credited to your bank account. Note: ₹${penalty_deduction.total_amount.toLocaleString()} was deducted for ${penalty_deduction.penalty_count} cancellation penalty/ies collected via cash.`
+          : 'Your payout has been successfully credited to your bank account.';
         statusColor = '#22c55e';
-        smsMessage = `Grumming: ${formattedAmount} has been credited to your bank account for ${salon.name}. Thank you for being a partner!`;
+        smsMessage = penalty_deduction && penalty_deduction.total_amount > 0
+          ? `Grumming: ${formattedAmount} credited to your account for ${salon.name}. ₹${penalty_deduction.total_amount.toLocaleString()} deducted for ${penalty_deduction.penalty_count} penalty/ies.`
+          : `Grumming: ${formattedAmount} has been credited to your bank account for ${salon.name}. Thank you for being a partner!`;
         break;
       case 'failed':
         subject = `❌ Payout of ${formattedAmount} failed - ${salon.name}`;
@@ -240,6 +253,33 @@ const handler = async (req: Request): Promise<Response> => {
                         </table>
                         
                         <p style="margin: 0 0 24px; color: #374151; font-size: 16px; line-height: 1.6;">${statusMessage}</p>
+                        
+                        ${penalty_deduction && penalty_deduction.total_amount > 0 && status === 'completed' ? `
+                        <!-- Penalty Deduction Breakdown -->
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #fef3c7; border-radius: 8px; margin: 16px 0 24px; border: 1px solid #f59e0b;">
+                          <tr>
+                            <td style="padding: 16px;">
+                              <p style="margin: 0 0 8px; color: #92400e; font-size: 14px; font-weight: 600;">⚠️ Penalty Deduction Breakdown</p>
+                              <p style="margin: 0 0 12px; color: #78350f; font-size: 13px;">The following cancellation penalties were collected via cash and have been deducted from your payout:</p>
+                              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                ${penalty_deduction.penalties.map(p => `
+                                  <tr>
+                                    <td style="padding: 4px 0; color: #78350f; font-size: 13px;">${p.service_name}</td>
+                                    <td style="padding: 4px 0; color: #92400e; font-size: 13px; text-align: right; font-weight: 500;">-₹${p.penalty_amount.toLocaleString()}</td>
+                                  </tr>
+                                `).join('')}
+                                <tr>
+                                  <td colspan="2" style="border-top: 1px dashed #d97706; padding-top: 8px; margin-top: 8px;"></td>
+                                </tr>
+                                <tr>
+                                  <td style="padding: 4px 0; color: #92400e; font-size: 14px; font-weight: 600;">Total Deducted</td>
+                                  <td style="padding: 4px 0; color: #b45309; font-size: 14px; text-align: right; font-weight: 700;">-₹${penalty_deduction.total_amount.toLocaleString()}</td>
+                                </tr>
+                              </table>
+                            </td>
+                          </tr>
+                        </table>
+                        ` : ''}
                         
                         ${payout_method ? `
                         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 24px;">
