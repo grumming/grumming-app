@@ -1319,7 +1319,15 @@ const SalonDashboard = () => {
                         <p className="text-center text-muted-foreground py-8">No completed bookings yet</p>
                       ) : (
                         <div className="space-y-3">
-                          {bookings.filter(b => b.status === 'completed').map(booking => (
+                          {bookings
+                            .filter(b => b.status === 'completed')
+                            .sort((a, b) => {
+                              // Sort by date descending (most recent first), then by time descending
+                              const dateCompare = b.booking_date.localeCompare(a.booking_date);
+                              if (dateCompare !== 0) return dateCompare;
+                              return b.booking_time.localeCompare(a.booking_time);
+                            })
+                            .map(booking => (
                             <motion.div
                               key={booking.id}
                               initial={{ opacity: 0 }}
