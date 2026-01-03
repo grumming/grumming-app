@@ -28,6 +28,8 @@ interface BookingCancellationDialogProps {
     booking_date: string;
     booking_time: string;
     status: string;
+    payment_id?: string | null;
+    payment_method?: string | null;
   };
   onCancellationComplete: () => void;
 }
@@ -113,17 +115,59 @@ export function BookingCancellationDialog({
   const [step, setStep] = useState<'policy' | 'choose' | 'confirm'>('policy');
   const [showPolicyModal, setShowPolicyModal] = useState(false);
 
+  // Check if this was a paid booking (not "Pay at Salon")
+  const isPaidBooking = Boolean(booking.payment_id) || (booking.payment_method && booking.payment_method !== 'salon' && booking.payment_method !== 'cash');
+
   const refundInfo = useMemo(() => 
     calculateRefund(booking.booking_date, booking.booking_time, booking.service_price),
     [booking.booking_date, booking.booking_time, booking.service_price]
+  );
+  
+  // For "Pay at Salon" bookings, calculate penalty (20% of service price)
+  const PENALTY_PERCENTAGE = 20;
+  const penaltyAmount = useMemo(() => 
+    Math.round((booking.service_price * PENALTY_PERCENTAGE) / 100),
+    [booking.service_price]
   );
 
   const handleCancel = async () => {
     setIsProcessing(true);
 
     try {
-      if (refundInfo.amount === 0) {
-        // No refund, just cancel
+      // For "Pay at Salon" bookings - no refund, apply penalty
+      if (!isPaidBooking) {
+        // Create penalty record
+        const { error: penaltyError } = await supabase
+          .from('cancellation_penalties')
+          .insert({
+            user_id: (await supabase.auth.getUser()).data.user?.id,
+            booking_id: booking.id,
+            penalty_amount: penaltyAmount,
+            penalty_percentage: PENALTY_PERCENTAGE,
+            original_service_price: booking.service_price,
+            salon_name: booking.salon_name,
+            service_name: booking.service_name,
+          });
+
+        if (penaltyError) throw penaltyError;
+
+        // Update booking status
+        const { error } = await supabase
+          .from('bookings')
+          .update({ 
+            status: 'cancelled',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', booking.id);
+
+        if (error) throw error;
+
+        toast({
+          title: 'Booking Cancelled',
+          description: `A penalty of ₹${penaltyAmount} will be added to your next booking.`,
+        });
+      } else if (refundInfo.amount === 0) {
+        // Paid booking but no refund due to late cancellation
         const { error } = await supabase
           .from('bookings')
           .update({ 
@@ -230,37 +274,67 @@ export function BookingCancellationDialog({
               exit={{ opacity: 0, x: 20 }}
               className="space-y-4 py-4"
             >
-              {/* Refund Summary */}
-              <div className="p-4 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Time until booking</span>
-                    <span className="font-semibold">
-                      {refundInfo.isPastBooking ? (
-                        <span className="text-red-600">Past booking</span>
-                      ) : refundInfo.hoursRemaining >= 24 ? (
-                        `${Math.floor(refundInfo.hoursRemaining / 24)}d ${refundInfo.hoursRemaining % 24}h`
-                      ) : (
-                        `${refundInfo.hoursRemaining}h remaining`
-                      )}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Original Amount</span>
-                    <span className="font-sans font-medium">₹{booking.service_price}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Cancellation Fee ({100 - refundInfo.percentage}%)</span>
-                    <span className="text-red-600 font-sans font-medium">-₹{refundInfo.deduction}</span>
-                  </div>
-                  <div className="border-t border-border pt-3 flex items-center justify-between">
-                    <span className="font-medium">Your Refund ({refundInfo.percentage}%)</span>
-                    <span className={`text-xl font-bold font-sans ${refundInfo.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      ₹{refundInfo.amount}
-                    </span>
+              {/* Show different content based on payment type */}
+              {!isPaidBooking ? (
+                /* Pay at Salon - Penalty Notice */
+                <div className="p-4 rounded-xl bg-gradient-to-br from-amber-500/10 to-orange-500/5 border border-amber-500/20">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-amber-600">
+                      <AlertTriangle className="w-4 h-4" />
+                      <span className="font-medium text-sm">Pay at Salon Booking</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Since you haven't paid for this booking, no refund is applicable.
+                    </p>
+                    <div className="border-t border-border pt-3">
+                      <div className="flex items-center justify-between text-sm mb-2">
+                        <span className="text-muted-foreground">Service Price</span>
+                        <span className="font-sans font-medium">₹{booking.service_price}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm mb-2">
+                        <span className="text-muted-foreground">Cancellation Penalty ({PENALTY_PERCENTAGE}%)</span>
+                        <span className="text-red-600 font-sans font-medium">₹{penaltyAmount}</span>
+                      </div>
+                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-dashed border-border">
+                        <span className="font-medium text-sm">Added to Next Booking</span>
+                        <span className="text-lg font-bold font-sans text-red-600">+₹{penaltyAmount}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                /* Paid Booking - Refund Summary */
+                <div className="p-4 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Time until booking</span>
+                      <span className="font-semibold">
+                        {refundInfo.isPastBooking ? (
+                          <span className="text-red-600">Past booking</span>
+                        ) : refundInfo.hoursRemaining >= 24 ? (
+                          `${Math.floor(refundInfo.hoursRemaining / 24)}d ${refundInfo.hoursRemaining % 24}h`
+                        ) : (
+                          `${refundInfo.hoursRemaining}h remaining`
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Original Amount</span>
+                      <span className="font-sans font-medium">₹{booking.service_price}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Cancellation Fee ({100 - refundInfo.percentage}%)</span>
+                      <span className="text-red-600 font-sans font-medium">-₹{refundInfo.deduction}</span>
+                    </div>
+                    <div className="border-t border-border pt-3 flex items-center justify-between">
+                      <span className="font-medium">Your Refund ({refundInfo.percentage}%)</span>
+                      <span className={`text-xl font-bold font-sans ${refundInfo.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        ₹{refundInfo.amount}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* View Policy Link */}
               <button
@@ -419,7 +493,9 @@ export function BookingCancellationDialog({
                 <div>
                   <p className="font-semibold">Confirm Cancellation</p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {refundInfo.amount === 0 ? (
+                    {!isPaidBooking ? (
+                      <>A penalty of <span className="text-red-600 font-medium">₹{penaltyAmount}</span> will be added to your next booking.</>
+                    ) : refundInfo.amount === 0 ? (
                       <>Your booking will be cancelled with <span className="text-red-600 font-medium">no refund</span>.</>
                     ) : refundOption === 'wallet' ? (
                       <>₹{refundInfo.amount} ({refundInfo.percentage}% refund) will be <span className="text-green-600 font-medium">instantly credited</span> to your wallet.</>
@@ -441,10 +517,17 @@ export function BookingCancellationDialog({
               </Button>
               <Button 
                 variant="destructive" 
-                onClick={() => setStep(refundInfo.amount > 0 ? 'choose' : 'confirm')}
+                onClick={() => {
+                  // For unpaid bookings, skip refund method selection
+                  if (!isPaidBooking) {
+                    setStep('confirm');
+                  } else {
+                    setStep(refundInfo.amount > 0 ? 'choose' : 'confirm');
+                  }
+                }}
                 className="flex-1"
               >
-                {refundInfo.amount > 0 ? 'Continue' : 'Cancel Anyway'}
+                {!isPaidBooking ? 'Continue' : (refundInfo.amount > 0 ? 'Continue' : 'Cancel Anyway')}
               </Button>
             </>
           ) : step === 'choose' ? (
@@ -464,7 +547,13 @@ export function BookingCancellationDialog({
             <>
               <Button 
                 variant="outline" 
-                onClick={() => setStep(refundInfo.amount > 0 ? 'choose' : 'policy')} 
+                onClick={() => {
+                  if (!isPaidBooking) {
+                    setStep('policy');
+                  } else {
+                    setStep(refundInfo.amount > 0 ? 'choose' : 'policy');
+                  }
+                }} 
                 disabled={isProcessing}
                 className="flex-1"
               >

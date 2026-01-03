@@ -49,6 +49,7 @@ export type Database = {
           created_at: string
           id: string
           payment_id: string | null
+          payment_method: string | null
           reminder_sent: boolean
           salon_id: string | null
           salon_name: string
@@ -65,6 +66,7 @@ export type Database = {
           created_at?: string
           id?: string
           payment_id?: string | null
+          payment_method?: string | null
           reminder_sent?: boolean
           salon_id?: string | null
           salon_name: string
@@ -81,6 +83,7 @@ export type Database = {
           created_at?: string
           id?: string
           payment_id?: string | null
+          payment_method?: string | null
           reminder_sent?: boolean
           salon_id?: string | null
           salon_name?: string
@@ -96,6 +99,69 @@ export type Database = {
             columns: ["salon_id"]
             isOneToOne: false
             referencedRelation: "salons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cancellation_penalties: {
+        Row: {
+          booking_id: string
+          created_at: string
+          id: string
+          is_paid: boolean
+          original_service_price: number
+          paid_at: string | null
+          paid_booking_id: string | null
+          penalty_amount: number
+          penalty_percentage: number
+          salon_name: string
+          service_name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          id?: string
+          is_paid?: boolean
+          original_service_price: number
+          paid_at?: string | null
+          paid_booking_id?: string | null
+          penalty_amount: number
+          penalty_percentage?: number
+          salon_name: string
+          service_name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          id?: string
+          is_paid?: boolean
+          original_service_price?: number
+          paid_at?: string | null
+          paid_booking_id?: string | null
+          penalty_amount?: number
+          penalty_percentage?: number
+          salon_name?: string
+          service_name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cancellation_penalties_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cancellation_penalties_paid_booking_id_fkey"
+            columns: ["paid_booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
         ]

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { CreditCard, Loader2, Wallet, CheckCircle2 } from 'lucide-react';
+import { CreditCard, Loader2, Wallet, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -14,6 +14,8 @@ import { PaymentReceipt } from './PaymentReceipt';
 import { useRazorpay } from '@/hooks/useRazorpay';
 import { useWallet } from '@/hooks/useWallet';
 import { useToast } from '@/hooks/use-toast';
+import { usePendingPenalties } from '@/hooks/usePendingPenalties';
+import { supabase } from '@/integrations/supabase/client';
 
 interface BookingPaymentSheetProps {
   open: boolean;
@@ -58,6 +60,7 @@ export function BookingPaymentSheet({
   const { toast } = useToast();
   const { initiatePayment, isLoading: razorpayLoading } = useRazorpay();
   const { wallet, useCredits } = useWallet();
+  const { totalPenalty, hasPenalties, markPenaltiesAsPaid } = usePendingPenalties();
   
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('upi');
   const [walletAmountToUse, setWalletAmountToUse] = useState(0);
@@ -69,7 +72,8 @@ export function BookingPaymentSheet({
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
 
   const walletBalance = wallet?.balance || 0;
-  const totalAmount = booking.service_price;
+  const serviceAmount = booking.service_price;
+  const totalAmount = serviceAmount + totalPenalty; // Include penalty in total
   const amountToPay = isSplitPayment ? totalAmount - walletAmountToUse : totalAmount;
 
   const getPaymentMethodLabel = (method: PaymentMethodType) => {
@@ -101,8 +105,14 @@ export function BookingPaymentSheet({
     setIsProcessing(true);
 
     try {
-      // Handle pay at salon - just complete the booking
+      // Handle pay at salon - just complete the booking and set payment_method
       if (paymentMethod === 'salon') {
+        // Update booking with payment_method
+        await supabase
+          .from('bookings')
+          .update({ payment_method: 'salon' })
+          .eq('id', booking.id);
+
         toast({
           title: 'Booking Confirmed!',
           description: `Pay ₹${totalAmount} at ${booking.salon_name}`,
@@ -146,6 +156,17 @@ export function BookingPaymentSheet({
         });
 
         if (result.success && result.paymentId) {
+          // Update booking with payment_method
+          await supabase
+            .from('bookings')
+            .update({ payment_method: 'upi', payment_id: result.paymentId })
+            .eq('id', booking.id);
+          
+          // Mark any pending penalties as paid
+          if (hasPenalties) {
+            await markPenaltiesAsPaid(booking.id);
+          }
+            
           showReceiptDialog(result.paymentId);
           onPaymentSuccess();
         } else {
@@ -205,12 +226,42 @@ export function BookingPaymentSheet({
         <div className="space-y-6 overflow-y-auto max-h-[calc(85vh-200px)] pb-4">
           {/* Booking Summary */}
           <div className="p-4 rounded-xl bg-muted/50 border border-border">
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="font-medium">{booking.service_name}</p>
-                <p className="text-sm text-muted-foreground">{booking.salon_name}</p>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="font-medium">{booking.service_name}</p>
+                  <p className="text-sm text-muted-foreground">{booking.salon_name}</p>
+                </div>
+                <p className="text-lg font-semibold font-sans">₹{serviceAmount}</p>
               </div>
-              <p className="text-xl font-bold text-primary">₹{totalAmount}</p>
+              
+              {/* Show penalty if any */}
+              {hasPenalties && (
+                <div className="flex justify-between items-center pt-2 border-t border-dashed border-border">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-500" />
+                    <div>
+                      <p className="text-sm font-medium text-amber-600">Cancellation Penalty</p>
+                      <p className="text-xs text-muted-foreground">From previous cancelled bookings</p>
+                    </div>
+                  </div>
+                  <p className="text-sm font-semibold text-amber-600 font-sans">+₹{totalPenalty}</p>
+                </div>
+              )}
+              
+              {/* Total */}
+              {hasPenalties && (
+                <div className="flex justify-between items-center pt-2 border-t border-border">
+                  <p className="font-medium">Total</p>
+                  <p className="text-xl font-bold text-primary font-sans">₹{totalAmount}</p>
+                </div>
+              )}
+              
+              {!hasPenalties && (
+                <div className="flex justify-end">
+                  <p className="text-xl font-bold text-primary font-sans">₹{totalAmount}</p>
+                </div>
+              )}
             </div>
           </div>
 
