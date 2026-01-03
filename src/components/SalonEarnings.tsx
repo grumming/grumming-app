@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   IndianRupee, TrendingUp, Wallet, Calendar, ArrowUpRight, 
-  ArrowDownRight, Clock, CheckCircle, XCircle, Loader2, Building, Smartphone, Zap, Building2, AlertTriangle, User
+  ArrowDownRight, Clock, CheckCircle, XCircle, Loader2, Building, Smartphone, Zap, Building2, AlertTriangle, User, Banknote
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -403,9 +403,22 @@ export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
                           </p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        {getStatusBadge(payment.status)}
-                        <p className="text-xs text-muted-foreground mt-1">
+                      <div className="text-right space-y-1">
+                        <div className="flex items-center justify-end gap-2">
+                          {payment.payment_method === 'upi' ? (
+                            <Badge className="bg-purple-500/10 text-purple-600 border-purple-500/20 text-xs gap-1">
+                              <Smartphone className="w-3 h-3" />
+                              UPI
+                            </Badge>
+                          ) : payment.payment_method === 'salon' ? (
+                            <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-xs gap-1">
+                              <Banknote className="w-3 h-3" />
+                              Cash
+                            </Badge>
+                          ) : null}
+                          {getStatusBadge(payment.status)}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
                           {format(new Date(payment.created_at), 'MMM d, yyyy')}
                         </p>
                       </div>
