@@ -1917,21 +1917,39 @@ const SalonDetail = () => {
                   <div className="grid grid-cols-4 gap-2">
                     {timeSlots.map((time) => {
                       const isOccupied = bookedTimeSlots.includes(time);
+                      
+                      // Check if time slot is in the past for today's date
+                      const isToday = selectedDate && format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+                      let isPast = false;
+                      if (isToday) {
+                        const [timePart, ampm] = time.split(' ');
+                        const [hours, minutes] = timePart.split(':').map(Number);
+                        let hour24 = hours;
+                        if (ampm === 'PM' && hours !== 12) hour24 = hours + 12;
+                        if (ampm === 'AM' && hours === 12) hour24 = 0;
+                        const slotDate = new Date();
+                        slotDate.setHours(hour24, minutes, 0, 0);
+                        isPast = slotDate <= new Date();
+                      }
+                      
+                      const isUnavailable = isOccupied || isPast;
+                      
                       return (
                         <button
                           key={time}
-                          onClick={() => !isOccupied && setSelectedTime(time)}
-                          disabled={isOccupied}
+                          onClick={() => !isUnavailable && setSelectedTime(time)}
+                          disabled={isUnavailable}
                           className={`p-2.5 rounded-xl text-sm font-medium border-2 transition-all ${
-                            isOccupied
+                            isUnavailable
                               ? 'bg-muted/50 border-border text-muted-foreground cursor-not-allowed opacity-60'
                               : selectedTime === time
                                 ? 'bg-primary text-primary-foreground border-primary shadow-md'
                                 : 'border-border hover:border-primary bg-muted/20 hover:scale-[1.02]'
                           }`}
                         >
-                          <span className={isOccupied ? 'line-through' : ''}>{time}</span>
+                          <span className={isUnavailable ? 'line-through' : ''}>{time}</span>
                           {isOccupied && <span className="block text-[10px] font-normal">Occupied</span>}
+                          {isPast && !isOccupied && <span className="block text-[10px] font-normal">Passed</span>}
                         </button>
                       );
                     })}
