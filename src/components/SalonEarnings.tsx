@@ -423,16 +423,28 @@ export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
                         </p>
                       </div>
                     </div>
-                    {/* Show penalty if customer paid one - goes to platform */}
+                    {/* Show payment breakdown when penalty was included */}
                     {payment.metadata?.penalty_amount && payment.metadata.penalty_amount > 0 && (
-                      <div className="mt-3 pt-3 border-t border-border/50">
+                      <div className="mt-3 pt-3 border-t border-border/50 space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground text-xs">Service Amount</span>
+                          <span className="font-sans text-foreground font-medium">
+                            ₹{(payment.metadata.service_amount || payment.amount - payment.metadata.penalty_amount).toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground text-xs">Your Earnings (92%)</span>
+                          <span className="font-sans text-green-600 font-medium">
+                            ₹{payment.salon_amount.toLocaleString()}
+                          </span>
+                        </div>
                         <div className="flex items-center justify-between text-sm">
                           <div className="flex items-center gap-2">
                             <Badge variant="outline" className="bg-orange-500/10 text-orange-600 border-orange-500/20 text-xs">
-                              Penalty Collected
+                              Penalty
                             </Badge>
                             <span className="text-muted-foreground text-xs">
-                              (paid by customer → platform)
+                              (customer paid → platform)
                             </span>
                           </div>
                           <span className="font-sans text-orange-600 font-medium">
