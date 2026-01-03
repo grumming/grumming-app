@@ -6,7 +6,7 @@ import {
   BarChart3, Clock, CheckCircle, XCircle, Loader2, 
   AlertTriangle, ChevronRight, Search, MoreVertical,
   Mail, Phone, UserCheck, UserX, Eye, RefreshCw, Store, Bell,
-  CreditCard, Building2
+  CreditCard, Building2, DollarSign, Percent, Ban
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -83,6 +83,14 @@ const AdminDashboard = () => {
   const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
   const [userCount, setUserCount] = useState(0);
   const [walletStats, setWalletStats] = useState({ totalBalance: 0, totalEarned: 0, totalSpent: 0 });
+  const [platformRevenue, setPlatformRevenue] = useState({
+    totalPenalties: 0,
+    paidPenalties: 0,
+    pendingPenalties: 0,
+    waivedPenalties: 0,
+    totalCommission: 0,
+    rescheduleRevenue: 0
+  });
   
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -160,6 +168,42 @@ const AdminDashboard = () => {
         .eq('is_active', false);
       
       setPendingSalonCount(pendingCount || 0);
+
+      // Fetch platform revenue data (penalties + commissions)
+      const { data: penaltiesData } = await supabase
+        .from('cancellation_penalties')
+        .select('penalty_amount, is_paid, is_waived');
+      
+      if (penaltiesData) {
+        const paidPenalties = penaltiesData.filter(p => p.is_paid).reduce((sum, p) => sum + parseFloat(String(p.penalty_amount)), 0);
+        const pendingPenalties = penaltiesData.filter(p => !p.is_paid && !p.is_waived).reduce((sum, p) => sum + parseFloat(String(p.penalty_amount)), 0);
+        const waivedPenalties = penaltiesData.filter(p => p.is_waived).reduce((sum, p) => sum + parseFloat(String(p.penalty_amount)), 0);
+        
+        // Fetch platform commission from payments
+        const { data: paymentsData } = await supabase
+          .from('payments')
+          .select('platform_fee')
+          .eq('status', 'captured');
+        
+        const totalCommission = paymentsData?.reduce((sum, p) => sum + parseFloat(String(p.platform_fee || 0)), 0) || 0;
+        
+        // Fetch reschedule fees
+        const { data: rescheduleData } = await supabase
+          .from('reschedule_fees')
+          .select('fee_amount')
+          .eq('status', 'paid');
+        
+        const rescheduleRevenue = rescheduleData?.reduce((sum, r) => sum + parseFloat(String(r.fee_amount)), 0) || 0;
+        
+        setPlatformRevenue({
+          totalPenalties: paidPenalties + pendingPenalties,
+          paidPenalties,
+          pendingPenalties,
+          waivedPenalties,
+          totalCommission,
+          rescheduleRevenue
+        });
+      }
 
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
@@ -418,6 +462,98 @@ const AdminDashboard = () => {
                   color="primary"
                 />
               </div>
+
+              {/* Platform Revenue Summary */}
+              <Card className="border-green-500/30 bg-gradient-to-br from-green-500/5 to-emerald-500/5">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                      <DollarSign className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">Platform Revenue</CardTitle>
+                      <CardDescription>Commissions, penalties & fees collected</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {/* Total Commission */}
+                    <div className="p-4 rounded-lg bg-background/50 border">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Percent className="w-4 h-4 text-blue-500" />
+                        <span className="text-xs font-medium text-muted-foreground">8% Commission</span>
+                      </div>
+                      <p className="text-xl font-bold font-sans text-blue-600">
+                        ₹{platformRevenue.totalCommission.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">From all bookings</p>
+                    </div>
+
+                    {/* Paid Penalties */}
+                    <div className="p-4 rounded-lg bg-background/50 border">
+                      <div className="flex items-center gap-2 mb-2">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span className="text-xs font-medium text-muted-foreground">Paid Penalties</span>
+                      </div>
+                      <p className="text-xl font-bold font-sans text-green-600">
+                        ₹{platformRevenue.paidPenalties.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">Collected from users</p>
+                    </div>
+
+                    {/* Pending Penalties */}
+                    <div className="p-4 rounded-lg bg-background/50 border">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Clock className="w-4 h-4 text-amber-500" />
+                        <span className="text-xs font-medium text-muted-foreground">Pending Penalties</span>
+                      </div>
+                      <p className="text-xl font-bold font-sans text-amber-600">
+                        ₹{platformRevenue.pendingPenalties.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">Awaiting collection</p>
+                    </div>
+
+                    {/* Reschedule Fees */}
+                    <div className="p-4 rounded-lg bg-background/50 border">
+                      <div className="flex items-center gap-2 mb-2">
+                        <RefreshCw className="w-4 h-4 text-purple-500" />
+                        <span className="text-xs font-medium text-muted-foreground">Reschedule Fees</span>
+                      </div>
+                      <p className="text-xl font-bold font-sans text-purple-600">
+                        ₹{platformRevenue.rescheduleRevenue.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">From rescheduling</p>
+                    </div>
+                  </div>
+
+                  {/* Total & Waived Summary */}
+                  <div className="mt-4 pt-4 border-t flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex items-center gap-6">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Total Platform Revenue</p>
+                        <p className="text-2xl font-bold font-sans text-green-600">
+                          ₹{(platformRevenue.totalCommission + platformRevenue.paidPenalties + platformRevenue.rescheduleRevenue).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="h-10 w-px bg-border" />
+                      <div>
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Ban className="w-3 h-3 text-red-400" />
+                          Waived Penalties
+                        </p>
+                        <p className="text-lg font-semibold font-sans text-red-500">
+                          ₹{platformRevenue.waivedPenalties.toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="text-green-600 border-green-500/50">
+                      <TrendingUp className="w-3 h-3 mr-1" />
+                      Revenue Growing
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
 
             </TabsContent>
 
