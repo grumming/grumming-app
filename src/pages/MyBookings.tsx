@@ -130,10 +130,17 @@ const MyBookings = () => {
     return b.status === 'upcoming' && (!isPast(date) || isToday(date));
   });
 
-  const pastBookings = bookings.filter(b => {
-    const date = parseISO(b.booking_date);
-    return b.status === 'completed' || b.status === 'cancelled' || (b.status === 'upcoming' && isPast(date) && !isToday(date));
-  });
+  const pastBookings = bookings
+    .filter(b => {
+      const date = parseISO(b.booking_date);
+      return b.status === 'completed' || b.status === 'cancelled' || (b.status === 'upcoming' && isPast(date) && !isToday(date));
+    })
+    .sort((a, b) => {
+      // Sort by date descending, then by time descending
+      const dateCompare = b.booking_date.localeCompare(a.booking_date);
+      if (dateCompare !== 0) return dateCompare;
+      return b.booking_time.localeCompare(a.booking_time);
+    });
 
   if (authLoading || loading) {
     return (
