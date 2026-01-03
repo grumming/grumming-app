@@ -8,6 +8,7 @@ import {
   Smartphone, ArrowDownToLine, Settings2
 } from 'lucide-react';
 import { PayoutScheduleSettings } from './PayoutScheduleSettings';
+import PenaltyRemittanceTracking from './PenaltyRemittanceTracking';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -304,6 +305,27 @@ const SalonPayoutManagement = () => {
 
   const handleCompletePayout = async (payoutId: string) => {
     try {
+      // First get the payout to find the salon_id
+      const { data: payoutData, error: fetchError } = await supabase
+        .from('salon_payouts')
+        .select('salon_id, amount')
+        .eq('id', payoutId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Find unremitted penalties collected by this salon
+      const { data: unremittedPenalties, error: penaltiesError } = await supabase
+        .from('cancellation_penalties')
+        .select('id, penalty_amount')
+        .eq('collecting_salon_id', payoutData.salon_id)
+        .eq('is_paid', true)
+        .eq('remitted_to_platform', false)
+        .eq('is_waived', false);
+
+      if (penaltiesError) throw penaltiesError;
+
+      // Update payout status to completed
       const { error } = await supabase
         .from('salon_payouts')
         .update({
@@ -314,7 +336,47 @@ const SalonPayoutManagement = () => {
 
       if (error) throw error;
 
-      toast({ title: 'Success', description: 'Payout marked as completed' });
+      // If there are penalties to remit, mark them as remitted and create remittance record
+      if (unremittedPenalties && unremittedPenalties.length > 0) {
+        const penaltyIds = unremittedPenalties.map(p => p.id);
+        const totalAmount = unremittedPenalties.reduce((sum, p) => sum + (p.penalty_amount || 0), 0);
+
+        // Mark penalties as remitted
+        const { error: updatePenaltiesError } = await supabase
+          .from('cancellation_penalties')
+          .update({
+            remitted_to_platform: true,
+            remitted_at: new Date().toISOString(),
+            remitted_payout_id: payoutId
+          })
+          .in('id', penaltyIds);
+
+        if (updatePenaltiesError) {
+          console.error('Error updating penalties:', updatePenaltiesError);
+        }
+
+        // Create remittance record
+        const { error: remittanceError } = await supabase
+          .from('salon_penalty_remittances')
+          .insert({
+            salon_id: payoutData.salon_id,
+            payout_id: payoutId,
+            penalty_ids: penaltyIds,
+            total_amount: totalAmount
+          });
+
+        if (remittanceError) {
+          console.error('Error creating remittance record:', remittanceError);
+        }
+
+        toast({ 
+          title: 'Success', 
+          description: `Payout completed. ${unremittedPenalties.length} penalty/ies (₹${totalAmount.toLocaleString()}) remitted to platform.` 
+        });
+      } else {
+        toast({ title: 'Success', description: 'Payout marked as completed' });
+      }
+      
       fetchData();
     } catch (err) {
       console.error('Error completing payout:', err);
@@ -449,6 +511,10 @@ const SalonPayoutManagement = () => {
             )}
           </TabsTrigger>
           <TabsTrigger value="earnings">Salon Earnings</TabsTrigger>
+          <TabsTrigger value="remittances">
+            <ArrowDownToLine className="w-4 h-4 mr-1" />
+            Remittances
+          </TabsTrigger>
           <TabsTrigger value="history">Payout History</TabsTrigger>
           <TabsTrigger value="settings">
             <Settings2 className="w-4 h-4 mr-1" />
@@ -895,6 +961,11 @@ const SalonPayoutManagement = () => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Remittances Tab */}
+        <TabsContent value="remittances" className="space-y-4">
+          <PenaltyRemittanceTracking />
         </TabsContent>
 
         {/* Settings Tab */}
