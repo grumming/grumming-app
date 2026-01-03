@@ -5,7 +5,7 @@ import confetti from 'canvas-confetti';
 import { 
   ArrowLeft, Star, MapPin, Clock, Phone, Heart, Share2, 
   ChevronRight, Calendar, Check, User, MessageSquare, CreditCard, Gift, X,
-  Tag, Loader2, Wallet, Ticket, Navigation, Car, ChevronDown, Sparkles, AlertTriangle
+  Tag, Loader2, Wallet, Ticket, Navigation, Car, ChevronDown, Sparkles, AlertTriangle, Scissors
 } from 'lucide-react';
 import BackToTop from '@/components/BackToTop';
 import SalonMap from '@/components/SalonMap';
@@ -535,6 +535,9 @@ const SalonDetail = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [bookedTimeSlots, setBookedTimeSlots] = useState<string[]>([]);
+  const [selectedStylist, setSelectedStylist] = useState<{id: string; name: string; photo_url: string | null} | null>(null);
+  const [availableStylists, setAvailableStylists] = useState<Array<{id: string; name: string; photo_url: string | null; specialties: string[] | null; experience_years: number | null; rating: number | null}>>([]);
+  const [isStylistsLoading, setIsStylistsLoading] = useState(false);
   const [isBooking, setIsBooking] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('upi');
   const [selectedSavedPaymentMethod, setSelectedSavedPaymentMethod] = useState<string | null>(null);
@@ -760,6 +763,32 @@ const SalonDetail = () => {
 
     fetchBookedTimeSlots();
   }, [selectedDate, id, salon?.name]);
+
+  // Fetch available stylists for this salon
+  useEffect(() => {
+    const fetchStylists = async () => {
+      if (!id && !dbSalon?.id) return;
+      
+      setIsStylistsLoading(true);
+      const salonIdToUse = dbSalon?.id || id;
+      
+      const { data, error } = await supabase
+        .from('stylists')
+        .select('id, name, photo_url, specialties, experience_years, rating')
+        .or(`salon_id.eq.${salonIdToUse},salon_id.eq.${salon?.name || ''}`)
+        .eq('is_available', true)
+        .order('rating', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching stylists:', error);
+      } else if (data) {
+        setAvailableStylists(data);
+      }
+      setIsStylistsLoading(false);
+    };
+
+    fetchStylists();
+  }, [id, dbSalon?.id, salon?.name]);
 
   // Show loading state while fetching from database
   if (isSalonLoading) {
@@ -1032,6 +1061,8 @@ const SalonDetail = () => {
           booking_date: format(selectedDate, 'yyyy-MM-dd'),
           booking_time: selectedTime,
           status: bookingStatus,
+          stylist_id: selectedStylist?.id || null,
+          stylist_name: selectedStylist?.name || null,
         })
         .select()
         .single();
@@ -1112,6 +1143,7 @@ const SalonDetail = () => {
       setAppliedVoucher(null);
       setIsSplitPayment(false);
       setSplitWalletAmount(0);
+      setSelectedStylist(null);
 
       // Trigger celebration animation for credits-only payment
       const triggerCreditsCelebration = () => {
@@ -1225,6 +1257,7 @@ const SalonDetail = () => {
         setIsSplitPayment(false);
         setSplitWalletAmount(0);
         setSelectedUpiApp(null);
+        setSelectedStylist(null);
         
         // Note: In production, you'd verify payment via webhook before confirming
         toast({
@@ -1320,6 +1353,7 @@ const SalonDetail = () => {
         setAppliedVoucher(null);
         setIsSplitPayment(false);
         setSplitWalletAmount(0);
+        setSelectedStylist(null);
         
         toast({
           title: 'Payment Successful!',
@@ -1411,6 +1445,7 @@ const SalonDetail = () => {
       setAppliedVoucher(null);
       setIsSplitPayment(false);
       setSplitWalletAmount(0);
+      setSelectedStylist(null);
 
       const toastMessage = walletPaymentAmount > 0
         ? `₹${walletPaymentAmount} paid from wallet. Pay ₹${remainingAmount} at the salon.`
@@ -1960,6 +1995,80 @@ const SalonDetail = () => {
                     })}
                   </div>
                 </div>
+
+                {/* Stylist Selection (Optional) */}
+                {availableStylists.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center">
+                          <Scissors className="w-4 h-4 text-primary" />
+                        </div>
+                        <h4 className="font-semibold text-sm">Choose Stylist</h4>
+                        <Badge variant="outline" className="text-xs">Optional</Badge>
+                      </div>
+                      {selectedStylist && (
+                        <button
+                          onClick={() => setSelectedStylist(null)}
+                          className="text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
+                      {isStylistsLoading ? (
+                        <div className="flex items-center gap-2 p-4">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span className="text-sm text-muted-foreground">Loading stylists...</span>
+                        </div>
+                      ) : (
+                        availableStylists.map((stylist) => (
+                          <button
+                            key={stylist.id}
+                            onClick={() => setSelectedStylist(
+                              selectedStylist?.id === stylist.id 
+                                ? null 
+                                : { id: stylist.id, name: stylist.name, photo_url: stylist.photo_url }
+                            )}
+                            className={`flex flex-col items-center min-w-[90px] p-3 rounded-xl border-2 transition-all hover:scale-[1.02] ${
+                              selectedStylist?.id === stylist.id
+                                ? 'bg-primary/10 border-primary shadow-md'
+                                : 'border-border hover:border-primary bg-muted/20'
+                            }`}
+                          >
+                            <Avatar className="w-14 h-14 mb-2">
+                              <AvatarImage src={stylist.photo_url || undefined} alt={stylist.name} />
+                              <AvatarFallback className="bg-primary/10 text-primary text-lg font-semibold">
+                                {stylist.name.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="text-xs font-medium text-center line-clamp-1">{stylist.name}</span>
+                            {stylist.rating && (
+                              <div className="flex items-center gap-0.5 mt-1">
+                                <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                                <span className="text-[10px] text-muted-foreground">{stylist.rating}</span>
+                              </div>
+                            )}
+                            {stylist.experience_years && (
+                              <span className="text-[10px] text-muted-foreground mt-0.5">
+                                {stylist.experience_years}yr exp
+                              </span>
+                            )}
+                          </button>
+                        ))
+                      )}
+                    </div>
+                    {selectedStylist && (
+                      <div className="flex items-center gap-2 p-2 rounded-lg bg-primary/5 border border-primary/20">
+                        <Check className="w-4 h-4 text-primary" />
+                        <span className="text-sm text-primary font-medium">
+                          {selectedStylist.name} selected
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Step 1 Footer */}
                 <div className="sticky bottom-0 bg-background/95 backdrop-blur-sm border-t border-border/50 -mx-6 -mb-6 p-4 mt-6">

@@ -56,6 +56,8 @@ export type Database = {
           service_name: string
           service_price: number
           status: string
+          stylist_id: string | null
+          stylist_name: string | null
           updated_at: string
           user_id: string
         }
@@ -73,6 +75,8 @@ export type Database = {
           service_name: string
           service_price: number
           status?: string
+          stylist_id?: string | null
+          stylist_name?: string | null
           updated_at?: string
           user_id: string
         }
@@ -90,6 +94,8 @@ export type Database = {
           service_name?: string
           service_price?: number
           status?: string
+          stylist_id?: string | null
+          stylist_name?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -99,6 +105,13 @@ export type Database = {
             columns: ["salon_id"]
             isOneToOne: false
             referencedRelation: "salons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_stylist_id_fkey"
+            columns: ["stylist_id"]
+            isOneToOne: false
+            referencedRelation: "stylists"
             referencedColumns: ["id"]
           },
         ]
