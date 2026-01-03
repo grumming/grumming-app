@@ -31,7 +31,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useSalonOwner } from '@/hooks/useSalonOwner';
 import { supabase } from '@/integrations/supabase/client';
-import { format, subDays, isToday, isTomorrow, parseISO } from 'date-fns';
+import { format, subDays, isToday, isTomorrow, parseISO, isBefore, parse } from 'date-fns';
 import SalonOwnerBottomNav from '@/components/SalonOwnerBottomNav';
 import SalonSettingsDialog from '@/components/SalonSettingsDialog';
 import SalonOwnerChatDialog from '@/components/SalonOwnerChatDialog';
@@ -1309,18 +1309,32 @@ const SalonDashboard = () => {
                                   <MessageSquare className="w-4 h-4 mr-1" />
                                   Message
                                 </Button>
-                                <Button 
-                                  size="sm" 
-                                  variant="outline"
-                                  className="text-primary hover:text-primary"
-                                  onClick={() => {
-                                    setSelectedBookingForRestore(booking);
-                                    setIsRestoreDialogOpen(true);
-                                  }}
-                                >
-                                  <RefreshCw className="w-4 h-4 mr-1" />
-                                  Restore
-                                </Button>
+                                {(() => {
+                                  // Check if booking date+time has passed
+                                  const bookingDateTime = parse(
+                                    `${booking.booking_date} ${booking.booking_time}`,
+                                    'yyyy-MM-dd HH:mm:ss',
+                                    new Date()
+                                  );
+                                  const isPast = isBefore(bookingDateTime, new Date());
+                                  
+                                  return (
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline"
+                                      className="text-primary hover:text-primary"
+                                      disabled={isPast}
+                                      onClick={() => {
+                                        setSelectedBookingForRestore(booking);
+                                        setIsRestoreDialogOpen(true);
+                                      }}
+                                      title={isPast ? 'Cannot restore past bookings' : 'Restore booking'}
+                                    >
+                                      <RefreshCw className="w-4 h-4 mr-1" />
+                                      Restore
+                                    </Button>
+                                  );
+                                })()}
                               </div>
                             </motion.div>
                           ))}
