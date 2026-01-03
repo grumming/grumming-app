@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Wallet, CreditCard, Loader2, AlertTriangle, Clock, Zap, Info, AlertCircle } from 'lucide-react';
+import { Wallet, CreditCard, Loader2, AlertTriangle, Clock, Zap, Info, AlertCircle, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -111,6 +111,7 @@ export function BookingCancellationDialog({
   const [refundOption, setRefundOption] = useState<RefundOption>('wallet');
   const [isProcessing, setIsProcessing] = useState(false);
   const [step, setStep] = useState<'policy' | 'choose' | 'confirm'>('policy');
+  const [showPolicyModal, setShowPolicyModal] = useState(false);
 
   const refundInfo = useMemo(() => 
     calculateRefund(booking.booking_date, booking.booking_time, booking.service_price),
@@ -261,6 +262,19 @@ export function BookingCancellationDialog({
                 </div>
               </div>
 
+              {/* View Policy Link */}
+              <button
+                type="button"
+                onClick={() => setShowPolicyModal(true)}
+                className="flex items-center justify-between w-full p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors text-sm"
+              >
+                <span className="flex items-center gap-2 text-muted-foreground">
+                  <Info className="w-4 h-4" />
+                  View Cancellation Policy
+                </span>
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              </button>
+
               {refundInfo.amount === 0 && (
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
                   <AlertCircle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
@@ -269,6 +283,56 @@ export function BookingCancellationDialog({
                   </p>
                 </div>
               )}
+
+              {/* Policy Modal */}
+              <Dialog open={showPolicyModal} onOpenChange={setShowPolicyModal}>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <Info className="w-5 h-5 text-primary" />
+                      Cancellation Policy
+                    </DialogTitle>
+                    <DialogDescription>
+                      Refund percentage based on cancellation timing
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-2 py-4">
+                    {CANCELLATION_POLICIES.map((policy, index) => {
+                      const isActive = refundInfo.policy.hoursBeforeBooking === policy.hoursBeforeBooking;
+                      const getRefundColor = () => {
+                        if (policy.refundPercentage >= 80) return 'text-green-600 dark:text-green-500';
+                        if (policy.refundPercentage >= 50) return 'text-emerald-600 dark:text-emerald-500';
+                        if (policy.refundPercentage >= 30) return 'text-amber-600 dark:text-amber-500';
+                        if (policy.refundPercentage > 0) return 'text-orange-600 dark:text-orange-500';
+                        return 'text-red-600 dark:text-red-500';
+                      };
+                      
+                      return (
+                        <div 
+                          key={index}
+                          className={`flex items-center justify-between px-4 py-3 rounded-lg text-sm transition-all ${
+                            isActive
+                              ? 'bg-primary/10 border-2 border-green-500 shadow-sm'
+                              : 'bg-muted/50 border border-transparent'
+                          }`}
+                        >
+                          <span className={`${isActive ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
+                            {policy.label}
+                          </span>
+                          <span className={`font-bold ${getRefundColor()}`}>
+                            {policy.refundPercentage}% refund
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowPolicyModal(false)} className="w-full">
+                      Close
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </motion.div>
           ) : step === 'choose' ? (
             <motion.div
