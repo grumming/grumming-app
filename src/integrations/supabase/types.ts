@@ -807,6 +807,84 @@ export type Database = {
           },
         ]
       }
+      reschedule_fees: {
+        Row: {
+          booking_id: string
+          created_at: string
+          fee_amount: number
+          fee_percentage: number
+          id: string
+          new_date: string
+          new_time: string
+          original_date: string
+          original_time: string
+          paid_at: string | null
+          payment_method: string | null
+          razorpay_order_id: string | null
+          razorpay_payment_id: string | null
+          salon_id: string | null
+          salon_name: string
+          service_price: number
+          status: string
+          user_id: string
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          fee_amount: number
+          fee_percentage?: number
+          id?: string
+          new_date: string
+          new_time: string
+          original_date: string
+          original_time: string
+          paid_at?: string | null
+          payment_method?: string | null
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          salon_id?: string | null
+          salon_name: string
+          service_price: number
+          status?: string
+          user_id: string
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          fee_amount?: number
+          fee_percentage?: number
+          id?: string
+          new_date?: string
+          new_time?: string
+          original_date?: string
+          original_time?: string
+          paid_at?: string | null
+          payment_method?: string | null
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          salon_id?: string | null
+          salon_name?: string
+          service_price?: number
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reschedule_fees_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reschedule_fees_salon_id_fkey"
+            columns: ["salon_id"]
+            isOneToOne: false
+            referencedRelation: "salons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       response_templates: {
         Row: {
           category: string | null

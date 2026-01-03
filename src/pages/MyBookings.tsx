@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, Calendar, Clock, 
-  Loader2, AlertCircle, CheckCircle2, Star, CreditCard, MessageCircle, Wallet, KeyRound 
+  Loader2, AlertCircle, CheckCircle2, Star, CreditCard, MessageCircle, Wallet, KeyRound, RefreshCw 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -17,6 +17,7 @@ import { ReviewDialog } from '@/components/ReviewDialog';
 import { BookingPaymentSheet } from '@/components/BookingPaymentSheet';
 import { BookingCancellationDialog } from '@/components/BookingCancellationDialog';
 import { RefundStatusTracker } from '@/components/RefundStatusTracker';
+import { BookingRescheduleDialog } from '@/components/BookingRescheduleDialog';
 
 interface Booking {
   id: string;
@@ -44,6 +45,8 @@ const MyBookings = () => {
   const [reviewBooking, setReviewBooking] = useState<Booking | null>(null);
   const [showPaymentSheet, setShowPaymentSheet] = useState(false);
   const [paymentBooking, setPaymentBooking] = useState<Booking | null>(null);
+  const [showRescheduleDialog, setShowRescheduleDialog] = useState(false);
+  const [rescheduleBooking, setRescheduleBooking] = useState<Booking | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -235,7 +238,7 @@ const MyBookings = () => {
                             <span className="font-semibold text-lg text-primary">
                               ₹{booking.service_price}
                             </span>
-                            <div className="flex gap-2">
+                            <div className="flex flex-wrap gap-2">
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -247,6 +250,18 @@ const MyBookings = () => {
                               >
                                 <MessageCircle className="w-4 h-4" />
                                 Chat
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setRescheduleBooking(booking);
+                                  setShowRescheduleDialog(true);
+                                }}
+                                className="gap-1"
+                              >
+                                <RefreshCw className="w-4 h-4" />
+                                Reschedule
                               </Button>
                               <Button
                                 variant="default"
@@ -407,6 +422,17 @@ const MyBookings = () => {
           booking={paymentBooking}
           customerPhone={user?.phone || undefined}
           onPaymentSuccess={fetchBookings}
+        />
+      )}
+
+      {/* Reschedule Dialog */}
+      {rescheduleBooking && user && (
+        <BookingRescheduleDialog
+          open={showRescheduleDialog}
+          onOpenChange={setShowRescheduleDialog}
+          booking={rescheduleBooking}
+          userId={user.id}
+          onRescheduleComplete={fetchBookings}
         />
       )}
     </div>
