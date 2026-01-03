@@ -1502,12 +1502,13 @@ const SalonDashboard = () => {
               </Tabs>
             </TabsContent>
 
-            {/* Manage Tab - with nested tabs for Reviews, Services, Settings */}
+            {/* Manage Tab - with nested tabs for Reviews, Services, Bank Account */}
             <TabsContent value="manage" className="space-y-4">
               <Tabs defaultValue="reviews" className="space-y-4">
-                <TabsList className="grid w-full grid-cols-2 bg-muted/50">
+                <TabsList className="grid w-full grid-cols-3 bg-muted/50">
                   <TabsTrigger value="reviews" className="text-sm">Reviews</TabsTrigger>
                   <TabsTrigger value="services" className="text-sm">Services</TabsTrigger>
+                  <TabsTrigger value="bank" className="text-sm">Bank Account</TabsTrigger>
                 </TabsList>
 
                 {/* Reviews Sub-Tab */}
@@ -1692,6 +1693,16 @@ const SalonDashboard = () => {
                     </CardContent>
                   </Card>
                 </TabsContent>
+
+                {/* Bank Account Sub-Tab */}
+                <TabsContent value="bank" className="space-y-4">
+                  {selectedSalonId && selectedSalon && (
+                    <SalonBankAccountManager
+                      salonId={selectedSalonId}
+                      salonName={selectedSalon.name}
+                    />
+                  )}
+                </TabsContent>
               </Tabs>
             </TabsContent>
 
@@ -1699,11 +1710,10 @@ const SalonDashboard = () => {
             <TabsContent value="earnings" className="space-y-6">
               {selectedSalonId && selectedSalon && (
                 <Tabs defaultValue="overview" className="space-y-4">
-                  <TabsList className="grid w-full grid-cols-4">
+                  <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="payouts">Payout History</TabsTrigger>
                     <TabsTrigger value="request">Request Payout</TabsTrigger>
-                    <TabsTrigger value="bank">Bank Account</TabsTrigger>
                   </TabsList>
                   
                   <TabsContent value="overview">
@@ -1722,13 +1732,6 @@ const SalonDashboard = () => {
                   
                   <TabsContent value="request">
                     <SalonPayoutRequest
-                      salonId={selectedSalonId}
-                      salonName={selectedSalon.name}
-                    />
-                  </TabsContent>
-                  
-                  <TabsContent value="bank">
-                    <SalonBankAccountManager
                       salonId={selectedSalonId}
                       salonName={selectedSalon.name}
                     />
