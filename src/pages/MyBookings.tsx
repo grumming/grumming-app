@@ -74,7 +74,8 @@ const MyBookings = () => {
       .from('bookings')
       .select('*')
       .eq('user_id', user.id)
-      .order('booking_date', { ascending: true });
+      .order('booking_date', { ascending: false })
+      .order('booking_time', { ascending: false });
 
     if (bookingsError) {
       toast({
