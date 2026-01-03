@@ -142,9 +142,8 @@ export function CancellationPenaltyManagement() {
       })
       .eq('id', selectedPenalty.id);
 
-    setWaiving(false);
-
     if (error) {
+      setWaiving(false);
       toast({
         title: 'Error',
         description: 'Failed to waive penalty',
@@ -153,9 +152,27 @@ export function CancellationPenaltyManagement() {
       return;
     }
 
+    // Send notification to user about waived penalty
+    try {
+      await supabase.functions.invoke('send-penalty-waived-notification', {
+        body: {
+          user_id: selectedPenalty.user_id,
+          penalty_amount: selectedPenalty.penalty_amount,
+          salon_name: selectedPenalty.salon_name,
+          service_name: selectedPenalty.service_name,
+          waived_reason: waiveReason || 'Admin waived penalty',
+        },
+      });
+      console.log('Penalty waived notification sent');
+    } catch (notifError) {
+      console.error('Failed to send penalty waived notification:', notifError);
+    }
+
+    setWaiving(false);
+
     toast({
       title: 'Penalty Waived',
-      description: `₹${selectedPenalty.penalty_amount} penalty waived for ${selectedPenalty.profile?.full_name || 'user'}.`,
+      description: `₹${selectedPenalty.penalty_amount} penalty waived for ${selectedPenalty.profile?.full_name || 'user'}. Notification sent.`,
     });
     
     setWaiveDialogOpen(false);
