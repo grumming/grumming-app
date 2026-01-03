@@ -1427,75 +1427,73 @@ const SalonDashboard = () => {
                         <p className="text-center text-muted-foreground py-8">No cancelled bookings</p>
                       ) : (
                         <div className="space-y-3">
-                          {bookings.filter(b => b.status === 'cancelled').map(booking => (
-                            <motion.div
-                              key={booking.id}
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              className="flex items-center justify-between p-4 border rounded-lg bg-muted/20"
-                            >
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2">
-                                  <p className="font-medium">{booking.service_name}</p>
-                                  <Badge variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20">
-                                    <XCircle className="w-3 h-3 mr-1" />
-                                    Cancelled
-                                  </Badge>
-                                </div>
-                                <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                                  <User className="w-3 h-3" /> {booking.customer_name}
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                  {getBookingDateLabel(booking.booking_date)} at {booking.booking_time}
-                                </p>
-                                <p className="text-sm font-medium mt-1">₹{booking.service_price}</p>
-                              </div>
-                              
-                              <div className="flex gap-2 flex-wrap justify-end">
-                                <Button 
-                                  size="icon"
-                                  variant="ghost"
-                                  className="relative h-9 w-9 rounded-full bg-primary/10 hover:bg-primary/20 border border-primary/20 hover:border-primary/30 text-primary transition-all duration-200"
-                                  onClick={() => {
-                                    setSelectedBookingForChat(booking);
-                                    setIsChatDialogOpen(true);
-                                  }}
-                                >
-                                  <MessageSquare className="w-4 h-4" />
-                                </Button>
-                                <Button 
-                                  size="sm" 
-                                  variant="outline"
-                                  className="text-primary hover:text-primary"
-                                  onClick={() => {
-                                    setSelectedBookingForRestore(booking);
-                                    const bookingDateTime = parseBookingDateTime(
-                                      booking.booking_date,
-                                      booking.booking_time
-                                    );
-                                    const isPastBooking =
-                                      isBefore(bookingDateTime, new Date()) ||
-                                      isNaN(bookingDateTime.getTime());
+                          {bookings.filter(b => b.status === 'cancelled').map(booking => {
+                            const bookingDateTime = parseBookingDateTime(
+                              booking.booking_date,
+                              booking.booking_time
+                            );
+                            const isPastBooking =
+                              isBefore(bookingDateTime, new Date()) ||
+                              isNaN(bookingDateTime.getTime());
 
-                                    // If past, automatically enable reschedule mode
-                                    if (isPastBooking) {
-                                      setIsRescheduling(true);
-                                      setRescheduleDate(format(addDays(new Date(), 1), 'yyyy-MM-dd'));
-                                      setRescheduleTime('10:00:00');
-                                    } else {
-                                      setIsRescheduling(false);
-                                      setRescheduleDate('');
-                                      setRescheduleTime('');
-                                    }
-                                    setIsRestoreDialogOpen(true);
-                                  }}
-                                >
-                                  <RefreshCw className="w-4 h-4 mr-1" />
-                                  Restore
-                                </Button>
-                              </div>
-                            </motion.div>
-                          ))}
+                            return (
+                              <motion.div
+                                key={booking.id}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="flex items-center justify-between p-4 border rounded-lg bg-muted/20"
+                              >
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-medium">{booking.service_name}</p>
+                                    <Badge variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20">
+                                      <XCircle className="w-3 h-3 mr-1" />
+                                      Cancelled
+                                    </Badge>
+                                  </div>
+                                  <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                                    <User className="w-3 h-3" /> {booking.customer_name}
+                                  </p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {getBookingDateLabel(booking.booking_date)} at {booking.booking_time}
+                                  </p>
+                                  <p className="text-sm font-medium mt-1">₹{booking.service_price}</p>
+                                </div>
+                                
+                                <div className="flex gap-2 flex-wrap justify-end">
+                                  <Button 
+                                    size="icon"
+                                    variant="ghost"
+                                    className="relative h-9 w-9 rounded-full bg-primary/10 hover:bg-primary/20 border border-primary/20 hover:border-primary/30 text-primary transition-all duration-200"
+                                    onClick={() => {
+                                      setSelectedBookingForChat(booking);
+                                      setIsChatDialogOpen(true);
+                                    }}
+                                  >
+                                    <MessageSquare className="w-4 h-4" />
+                                  </Button>
+                                  {/* Only show Restore button if booking date/time is in the future */}
+                                  {!isPastBooking && (
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline"
+                                      className="text-primary hover:text-primary"
+                                      onClick={() => {
+                                        setSelectedBookingForRestore(booking);
+                                        setIsRescheduling(false);
+                                        setRescheduleDate('');
+                                        setRescheduleTime('');
+                                        setIsRestoreDialogOpen(true);
+                                      }}
+                                    >
+                                      <RefreshCw className="w-4 h-4 mr-1" />
+                                      Restore
+                                    </Button>
+                                  )}
+                                </div>
+                              </motion.div>
+                            );
+                          })}
                         </div>
                       )}
                     </CardContent>
