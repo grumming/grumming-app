@@ -1195,6 +1195,7 @@ const SalonDetail = () => {
         ...(rewardDiscount > 0 && { rewardDiscount: rewardDiscount.toString() }),
         ...(walletCreditsDiscount > 0 && { walletDiscount: walletCreditsDiscount.toString() }),
         ...(totalPenalty > 0 && { penaltyPaid: totalPenalty.toString() }),
+        ...(selectedStylist && { stylistName: selectedStylist.name }),
       });
       
       navigate(`/booking-confirmation?${params.toString()}`);
@@ -1281,6 +1282,7 @@ const SalonDetail = () => {
           ...(rewardDiscount > 0 && { rewardDiscount: rewardDiscount.toString() }),
           ...(walletCreditsDiscount > 0 && { walletDiscount: walletCreditsDiscount.toString() }),
           ...(totalPenalty > 0 && { penaltyPaid: totalPenalty.toString() }),
+          ...(selectedStylist && { stylistName: selectedStylist.name }),
         });
         
         navigate(`/booking-confirmation?${params.toString()}`);
@@ -1376,6 +1378,7 @@ const SalonDetail = () => {
           ...(rewardDiscount > 0 && { rewardDiscount: rewardDiscount.toString() }),
           ...(walletCreditsDiscount > 0 && { walletDiscount: walletCreditsDiscount.toString() }),
           ...(totalPenalty > 0 && { penaltyPaid: totalPenalty.toString() }),
+          ...(selectedStylist && { stylistName: selectedStylist.name }),
         });
         
         navigate(`/booking-confirmation?${params.toString()}`);
@@ -1472,6 +1475,7 @@ const SalonDetail = () => {
         ...(rewardDiscount > 0 && { rewardDiscount: rewardDiscount.toString() }),
         ...(walletCreditsDiscount > 0 && { walletDiscount: walletCreditsDiscount.toString() }),
         ...(totalPenalty > 0 && { penaltyPaid: totalPenalty.toString() }),
+        ...(selectedStylist && { stylistName: selectedStylist.name }),
       });
       
       navigate(`/booking-confirmation?${params.toString()}`);

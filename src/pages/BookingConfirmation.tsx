@@ -5,7 +5,7 @@ import confetti from 'canvas-confetti';
 import { 
   CheckCircle, Calendar, Clock, MapPin, 
   CalendarPlus, ArrowLeft, Home, Share2, Gift, Tag, Wallet, Ticket,
-  Loader2, AlertCircle, RefreshCw, CreditCard, Ban
+  Loader2, AlertCircle, RefreshCw, CreditCard, Ban, Scissors
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -91,6 +91,7 @@ const BookingConfirmation = () => {
     isPending: false,
     upiApp: '',
     penaltyPaid: 0,
+    stylistName: '',
   });
 
   // Check booking status from database
@@ -152,6 +153,7 @@ const BookingConfirmation = () => {
     const upiApp = searchParams.get('upiApp') || '';
     const bookingId = searchParams.get('bookingId') || '';
     const penaltyPaid = parseInt(searchParams.get('penaltyPaid') || '0', 10);
+    const stylistName = searchParams.get('stylistName') || '';
 
     setBookingDetails({
       salonName,
@@ -172,6 +174,7 @@ const BookingConfirmation = () => {
       isPending,
       upiApp,
       penaltyPaid,
+      stylistName,
     });
 
     // If payment is pending, start auto-verification
@@ -582,6 +585,17 @@ END:VCALENDAR`;
                 <p className="text-sm text-muted-foreground">Service</p>
                 <p className="font-medium">{serviceName}</p>
               </div>
+
+              {/* Stylist */}
+              {bookingDetails.stylistName && (
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Scissors className="w-4 h-4" />
+                    <span className="text-sm">Stylist</span>
+                  </div>
+                  <p className="font-medium">{bookingDetails.stylistName}</p>
+                </div>
+              )}
 
               {/* Date & Time */}
               <div className="grid grid-cols-2 gap-4">
