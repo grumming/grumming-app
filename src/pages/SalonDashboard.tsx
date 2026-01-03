@@ -6,7 +6,7 @@ import {
   Package, MessageSquare, Settings, Bell, Loader2, AlertTriangle,
   CheckCircle, XCircle, Eye, Edit2, ChevronRight, ChevronLeft, IndianRupee,
   Send, Reply, Plus, Trash2, LogOut, User, HelpCircle, RefreshCw, KeyRound,
-  Scissors, Award
+  Scissors, Award, Upload, X
 } from 'lucide-react';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { Button } from '@/components/ui/button';
@@ -156,6 +156,10 @@ const SalonDashboard = () => {
   });
   const [isSubmittingStylist, setIsSubmittingStylist] = useState(false);
   const [deleteStylistId, setDeleteStylistId] = useState<string | null>(null);
+  const [stylistPhotoFile, setStylistPhotoFile] = useState<File | null>(null);
+  const [stylistPhotoPreview, setStylistPhotoPreview] = useState<string | null>(null);
+  const [isUploadingStylistPhoto, setIsUploadingStylistPhoto] = useState(false);
+  const stylistPhotoInputRef = useRef<HTMLInputElement>(null);
 
   // Settings dialog state
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
@@ -765,6 +769,8 @@ const SalonDashboard = () => {
   const handleOpenAddStylist = () => {
     setEditingStylist(null);
     setStylistForm({ name: '', bio: '', experience_years: '1', specialties: '' });
+    setStylistPhotoFile(null);
+    setStylistPhotoPreview(null);
     setIsStylistDialogOpen(true);
   };
 
@@ -776,7 +782,35 @@ const SalonDashboard = () => {
       experience_years: stylist.experience_years?.toString() || '1',
       specialties: stylist.specialties?.join(', ') || ''
     });
+    setStylistPhotoFile(null);
+    setStylistPhotoPreview(stylist.photo_url);
     setIsStylistDialogOpen(true);
+  };
+
+  const handleStylistPhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast({ title: 'Error', description: 'Please select an image file', variant: 'destructive' });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: 'Error', description: 'Image must be less than 5MB', variant: 'destructive' });
+      return;
+    }
+
+    setStylistPhotoFile(file);
+    setStylistPhotoPreview(URL.createObjectURL(file));
+  };
+
+  const handleRemoveStylistPhoto = () => {
+    setStylistPhotoFile(null);
+    setStylistPhotoPreview(null);
+    if (stylistPhotoInputRef.current) {
+      stylistPhotoInputRef.current.value = '';
+    }
   };
 
   const handleToggleStylistAvailability = async (stylistId: string, currentAvailability: boolean) => {
@@ -803,6 +837,31 @@ const SalonDashboard = () => {
     setIsSubmittingStylist(true);
 
     try {
+      let photoUrl: string | null = editingStylist?.photo_url || null;
+
+      // Upload photo if a new file is selected
+      if (stylistPhotoFile) {
+        setIsUploadingStylistPhoto(true);
+        const fileExt = stylistPhotoFile.name.split('.').pop();
+        const fileName = `${selectedSalonId}/${Date.now()}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('salon-images')
+          .upload(`stylists/${fileName}`, stylistPhotoFile, { upsert: true });
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from('salon-images')
+          .getPublicUrl(`stylists/${fileName}`);
+
+        photoUrl = urlData.publicUrl;
+        setIsUploadingStylistPhoto(false);
+      } else if (!stylistPhotoPreview && editingStylist?.photo_url) {
+        // Photo was removed
+        photoUrl = null;
+      }
+
       const specialtiesArray = stylistForm.specialties
         .split(',')
         .map(s => s.trim())
@@ -813,7 +872,8 @@ const SalonDashboard = () => {
         name: stylistForm.name.trim(),
         bio: stylistForm.bio.trim() || null,
         experience_years: parseInt(stylistForm.experience_years) || 1,
-        specialties: specialtiesArray.length > 0 ? specialtiesArray : null
+        specialties: specialtiesArray.length > 0 ? specialtiesArray : null,
+        photo_url: photoUrl
       };
 
       if (editingStylist) {
@@ -841,8 +901,11 @@ const SalonDashboard = () => {
 
       setIsStylistDialogOpen(false);
       setEditingStylist(null);
+      setStylistPhotoFile(null);
+      setStylistPhotoPreview(null);
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
+      setIsUploadingStylistPhoto(false);
     }
 
     setIsSubmittingStylist(false);
@@ -2178,6 +2241,56 @@ const SalonDashboard = () => {
           </DialogHeader>
 
           <div className="space-y-4">
+            {/* Photo Upload Section */}
+            <div className="space-y-2">
+              <Label>Profile Photo</Label>
+              <div className="flex items-center gap-4">
+                {stylistPhotoPreview ? (
+                  <div className="relative">
+                    <Avatar className="w-20 h-20">
+                      <AvatarImage src={stylistPhotoPreview} alt="Stylist photo" />
+                      <AvatarFallback>{stylistForm.name?.charAt(0) || 'S'}</AvatarFallback>
+                    </Avatar>
+                    <button
+                      type="button"
+                      onClick={handleRemoveStylistPhoto}
+                      className="absolute -top-1 -right-1 p-1 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    className="w-20 h-20 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center cursor-pointer hover:border-primary/50 transition-colors"
+                    onClick={() => stylistPhotoInputRef.current?.click()}
+                  >
+                    <Upload className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                )}
+                <div className="flex-1">
+                  <input
+                    ref={stylistPhotoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleStylistPhotoSelect}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => stylistPhotoInputRef.current?.click()}
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    {stylistPhotoPreview ? 'Change Photo' : 'Upload Photo'}
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Max 5MB. JPG, PNG, WebP
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label>Stylist Name *</Label>
               <Input
