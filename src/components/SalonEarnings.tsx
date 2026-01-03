@@ -273,55 +273,6 @@ export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
         </motion.div>
       </div>
 
-      {/* Commission Breakdown */}
-      <Card className="bg-gradient-to-br from-muted/50 to-muted/30 border-border/50">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Building className="w-4 h-4 text-muted-foreground" />
-            Commission Breakdown
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-center justify-between py-2 border-b border-border/50">
-            <span className="text-sm text-muted-foreground">Gross Earnings</span>
-            <span className="text-sm font-medium">₹{(stats.totalEarnings + stats.platformFees).toLocaleString()}</span>
-          </div>
-          <div className="flex items-center justify-between py-2 border-b border-border/50">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Platform Commission</span>
-              <Badge variant="secondary" className="text-xs">8%</Badge>
-            </div>
-            <span className="text-sm font-medium text-red-500">-₹{stats.platformFees.toLocaleString()}</span>
-          </div>
-          <div className="flex items-center justify-between pt-1">
-            <span className="text-sm font-medium">Net Earnings</span>
-            <span className="text-base font-bold text-green-600">₹{stats.totalEarnings.toLocaleString()}</span>
-          </div>
-          
-          {/* Commission Example */}
-          <div className="pt-3 mt-3 border-t border-border/50 bg-muted/30 rounded-lg p-3">
-            <p className="text-xs font-medium text-foreground mb-2">Example Calculation:</p>
-            <div className="space-y-1 text-xs text-muted-foreground">
-              <div className="flex justify-between">
-                <span>Service Price</span>
-                <span>₹1,000</span>
-              </div>
-              <div className="flex justify-between text-red-500">
-                <span>Platform Fee (8%)</span>
-                <span>-₹80</span>
-              </div>
-              <div className="flex justify-between font-medium text-green-600">
-                <span>You Receive</span>
-                <span>₹920</span>
-              </div>
-            </div>
-          </div>
-          
-          <p className="text-xs text-muted-foreground pt-2">
-            An 8% platform commission is deducted from all completed bookings. No hidden fees for customers.
-          </p>
-        </CardContent>
-      </Card>
 
       {/* Tabs for Payments and Payouts */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
