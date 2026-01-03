@@ -5,7 +5,7 @@ import confetti from 'canvas-confetti';
 import { 
   CheckCircle, Calendar, Clock, MapPin, 
   CalendarPlus, ArrowLeft, Home, Share2, Gift, Tag, Wallet, Ticket,
-  Loader2, AlertCircle, RefreshCw, CreditCard
+  Loader2, AlertCircle, RefreshCw, CreditCard, Ban
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -90,6 +90,7 @@ const BookingConfirmation = () => {
     bookingId: '',
     isPending: false,
     upiApp: '',
+    penaltyPaid: 0,
   });
 
   // Check booking status from database
@@ -150,6 +151,7 @@ const BookingConfirmation = () => {
     const isPending = searchParams.get('pending') === 'true';
     const upiApp = searchParams.get('upiApp') || '';
     const bookingId = searchParams.get('bookingId') || '';
+    const penaltyPaid = parseInt(searchParams.get('penaltyPaid') || '0', 10);
 
     setBookingDetails({
       salonName,
@@ -169,6 +171,7 @@ const BookingConfirmation = () => {
       bookingId,
       isPending,
       upiApp,
+      penaltyPaid,
     });
 
     // If payment is pending, start auto-verification
@@ -191,7 +194,7 @@ const BookingConfirmation = () => {
     return () => clearInterval(interval);
   }, [paymentStatus, bookingDetails.bookingId, autoVerifyCount, checkPaymentStatus]);
 
-  const { salonName, serviceName, servicePrice, bookingDate, bookingTime, discount, promoCode, promoDiscount, rewardDiscount, walletDiscount, paymentMethod, walletPaid, voucherCode, voucherDiscount } = bookingDetails;
+  const { salonName, serviceName, servicePrice, bookingDate, bookingTime, discount, promoCode, promoDiscount, rewardDiscount, walletDiscount, paymentMethod, walletPaid, voucherCode, voucherDiscount, penaltyPaid } = bookingDetails;
   const originalPrice = servicePrice + discount;
 
   // Determine payment status text
@@ -678,6 +681,24 @@ END:VCALENDAR`;
                       </div>
                       <span className="font-semibold text-purple-600 dark:text-purple-400">
                         ₹{walletPaid}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Cancellation Penalty Paid */}
+                  {penaltyPaid > 0 && (
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+                      <div className="flex items-center gap-2">
+                        <Ban className="w-5 h-5 text-red-600 dark:text-red-400" />
+                        <div>
+                          <span className="text-sm font-medium text-red-700 dark:text-red-300">
+                            Cancellation Penalty Paid
+                          </span>
+                          <p className="text-xs text-red-600 dark:text-red-400">From previous booking</p>
+                        </div>
+                      </div>
+                      <span className="font-semibold text-red-600 dark:text-red-400">
+                        +₹{penaltyPaid}
                       </span>
                     </div>
                   )}

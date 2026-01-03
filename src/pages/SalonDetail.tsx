@@ -1117,6 +1117,7 @@ const SalonDetail = () => {
         ...(appliedVoucher && { voucherCode: appliedVoucher.code, voucherDiscount: voucherDiscount.toString() }),
         ...(rewardDiscount > 0 && { rewardDiscount: rewardDiscount.toString() }),
         ...(walletCreditsDiscount > 0 && { walletDiscount: walletCreditsDiscount.toString() }),
+        ...(totalPenalty > 0 && { penaltyPaid: totalPenalty.toString() }),
       });
       
       navigate(`/booking-confirmation?${params.toString()}`);
@@ -1201,6 +1202,7 @@ const SalonDetail = () => {
           ...(appliedVoucher && { voucherCode: appliedVoucher.code, voucherDiscount: voucherDiscount.toString() }),
           ...(rewardDiscount > 0 && { rewardDiscount: rewardDiscount.toString() }),
           ...(walletCreditsDiscount > 0 && { walletDiscount: walletCreditsDiscount.toString() }),
+          ...(totalPenalty > 0 && { penaltyPaid: totalPenalty.toString() }),
         });
         
         navigate(`/booking-confirmation?${params.toString()}`);
@@ -1293,6 +1295,7 @@ const SalonDetail = () => {
           ...(appliedVoucher && { voucherCode: appliedVoucher.code, voucherDiscount: voucherDiscount.toString() }),
           ...(rewardDiscount > 0 && { rewardDiscount: rewardDiscount.toString() }),
           ...(walletCreditsDiscount > 0 && { walletDiscount: walletCreditsDiscount.toString() }),
+          ...(totalPenalty > 0 && { penaltyPaid: totalPenalty.toString() }),
         });
         
         navigate(`/booking-confirmation?${params.toString()}`);
@@ -1387,6 +1390,7 @@ const SalonDetail = () => {
         ...(appliedVoucher && { voucherCode: appliedVoucher.code, voucherDiscount: voucherDiscount.toString() }),
         ...(rewardDiscount > 0 && { rewardDiscount: rewardDiscount.toString() }),
         ...(walletCreditsDiscount > 0 && { walletDiscount: walletCreditsDiscount.toString() }),
+        ...(totalPenalty > 0 && { penaltyPaid: totalPenalty.toString() }),
       });
       
       navigate(`/booking-confirmation?${params.toString()}`);
