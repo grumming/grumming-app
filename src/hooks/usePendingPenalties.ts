@@ -35,6 +35,7 @@ export function usePendingPenalties() {
       .select('id, penalty_amount, salon_name, service_name, created_at')
       .eq('user_id', user.id)
       .eq('is_paid', false)
+      .eq('is_waived', false)
       .order('created_at', { ascending: true });
 
     if (!error && data) {
