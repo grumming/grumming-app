@@ -237,22 +237,22 @@ export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
 
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
+      {/* Stats Cards - This Month, Pending Payouts, Penalties */}
       <div className="grid grid-cols-2 gap-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <Card className="bg-gradient-to-br from-green-500/10 to-emerald-500/5 border-green-500/20">
+          <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
-                  <TrendingUp className="w-5 h-5 text-green-600" />
+                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                  <Calendar className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Total Earnings</p>
-                  <p className="text-xl font-bold text-green-600">₹{stats.totalEarnings.toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">This Month</p>
+                  <p className="text-xl font-bold font-sans text-primary">₹{stats.thisMonthEarnings.toLocaleString()}</p>
                 </div>
               </div>
             </CardContent>
@@ -264,26 +264,6 @@ export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                  <Calendar className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">This Month</p>
-                  <p className="text-xl font-bold text-primary">₹{stats.thisMonthEarnings.toLocaleString()}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
           <Card className="bg-gradient-to-br from-yellow-500/10 to-amber-500/5 border-yellow-500/20">
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
@@ -292,27 +272,7 @@ export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Pending Payouts</p>
-                  <p className="text-xl font-bold text-yellow-600">₹{stats.pendingPayouts.toLocaleString()}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-        >
-          <Card className="bg-gradient-to-br from-blue-500/10 to-cyan-500/5 border-blue-500/20">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-                  <Wallet className="w-5 h-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Paid Out</p>
-                  <p className="text-xl font-bold text-blue-600">₹{stats.completedPayouts.toLocaleString()}</p>
+                  <p className="text-xl font-bold font-sans text-yellow-600">₹{stats.pendingPayouts.toLocaleString()}</p>
                 </div>
               </div>
             </CardContent>
@@ -321,34 +281,32 @@ export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
       </div>
 
       {/* Penalties Info Card - Shows penalties collected by platform */}
-      {stats.totalPenalties > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-        >
-          <Card className="bg-gradient-to-br from-orange-500/10 to-amber-500/5 border-orange-500/20">
-            <CardContent className="py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center">
-                    <AlertTriangle className="w-5 h-5 text-orange-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-orange-600">Penalties Collected by Platform</p>
-                    <p className="text-xs text-muted-foreground">
-                      From cancellation fees paid by customers
-                    </p>
-                  </div>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+      >
+        <Card className="bg-gradient-to-br from-orange-500/10 to-amber-500/5 border-orange-500/20">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 text-orange-600" />
                 </div>
-                <p className="text-xl font-bold font-sans text-orange-600">
-                  ₹{stats.totalPenalties.toLocaleString()}
-                </p>
+                <div>
+                  <p className="text-sm font-medium text-orange-600">Penalties Collected by Platform</p>
+                  <p className="text-xs text-muted-foreground">
+                    From cancellation fees paid by customers
+                  </p>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      )}
+              <p className="text-xl font-bold font-sans text-orange-600">
+                ₹{stats.totalPenalties.toLocaleString()}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
 
 
       {/* Tabs for Payments and Payouts */}
