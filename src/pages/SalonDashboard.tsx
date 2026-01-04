@@ -1564,50 +1564,45 @@ const SalonDashboard = () => {
                           <CardTitle>Past Bookings</CardTitle>
                           <CardDescription>Completed and cancelled appointments</CardDescription>
                         </div>
-                        {/* Filter Chips */}
-                        <div className="flex items-center gap-1.5 p-1 bg-muted/50 rounded-lg border border-border/50">
-                          <button
-                            onClick={() => { setPastFilter('all'); setPastPage(1); }}
-                            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 ${
-                              pastFilter === 'all' 
-                                ? 'bg-background text-foreground shadow-sm border border-border/50' 
-                                : 'text-muted-foreground hover:text-foreground hover:bg-muted/80'
-                            }`}
-                          >
-                            All
-                            <span className="ml-1.5 text-[10px] opacity-70">
-                              {bookings.filter(b => b.status === 'completed' || b.status === 'cancelled').length}
-                            </span>
-                          </button>
-                          <button
-                            onClick={() => { setPastFilter('completed'); setPastPage(1); }}
-                            className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 ${
-                              pastFilter === 'completed' 
-                                ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-200/50' 
-                                : 'text-muted-foreground hover:text-foreground hover:bg-muted/80'
-                            }`}
-                          >
-                            <CheckCircle className="w-3 h-3" />
-                            Completed
-                            <span className="ml-1 text-[10px] opacity-70">
-                              {bookings.filter(b => b.status === 'completed').length}
-                            </span>
-                          </button>
-                          <button
-                            onClick={() => { setPastFilter('cancelled'); setPastPage(1); }}
-                            className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 ${
-                              pastFilter === 'cancelled' 
-                                ? 'bg-destructive/10 text-destructive border border-destructive/20' 
-                                : 'text-muted-foreground hover:text-foreground hover:bg-muted/80'
-                            }`}
-                          >
-                            <XCircle className="w-3 h-3" />
-                            Cancelled
-                            <span className="ml-1 text-[10px] opacity-70">
-                              {bookings.filter(b => b.status === 'cancelled').length}
-                            </span>
-                          </button>
-                        </div>
+                        <Select
+                          value={pastFilter}
+                          onValueChange={(value: 'all' | 'completed' | 'cancelled') => {
+                            setPastFilter(value);
+                            setPastPage(1);
+                          }}
+                        >
+                          <SelectTrigger className="w-[160px] h-9 text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">
+                              <span className="flex items-center gap-2">
+                                All
+                                <span className="text-xs text-muted-foreground">
+                                  ({bookings.filter(b => b.status === 'completed' || b.status === 'cancelled').length})
+                                </span>
+                              </span>
+                            </SelectItem>
+                            <SelectItem value="completed">
+                              <span className="flex items-center gap-2">
+                                <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+                                Completed
+                                <span className="text-xs text-muted-foreground">
+                                  ({bookings.filter(b => b.status === 'completed').length})
+                                </span>
+                              </span>
+                            </SelectItem>
+                            <SelectItem value="cancelled">
+                              <span className="flex items-center gap-2">
+                                <XCircle className="w-3.5 h-3.5 text-destructive" />
+                                Cancelled
+                                <span className="text-xs text-muted-foreground">
+                                  ({bookings.filter(b => b.status === 'cancelled').length})
+                                </span>
+                              </span>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </CardHeader>
                     <CardContent>
