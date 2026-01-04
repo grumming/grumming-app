@@ -574,7 +574,7 @@ const SalonDetail = () => {
   const [isStylistsLoading, setIsStylistsLoading] = useState(false);
   
   // Salon business hours state
-  const [salonBusinessHours, setSalonBusinessHours] = useState<{ is_open: boolean; opening_time: string; closing_time: string } | null>(null);
+  const [salonBusinessHours, setSalonBusinessHours] = useState<{ is_open: boolean; opening_time: string; closing_time: string; break_start: string | null; break_end: string | null } | null>(null);
   const [isSalonClosed, setIsSalonClosed] = useState(false);
   const [isBooking, setIsBooking] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('upi');
@@ -823,7 +823,7 @@ const SalonDetail = () => {
       // Fetch business hours for this day from salon_business_hours table
       const { data, error } = await supabase
         .from('salon_business_hours')
-        .select('is_open, opening_time, closing_time')
+        .select('is_open, opening_time, closing_time, break_start, break_end')
         .eq('salon_id', salonIdToUse)
         .eq('day_of_week', dayOfWeek)
         .maybeSingle();
@@ -845,6 +845,8 @@ const SalonDetail = () => {
             is_open: data.is_open,
             opening_time: data.opening_time,
             closing_time: data.closing_time,
+            break_start: data.break_start,
+            break_end: data.break_end,
           });
         }
       } else {
@@ -2223,6 +2225,7 @@ const SalonDetail = () => {
                       
                       // Check if time is outside salon's business hours
                       let isOutsideSalonHours = false;
+                      let isDuringBreak = false;
                       if (salonBusinessHours) {
                         const [salonOpenH, salonOpenM] = salonBusinessHours.opening_time.split(':').map(Number);
                         const [salonCloseH, salonCloseM] = salonBusinessHours.closing_time.split(':').map(Number);
@@ -2230,6 +2233,16 @@ const SalonDetail = () => {
                         const salonCloseTime = salonCloseH * 100 + salonCloseM;
                         
                         isOutsideSalonHours = slotTime < salonOpenTime || slotTime >= salonCloseTime;
+                        
+                        // Check if slot falls during break time
+                        if (salonBusinessHours.break_start && salonBusinessHours.break_end) {
+                          const [breakStartH, breakStartM] = salonBusinessHours.break_start.split(':').map(Number);
+                          const [breakEndH, breakEndM] = salonBusinessHours.break_end.split(':').map(Number);
+                          const breakStartTime = breakStartH * 100 + breakStartM;
+                          const breakEndTime = breakEndH * 100 + breakEndM;
+                          
+                          isDuringBreak = slotTime >= breakStartTime && slotTime < breakEndTime;
+                        }
                       }
                       
                       // Check if time is outside stylist's working hours
@@ -2253,7 +2266,7 @@ const SalonDetail = () => {
                       }
                       
                       const isStylistUnavailable = isStylistOffDay || isOutsideWorkingHours;
-                      const isUnavailable = isSalonClosed || isOutsideSalonHours || isOccupied || isPast || isStylistBusy || (selectedStylist && isStylistUnavailable);
+                      const isUnavailable = isSalonClosed || isOutsideSalonHours || isDuringBreak || isOccupied || isPast || isStylistBusy || (selectedStylist && isStylistUnavailable);
                       
                       return (
                         <button
@@ -2261,29 +2274,34 @@ const SalonDetail = () => {
                           onClick={() => !isUnavailable && setSelectedTime(time)}
                           disabled={isUnavailable}
                           className={`p-2.5 rounded-xl text-sm font-medium border-2 transition-all ${
-                            isOutsideSalonHours && !isSalonClosed && !isOccupied && !isPast
-                              ? 'bg-muted/50 border-border text-muted-foreground cursor-not-allowed opacity-60'
-                              : (isStylistBusy || (selectedStylist && isStylistUnavailable)) && !isOccupied && !isPast && !isOutsideSalonHours
-                                ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 cursor-not-allowed'
-                                : isUnavailable
-                                  ? 'bg-muted/50 border-border text-muted-foreground cursor-not-allowed opacity-60'
-                                  : selectedTime === time
-                                    ? 'bg-primary text-primary-foreground border-primary shadow-md'
-                                    : 'border-border hover:border-primary bg-muted/20 hover:scale-[1.02]'
+                            isDuringBreak && !isOccupied && !isPast
+                              ? 'bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-400 cursor-not-allowed'
+                              : isOutsideSalonHours && !isSalonClosed && !isOccupied && !isPast
+                                ? 'bg-muted/50 border-border text-muted-foreground cursor-not-allowed opacity-60'
+                                : (isStylistBusy || (selectedStylist && isStylistUnavailable)) && !isOccupied && !isPast && !isOutsideSalonHours && !isDuringBreak
+                                  ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 cursor-not-allowed'
+                                  : isUnavailable
+                                    ? 'bg-muted/50 border-border text-muted-foreground cursor-not-allowed opacity-60'
+                                    : selectedTime === time
+                                      ? 'bg-primary text-primary-foreground border-primary shadow-md'
+                                      : 'border-border hover:border-primary bg-muted/20 hover:scale-[1.02]'
                           }`}
                         >
                           <span className={isUnavailable ? 'line-through' : ''}>{time}</span>
-                          {isOutsideSalonHours && !isSalonClosed && !isOccupied && !isPast && (
+                          {isDuringBreak && !isOccupied && !isPast && (
+                            <span className="block text-[10px] font-normal">Break</span>
+                          )}
+                          {isOutsideSalonHours && !isSalonClosed && !isOccupied && !isPast && !isDuringBreak && (
                             <span className="block text-[10px] font-normal">Closed</span>
                           )}
-                          {isStylistBusy && !isOccupied && !isPast && !isOutsideSalonHours && (
+                          {isStylistBusy && !isOccupied && !isPast && !isOutsideSalonHours && !isDuringBreak && (
                             <span className="block text-[10px] font-normal">Stylist Busy</span>
                           )}
-                          {isOutsideWorkingHours && !isStylistBusy && !isOccupied && !isPast && !isOutsideSalonHours && (
+                          {isOutsideWorkingHours && !isStylistBusy && !isOccupied && !isPast && !isOutsideSalonHours && !isDuringBreak && (
                             <span className="block text-[10px] font-normal">Not Working</span>
                           )}
                           {isOccupied && <span className="block text-[10px] font-normal">Occupied</span>}
-                          {isPast && !isOccupied && !isOutsideSalonHours && <span className="block text-[10px] font-normal">Passed</span>}
+                          {isPast && !isOccupied && !isOutsideSalonHours && !isDuringBreak && <span className="block text-[10px] font-normal">Passed</span>}
                         </button>
                       );
                     })}

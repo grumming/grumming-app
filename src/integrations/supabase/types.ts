@@ -1205,6 +1205,8 @@ export type Database = {
       }
       salon_business_hours: {
         Row: {
+          break_end: string | null
+          break_start: string | null
           closing_time: string
           created_at: string
           day_of_week: number
@@ -1215,6 +1217,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          break_end?: string | null
+          break_start?: string | null
           closing_time?: string
           created_at?: string
           day_of_week: number
@@ -1225,6 +1229,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          break_end?: string | null
+          break_start?: string | null
           closing_time?: string
           created_at?: string
           day_of_week?: number
