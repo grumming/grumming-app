@@ -106,7 +106,19 @@ serve(async (req) => {
       }
     }
 
-    // Build location name
+    // Build full city name in "City, State" format for city picker compatibility
+    let fullCityName = "";
+    if (city && state) {
+      fullCityName = `${city}, ${state}`;
+    } else if (city) {
+      fullCityName = city;
+    } else if (state) {
+      fullCityName = state;
+    } else {
+      fullCityName = "Unknown Location";
+    }
+
+    // Build detailed location name (for display purposes)
     let locationName = "";
     if (road && neighborhood) {
       locationName = `${road}, ${neighborhood}`;
@@ -121,11 +133,12 @@ serve(async (req) => {
       locationName = "Unknown Location";
     }
 
-    console.log(`Geocoded location: ${locationName}`);
+    console.log(`Geocoded location: ${fullCityName} (detailed: ${locationName})`);
 
     return new Response(
       JSON.stringify({
-        locationName,
+        locationName: fullCityName, // Return city, state format for city picker
+        detailedLocation: locationName, // Include detailed version if needed
         road,
         neighborhood,
         city,
