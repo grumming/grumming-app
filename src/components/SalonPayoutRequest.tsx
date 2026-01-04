@@ -192,7 +192,9 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
         .select('id, penalty_amount, salon_name, service_name, created_at, user_id')
         .eq('collecting_salon_id', salonId)
         .eq('is_paid', true)
-        .eq('remitted_to_platform', false)
+        .eq('is_waived', false)
+        // Treat NULL as "not remitted" for legacy rows
+        .or('remitted_to_platform.is.null,remitted_to_platform.eq.false')
         .order('created_at', { ascending: false });
 
       if (penaltiesError) throw penaltiesError;
@@ -203,6 +205,7 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
         .select('penalty_amount')
         .eq('collecting_salon_id', salonId)
         .eq('is_paid', true)
+        .eq('is_waived', false)
         .eq('remitted_to_platform', true);
 
       if (remittedError) throw remittedError;
