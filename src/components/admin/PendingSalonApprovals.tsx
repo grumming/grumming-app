@@ -39,6 +39,8 @@ interface PendingSalon {
   closing_time: string;
   created_at: string;
   image_url: string | null;
+  imageCount?: number;
+  serviceCount?: number;
   owner?: {
     user_id: string;
     full_name: string | null;
@@ -148,7 +150,7 @@ export const PendingSalonApprovals = () => {
 
       if (salonsError) throw salonsError;
 
-      // Fetch owner information for each salon
+      // Fetch owner information, image counts, and service counts for each salon
       const salonsWithOwners: PendingSalon[] = [];
       
       for (const salon of salonsData || []) {
@@ -175,9 +177,38 @@ export const PendingSalonApprovals = () => {
           }
         }
 
+        // Fetch image count from storage
+        let imageCount = 0;
+        try {
+          const { data: files } = await supabase.storage
+            .from('salon-images')
+            .list(salon.id, { limit: 100 });
+          
+          if (files) {
+            imageCount = files.filter(f => f.name !== '.emptyFolderPlaceholder').length;
+          }
+          // Also count main image_url if exists
+          if (salon.image_url && imageCount === 0) {
+            imageCount = 1;
+          }
+        } catch (err) {
+          console.log('Error fetching images for salon:', salon.id);
+        }
+
+        // Fetch service count
+        let serviceCount = 0;
+        const { count } = await supabase
+          .from('salon_services')
+          .select('id', { count: 'exact', head: true })
+          .eq('salon_id', salon.id);
+        
+        serviceCount = count || 0;
+
         salonsWithOwners.push({
           ...salon,
-          owner
+          owner,
+          imageCount,
+          serviceCount
         });
       }
 
@@ -561,6 +592,28 @@ export const PendingSalonApprovals = () => {
                           </div>
                         </div>
                       )}
+
+                      {/* Visual Indicators for Images and Services */}
+                      <div className="flex items-center gap-3 mt-2">
+                        <div className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-full ${
+                          (salon.imageCount || 0) > 0 
+                            ? 'bg-green-500/10 text-green-600' 
+                            : 'bg-muted text-muted-foreground'
+                        }`}>
+                          <Image className="w-3 h-3" />
+                          <span>{salon.imageCount || 0} {(salon.imageCount || 0) === 1 ? 'photo' : 'photos'}</span>
+                          {(salon.imageCount || 0) > 0 && <CheckCircle className="w-3 h-3" />}
+                        </div>
+                        <div className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-full ${
+                          (salon.serviceCount || 0) > 0 
+                            ? 'bg-green-500/10 text-green-600' 
+                            : 'bg-muted text-muted-foreground'
+                        }`}>
+                          <Scissors className="w-3 h-3" />
+                          <span>{salon.serviceCount || 0} {(salon.serviceCount || 0) === 1 ? 'service' : 'services'}</span>
+                          {(salon.serviceCount || 0) > 0 && <CheckCircle className="w-3 h-3" />}
+                        </div>
+                      </div>
 
                       {/* Submitted Date */}
                       <div className="flex items-center gap-1 text-xs text-muted-foreground mt-2">
