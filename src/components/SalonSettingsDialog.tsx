@@ -102,6 +102,14 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
     promotionalAlerts: true,
   });
 
+  // Helper to normalize time format (convert "09:00:00" to "09:00")
+  const normalizeTime = (time: string | null | undefined, fallback: string): string => {
+    if (!time) return fallback;
+    // Extract just HH:MM from time strings like "09:00:00" or "09:00"
+    const match = time.match(/^(\d{2}):(\d{2})/);
+    return match ? `${match[1]}:${match[2]}` : fallback;
+  };
+
   useEffect(() => {
     if (salon) {
       setFormData({
@@ -111,8 +119,8 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
         city: salon.city || '',
         phone: salon.phone || '',
         email: salon.email || '',
-        opening_time: salon.opening_time || '09:00',
-        closing_time: salon.closing_time || '21:00',
+        opening_time: normalizeTime(salon.opening_time, '09:00'),
+        closing_time: normalizeTime(salon.closing_time, '21:00'),
         is_active: salon.is_active ?? true,
         amenities: salon.amenities || [],
       });
