@@ -669,7 +669,7 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
                                           <SelectTrigger className="w-24 h-8 text-xs">
                                             <SelectValue />
                                           </SelectTrigger>
-                                          <SelectContent>
+                                          <SelectContent className="pointer-events-auto z-[9999]">
                                             {Array.from({ length: 24 }, (_, i) => {
                                               const hour = i.toString().padStart(2, '0');
                                               return (
@@ -688,7 +688,7 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
                                           <SelectTrigger className="w-24 h-8 text-xs">
                                             <SelectValue />
                                           </SelectTrigger>
-                                          <SelectContent>
+                                          <SelectContent className="pointer-events-auto z-[9999]">
                                             {Array.from({ length: 24 }, (_, i) => {
                                               const hour = i.toString().padStart(2, '0');
                                               return (
@@ -721,7 +721,7 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
                                         <SelectTrigger className="w-24 h-7 text-xs">
                                           <SelectValue placeholder="Start" />
                                         </SelectTrigger>
-                                        <SelectContent>
+                                        <SelectContent className="pointer-events-auto z-[9999]">
                                           <SelectItem value="none">None</SelectItem>
                                           {Array.from({ length: 24 }, (_, i) => {
                                             const hour = i.toString().padStart(2, '0');
@@ -743,7 +743,7 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
                                             <SelectTrigger className="w-24 h-7 text-xs">
                                               <SelectValue placeholder="End" />
                                             </SelectTrigger>
-                                            <SelectContent>
+                                            <SelectContent className="pointer-events-auto z-[9999]">
                                               {Array.from({ length: 24 }, (_, i) => {
                                                 const hour = i.toString().padStart(2, '0');
                                                 return (
