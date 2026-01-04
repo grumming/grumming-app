@@ -1006,12 +1006,12 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
                                 return (
                                   <div
                                     key={day.day_of_week}
-                                    className={`flex items-center gap-4 px-4 py-3 transition-colors ${
+                                    className={`flex items-center gap-3 px-4 py-3 transition-colors ${
                                       !day.is_open ? 'bg-muted/30' : ''
                                     }`}
                                   >
                                     {/* Day name */}
-                                    <span className={`w-24 text-sm font-medium ${!day.is_open ? 'text-muted-foreground' : 'text-foreground'}`}>
+                                    <span className={`w-[90px] min-w-[90px] shrink-0 text-sm font-medium ${!day.is_open ? 'text-muted-foreground' : 'text-foreground'}`}>
                                       {DAY_NAMES[day.day_of_week]}
                                     </span>
 
