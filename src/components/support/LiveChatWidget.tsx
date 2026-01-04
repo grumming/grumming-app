@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { MessageCircle, X, Send, Loader2, User, Headphones, Circle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,6 +40,9 @@ export const LiveChatWidget = () => {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [isAgentTyping, setIsAgentTyping] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -126,9 +129,9 @@ export const LiveChatWidget = () => {
     loadOrCreateSession();
   }, [isOpen, user]);
 
-  // Subscribe to real-time updates
+  // Subscribe to real-time updates and presence for typing indicators
   useEffect(() => {
-    if (!session?.id) return;
+    if (!session?.id || !user) return;
 
     const messagesChannel = supabase
       .channel(`live-chat-messages-${session.id}`)
@@ -180,11 +183,62 @@ export const LiveChatWidget = () => {
       )
       .subscribe();
 
+    // Presence channel for typing indicators
+    const presenceChannel = supabase
+      .channel(`typing-${session.id}`)
+      .on('presence', { event: 'sync' }, () => {
+        const state = presenceChannel.presenceState();
+        const agents = Object.values(state).flat().filter((p: any) => p.type === 'agent' && p.isTyping);
+        setIsAgentTyping(agents.length > 0);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await presenceChannel.track({
+            type: 'user',
+            userId: user.id,
+            isTyping: false,
+          });
+        }
+      });
+
     return () => {
       supabase.removeChannel(messagesChannel);
       supabase.removeChannel(sessionChannel);
+      supabase.removeChannel(presenceChannel);
     };
-  }, [session?.id, session?.status]);
+  }, [session?.id, session?.status, user]);
+
+  // Handle typing indicator broadcast
+  const updateTypingStatus = useCallback(async (typing: boolean) => {
+    if (!session?.id || !user) return;
+    
+    const channel = supabase.channel(`typing-${session.id}`);
+    await channel.track({
+      type: 'user',
+      userId: user.id,
+      isTyping: typing,
+    });
+  }, [session?.id, user]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputValue(e.target.value);
+    
+    if (!isTyping) {
+      setIsTyping(true);
+      updateTypingStatus(true);
+    }
+    
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    
+    // Set new timeout to stop typing indicator after 2 seconds of inactivity
+    typingTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false);
+      updateTypingStatus(false);
+    }, 2000);
+  };
 
   const handleSend = async (text?: string) => {
     const messageText = text || inputValue.trim();
@@ -192,6 +246,13 @@ export const LiveChatWidget = () => {
 
     setIsSending(true);
     setInputValue('');
+    
+    // Stop typing indicator
+    setIsTyping(false);
+    updateTypingStatus(false);
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
 
     try {
       const { error } = await supabase.from('live_chat_messages').insert({
@@ -366,6 +427,22 @@ export const LiveChatWidget = () => {
                       </div>
                     </div>
                   ))}
+                  {isAgentTyping && (
+                    <div className="flex gap-2">
+                      <Avatar className="h-7 w-7 flex-shrink-0">
+                        <AvatarFallback className="bg-green-500 text-white">
+                          <Headphones className="h-4 w-4" />
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="rounded-lg px-3 py-2 bg-green-500/10 border border-green-500/20">
+                        <div className="flex items-center gap-1">
+                          <span className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <span className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <span className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   {isSending && (
                     <div className="flex justify-end">
                       <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -399,7 +476,7 @@ export const LiveChatWidget = () => {
               <Input
                 placeholder="Type a message..."
                 value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
+                onChange={handleInputChange}
                 onKeyPress={handleKeyPress}
                 className="flex-1"
                 disabled={!session || session.status === 'ended'}
