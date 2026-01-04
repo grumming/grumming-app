@@ -1271,12 +1271,11 @@ const SalonDashboard = () => {
           </div>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            {/* Only show tabs when not on Overview (accessed via bottom nav) */}
-            {activeTab !== 'overview' && (
-              <TabsList className="grid w-full grid-cols-3">
+            {/* Only show tabs when not on Overview or Manage (accessed via bottom nav) */}
+            {activeTab !== 'overview' && activeTab !== 'manage' && (
+              <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="bookings">Bookings</TabsTrigger>
                 <TabsTrigger value="earnings">Earnings</TabsTrigger>
-                <TabsTrigger value="manage">Manage</TabsTrigger>
               </TabsList>
             )}
 
@@ -1740,6 +1739,20 @@ const SalonDashboard = () => {
 
             {/* Manage Tab - with nested tabs for Reviews, Services, Stylists, Schedule, Bank Account */}
             <TabsContent value="manage" className="space-y-4">
+              {/* Back Button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setActiveTab('bookings');
+                  navigate('/salon-dashboard?tab=bookings');
+                }}
+                className="flex items-center gap-2 text-muted-foreground hover:text-foreground -ml-2 mb-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Dashboard
+              </Button>
+
               <Tabs defaultValue="services" className="space-y-4">
                 <TabsList className="grid w-full grid-cols-4 bg-muted/50">
                   <TabsTrigger value="services" className="text-xs sm:text-sm">Services</TabsTrigger>
