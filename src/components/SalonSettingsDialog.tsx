@@ -1006,83 +1006,85 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
                                 return (
                                   <div
                                     key={day.day_of_week}
-                                    className={`flex items-center gap-3 px-4 py-3 transition-colors ${
+                                    className={`px-3 sm:px-4 py-3 transition-colors ${
                                       !day.is_open ? 'bg-muted/30' : ''
                                     }`}
                                   >
-                                    {/* Day name */}
-                                    <span className={`w-[90px] min-w-[90px] shrink-0 text-sm font-medium ${!day.is_open ? 'text-muted-foreground' : 'text-foreground'}`}>
-                                      {DAY_NAMES[day.day_of_week]}
-                                    </span>
+                                    <div className="flex items-center gap-2 sm:gap-3">
+                                      {/* Day name */}
+                                      <span className={`w-[72px] sm:w-[90px] shrink-0 text-sm font-medium ${!day.is_open ? 'text-muted-foreground' : 'text-foreground'}`}>
+                                        {DAY_NAMES[day.day_of_week]}
+                                      </span>
 
-                                    {/* Toggle */}
-                                    <Switch
-                                      checked={day.is_open}
-                                      onCheckedChange={(checked) => handleDayHoursChange(idx, 'is_open', checked)}
-                                      className="data-[state=checked]:bg-primary"
-                                    />
+                                      {/* Toggle */}
+                                      <Switch
+                                        checked={day.is_open}
+                                        onCheckedChange={(checked) => handleDayHoursChange(idx, 'is_open', checked)}
+                                        className="data-[state=checked]:bg-primary shrink-0"
+                                      />
 
-                                    {/* Time selectors or Closed badge */}
-                                    {day.is_open ? (
-                                      <div className="flex items-center gap-2 flex-1">
-                                        <Select
-                                          value={day.opening_time}
-                                          onValueChange={(v) => handleDayHoursChange(idx, 'opening_time', v)}
-                                        >
-                                          <SelectTrigger className="w-[110px] h-9 bg-muted/50 border-0 rounded-full text-sm font-medium">
-                                            <SelectValue>
-                                              {formatTime12h(day.opening_time)}
-                                            </SelectValue>
-                                          </SelectTrigger>
-                                          <SelectContent className="pointer-events-auto z-[9999]">
-                                            {Array.from({ length: 24 }, (_, i) => {
-                                              const hour = i.toString().padStart(2, '0');
-                                              const time = `${hour}:00`;
-                                              return (
-                                                <SelectItem key={hour} value={time}>
-                                                  {formatTime12h(time)}
-                                                </SelectItem>
-                                              );
-                                            })}
-                                          </SelectContent>
-                                        </Select>
+                                      {/* Time selectors or Closed label */}
+                                      {day.is_open ? (
+                                        <div className="flex items-center gap-2 min-w-0">
+                                          <Select
+                                            value={day.opening_time}
+                                            onValueChange={(v) => handleDayHoursChange(idx, 'opening_time', v)}
+                                          >
+                                            <SelectTrigger className="w-[95px] sm:w-[105px] h-8 sm:h-9 bg-muted/50 border-0 rounded-full text-xs sm:text-sm font-medium shrink-0">
+                                              <SelectValue>
+                                                {formatTime12h(day.opening_time)}
+                                              </SelectValue>
+                                            </SelectTrigger>
+                                            <SelectContent className="pointer-events-auto z-[9999]">
+                                              {Array.from({ length: 24 }, (_, i) => {
+                                                const hour = i.toString().padStart(2, '0');
+                                                const time = `${hour}:00`;
+                                                return (
+                                                  <SelectItem key={hour} value={time}>
+                                                    {formatTime12h(time)}
+                                                  </SelectItem>
+                                                );
+                                              })}
+                                            </SelectContent>
+                                          </Select>
 
-                                        <span className="text-sm text-muted-foreground">to</span>
+                                          <span className="text-xs sm:text-sm text-muted-foreground shrink-0">to</span>
 
-                                        <Select
-                                          value={day.closing_time}
-                                          onValueChange={(v) => handleDayHoursChange(idx, 'closing_time', v)}
-                                        >
-                                          <SelectTrigger className="w-[110px] h-9 bg-muted/50 border-0 rounded-full text-sm font-medium">
-                                            <SelectValue>
-                                              {formatTime12h(day.closing_time)}
-                                            </SelectValue>
-                                          </SelectTrigger>
-                                          <SelectContent className="pointer-events-auto z-[9999]">
-                                            {Array.from({ length: 24 }, (_, i) => {
-                                              const hour = i.toString().padStart(2, '0');
-                                              const time = `${hour}:00`;
-                                              return (
-                                                <SelectItem key={hour} value={time}>
-                                                  {formatTime12h(time)}
-                                                </SelectItem>
-                                              );
-                                            })}
-                                          </SelectContent>
-                                        </Select>
+                                          <Select
+                                            value={day.closing_time}
+                                            onValueChange={(v) => handleDayHoursChange(idx, 'closing_time', v)}
+                                          >
+                                            <SelectTrigger className="w-[95px] sm:w-[105px] h-8 sm:h-9 bg-muted/50 border-0 rounded-full text-xs sm:text-sm font-medium shrink-0">
+                                              <SelectValue>
+                                                {formatTime12h(day.closing_time)}
+                                              </SelectValue>
+                                            </SelectTrigger>
+                                            <SelectContent className="pointer-events-auto z-[9999]">
+                                              {Array.from({ length: 24 }, (_, i) => {
+                                                const hour = i.toString().padStart(2, '0');
+                                                const time = `${hour}:00`;
+                                                return (
+                                                  <SelectItem key={hour} value={time}>
+                                                    {formatTime12h(time)}
+                                                  </SelectItem>
+                                                );
+                                              })}
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+                                      ) : (
+                                        <span className="text-sm text-muted-foreground">Off</span>
+                                      )}
+                                    </div>
 
-                                        {/* Break toggle */}
-                                        {day.break_start && day.break_end && (
-                                          <div className="flex items-center gap-1.5 ml-2 px-2 py-1 bg-amber-50 dark:bg-amber-950/30 rounded-full">
-                                            <Coffee className="w-3 h-3 text-amber-600" />
-                                            <span className="text-xs text-amber-700 dark:text-amber-400">
-                                              {formatTime12h(day.break_start)} - {formatTime12h(day.break_end)}
-                                            </span>
-                                          </div>
-                                        )}
+                                    {/* Break indicator - shown below on mobile */}
+                                    {day.is_open && day.break_start && day.break_end && (
+                                      <div className="flex items-center gap-1.5 mt-2 ml-[72px] sm:ml-[90px] pl-[52px]">
+                                        <Coffee className="w-3 h-3 text-amber-600 shrink-0" />
+                                        <span className="text-xs text-amber-700 dark:text-amber-400">
+                                          Break: {formatTime12h(day.break_start)} - {formatTime12h(day.break_end)}
+                                        </span>
                                       </div>
-                                    ) : (
-                                      <span className="text-sm text-muted-foreground">Closed</span>
                                     )}
                                   </div>
                                 );
