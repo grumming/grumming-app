@@ -890,6 +890,15 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                                     <span className="text-muted-foreground">Payout Amount</span>
                                     <span className="font-medium font-sans">₹{parseFloat(requestAmount).toLocaleString('en-IN')}</span>
                                   </div>
+                                  {pendingBalance.penaltiesOwed > 0 && (
+                                    <div className="flex justify-between text-red-600">
+                                      <span className="flex items-center gap-1">
+                                        <AlertCircle className="h-3 w-3" />
+                                        Penalty Deduction
+                                      </span>
+                                      <span className="font-medium font-sans">-₹{pendingBalance.penaltiesOwed.toLocaleString('en-IN')}</span>
+                                    </div>
+                                  )}
                                   {payoutMethod === 'instant_upi' && (
                                     <div className="flex justify-between text-orange-600">
                                       <span>Convenience Fee ({INSTANT_PAYOUT_FEE_PERCENT}%)</span>
@@ -906,6 +915,18 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                                     </span>
                                   </div>
                                 </div>
+                                
+                                {/* Penalty Warning */}
+                                {pendingBalance.penaltiesOwed > 0 && (
+                                  <div className="mt-3 p-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50">
+                                    <p className="text-xs text-red-600 dark:text-red-400 flex items-start gap-1.5">
+                                      <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                                      <span>
+                                        You collected <span className="font-semibold font-sans">₹{pendingBalance.penaltiesOwed.toLocaleString('en-IN')}</span> in cancellation penalties that belong to the platform. This will be deducted from your payout.
+                                      </span>
+                                    </p>
+                                  </div>
+                                )}
                                 
                                 {/* Estimated Arrival Time */}
                                 <div className="mt-3 pt-3 border-t border-dashed space-y-2">
