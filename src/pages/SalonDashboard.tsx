@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   ArrowLeft, Store, Calendar, Clock, Star, Users, TrendingUp,
@@ -107,12 +107,28 @@ interface Stylist {
 
 const SalonDashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { user, signOut } = useAuth();
   const { isSalonOwner, ownedSalons, hasOwnership, isLoading: isOwnerLoading } = useSalonOwner();
 
+  // Get active tab from URL params
+  const searchParams = new URLSearchParams(location.search);
+  const urlTab = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(urlTab || 'bookings');
+
+  // Sync activeTab with URL params
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get('tab');
+    if (tab && ['overview', 'bookings', 'earnings', 'manage'].includes(tab)) {
+      setActiveTab(tab);
+    } else if (!tab) {
+      setActiveTab('bookings');
+    }
+  }, [location.search]);
+
   const [selectedSalonId, setSelectedSalonId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('overview');
   const [selectedSalon, setSelectedSalon] = useState<any>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [services, setServices] = useState<SalonService[]>([]);
@@ -1255,12 +1271,14 @@ const SalonDashboard = () => {
           </div>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="bookings">Bookings</TabsTrigger>
-              <TabsTrigger value="earnings">Earnings</TabsTrigger>
-              <TabsTrigger value="manage">Manage</TabsTrigger>
-            </TabsList>
+            {/* Only show tabs when not on Overview (accessed via bottom nav) */}
+            {activeTab !== 'overview' && (
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="bookings">Bookings</TabsTrigger>
+                <TabsTrigger value="earnings">Earnings</TabsTrigger>
+                <TabsTrigger value="manage">Manage</TabsTrigger>
+              </TabsList>
+            )}
 
             {/* Overview Tab */}
             <TabsContent value="overview" className="space-y-6">
