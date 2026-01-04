@@ -992,97 +992,149 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
                               </Button>
                             </div>
 
-                            <div className="space-y-3">
-                              {dayHours.map((day, idx) => (
-                                <div
-                                  key={day.day_of_week}
-                                  className={`p-3 rounded-lg border transition-colors ${
-                                    day.is_open 
-                                      ? 'bg-background border-border' 
-                                      : 'bg-muted/50 border-muted'
-                                  }`}
-                                >
-                                  <div className="flex items-center gap-4 flex-wrap">
-                                    {/* Day name and toggle */}
-                                    <div className="flex items-center gap-3 min-w-[140px]">
-                                      <Switch
-                                        checked={day.is_open}
-                                        onCheckedChange={(checked) => handleDayHoursChange(idx, 'is_open', checked)}
-                                      />
-                                      <span className={`text-sm font-medium ${!day.is_open ? 'text-muted-foreground' : ''}`}>
-                                        {DAY_NAMES[day.day_of_week]}
-                                      </span>
-                                    </div>
+                            <div className="divide-y divide-border rounded-lg border bg-card overflow-hidden">
+                              {dayHours.map((day, idx) => {
+                                // Helper to format time to 12-hour AM/PM
+                                const formatTime12h = (time24: string) => {
+                                  const [hourStr] = time24.split(':');
+                                  const hour = parseInt(hourStr, 10);
+                                  const ampm = hour >= 12 ? 'PM' : 'AM';
+                                  const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                                  return `${hour12}:00 ${ampm}`;
+                                };
 
-                                    {/* Time selectors */}
+                                return (
+                                  <div
+                                    key={day.day_of_week}
+                                    className={`flex items-center gap-4 px-4 py-3 transition-colors ${
+                                      !day.is_open ? 'bg-muted/30' : ''
+                                    }`}
+                                  >
+                                    {/* Day name */}
+                                    <span className={`w-24 text-sm font-medium ${!day.is_open ? 'text-muted-foreground' : 'text-foreground'}`}>
+                                      {DAY_NAMES[day.day_of_week]}
+                                    </span>
+
+                                    {/* Toggle */}
+                                    <Switch
+                                      checked={day.is_open}
+                                      onCheckedChange={(checked) => handleDayHoursChange(idx, 'is_open', checked)}
+                                      className="data-[state=checked]:bg-primary"
+                                    />
+
+                                    {/* Time selectors or Closed badge */}
                                     {day.is_open ? (
-                                      <div className="flex items-center gap-2 flex-wrap flex-1">
+                                      <div className="flex items-center gap-2 flex-1">
                                         <Select
                                           value={day.opening_time}
                                           onValueChange={(v) => handleDayHoursChange(idx, 'opening_time', v)}
                                         >
-                                          <SelectTrigger className="w-24 h-8 text-xs">
-                                            <SelectValue />
+                                          <SelectTrigger className="w-[110px] h-9 bg-muted/50 border-0 rounded-full text-sm font-medium">
+                                            <SelectValue>
+                                              {formatTime12h(day.opening_time)}
+                                            </SelectValue>
                                           </SelectTrigger>
                                           <SelectContent className="pointer-events-auto z-[9999]">
                                             {Array.from({ length: 24 }, (_, i) => {
                                               const hour = i.toString().padStart(2, '0');
+                                              const time = `${hour}:00`;
                                               return (
-                                                <SelectItem key={hour} value={`${hour}:00`}>
-                                                  {hour}:00
+                                                <SelectItem key={hour} value={time}>
+                                                  {formatTime12h(time)}
                                                 </SelectItem>
                                               );
                                             })}
                                           </SelectContent>
                                         </Select>
-                                        <span className="text-muted-foreground text-xs">to</span>
+
+                                        <span className="text-sm text-muted-foreground">to</span>
+
                                         <Select
                                           value={day.closing_time}
                                           onValueChange={(v) => handleDayHoursChange(idx, 'closing_time', v)}
                                         >
-                                          <SelectTrigger className="w-24 h-8 text-xs">
-                                            <SelectValue />
+                                          <SelectTrigger className="w-[110px] h-9 bg-muted/50 border-0 rounded-full text-sm font-medium">
+                                            <SelectValue>
+                                              {formatTime12h(day.closing_time)}
+                                            </SelectValue>
                                           </SelectTrigger>
                                           <SelectContent className="pointer-events-auto z-[9999]">
                                             {Array.from({ length: 24 }, (_, i) => {
                                               const hour = i.toString().padStart(2, '0');
+                                              const time = `${hour}:00`;
                                               return (
-                                                <SelectItem key={hour} value={`${hour}:00`}>
-                                                  {hour}:00
+                                                <SelectItem key={hour} value={time}>
+                                                  {formatTime12h(time)}
                                                 </SelectItem>
                                               );
                                             })}
                                           </SelectContent>
                                         </Select>
+
+                                        {/* Break toggle */}
+                                        {day.break_start && day.break_end && (
+                                          <div className="flex items-center gap-1.5 ml-2 px-2 py-1 bg-amber-50 dark:bg-amber-950/30 rounded-full">
+                                            <Coffee className="w-3 h-3 text-amber-600" />
+                                            <span className="text-xs text-amber-700 dark:text-amber-400">
+                                              {formatTime12h(day.break_start)} - {formatTime12h(day.break_end)}
+                                            </span>
+                                          </div>
+                                        )}
                                       </div>
                                     ) : (
-                                      <Badge variant="secondary" className="text-xs">
-                                        Closed
-                                      </Badge>
+                                      <span className="text-sm text-muted-foreground">Closed</span>
                                     )}
                                   </div>
+                                );
+                              })}
+                            </div>
 
-                                  {/* Break time section */}
-                                  {day.is_open && (
-                                    <div className="mt-3 pt-3 border-t border-dashed flex items-center gap-2 flex-wrap">
-                                      <div className="flex items-center gap-2">
-                                        <Coffee className="w-3.5 h-3.5 text-muted-foreground" />
-                                        <span className="text-xs text-muted-foreground">Break:</span>
-                                      </div>
+                            {/* Break settings collapsed section */}
+                            <div className="p-4 bg-muted/30 rounded-lg border border-dashed">
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                  <Coffee className="w-4 h-4 text-muted-foreground" />
+                                  <span className="text-sm font-medium">Break Times</span>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={applyBreakToAllDays}
+                                  className="text-xs h-7"
+                                >
+                                  Apply to all
+                                </Button>
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {dayHours.filter(d => d.is_open).map((day, idx) => {
+                                  const actualIdx = dayHours.findIndex(d => d.day_of_week === day.day_of_week);
+                                  const formatTime12h = (time24: string) => {
+                                    const [hourStr] = time24.split(':');
+                                    const hour = parseInt(hourStr, 10);
+                                    const ampm = hour >= 12 ? 'PM' : 'AM';
+                                    const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                                    return `${hour12}:00 ${ampm}`;
+                                  };
+
+                                  return (
+                                    <div key={day.day_of_week} className="flex items-center gap-2 text-sm">
+                                      <span className="w-20 text-muted-foreground">{DAY_NAMES[day.day_of_week].slice(0, 3)}</span>
                                       <Select
                                         value={day.break_start || 'none'}
-                                        onValueChange={(v) => handleDayHoursChange(idx, 'break_start', v === 'none' ? null : v)}
+                                        onValueChange={(v) => handleDayHoursChange(actualIdx, 'break_start', v === 'none' ? null : v)}
                                       >
-                                        <SelectTrigger className="w-24 h-7 text-xs">
-                                          <SelectValue placeholder="Start" />
+                                        <SelectTrigger className="w-[90px] h-7 text-xs bg-background">
+                                          <SelectValue>{day.break_start ? formatTime12h(day.break_start) : 'None'}</SelectValue>
                                         </SelectTrigger>
                                         <SelectContent className="pointer-events-auto z-[9999]">
                                           <SelectItem value="none">None</SelectItem>
                                           {Array.from({ length: 24 }, (_, i) => {
                                             const hour = i.toString().padStart(2, '0');
+                                            const time = `${hour}:00`;
                                             return (
-                                              <SelectItem key={hour} value={`${hour}:00`}>
-                                                {hour}:00
+                                              <SelectItem key={hour} value={time}>
+                                                {formatTime12h(time)}
                                               </SelectItem>
                                             );
                                           })}
@@ -1090,20 +1142,21 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
                                       </Select>
                                       {day.break_start && (
                                         <>
-                                          <span className="text-muted-foreground text-xs">to</span>
+                                          <span className="text-xs text-muted-foreground">-</span>
                                           <Select
                                             value={day.break_end || ''}
-                                            onValueChange={(v) => handleDayHoursChange(idx, 'break_end', v)}
+                                            onValueChange={(v) => handleDayHoursChange(actualIdx, 'break_end', v)}
                                           >
-                                            <SelectTrigger className="w-24 h-7 text-xs">
-                                              <SelectValue placeholder="End" />
+                                            <SelectTrigger className="w-[90px] h-7 text-xs bg-background">
+                                              <SelectValue>{day.break_end ? formatTime12h(day.break_end) : 'End'}</SelectValue>
                                             </SelectTrigger>
                                             <SelectContent className="pointer-events-auto z-[9999]">
                                               {Array.from({ length: 24 }, (_, i) => {
                                                 const hour = i.toString().padStart(2, '0');
+                                                const time = `${hour}:00`;
                                                 return (
-                                                  <SelectItem key={hour} value={`${hour}:00`}>
-                                                    {hour}:00
+                                                  <SelectItem key={hour} value={time}>
+                                                    {formatTime12h(time)}
                                                   </SelectItem>
                                                 );
                                               })}
@@ -1112,9 +1165,9 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
                                         </>
                                       )}
                                     </div>
-                                  )}
-                                </div>
-                              ))}
+                                  );
+                                })}
+                              </div>
                             </div>
 
                             {/* Summary */}
