@@ -9,6 +9,7 @@ interface PaymentError {
   source?: string;
   step?: string;
   metadata?: Record<string, any>;
+  isRetryable?: boolean;
 }
 
 interface PaymentFailureBannerProps {
@@ -16,6 +17,8 @@ interface PaymentFailureBannerProps {
   onRetry: () => void;
   onDismiss: () => void;
   isRetrying?: boolean;
+  retryCount?: number;
+  maxRetries?: number;
 }
 
 export function PaymentFailureBanner({
@@ -23,6 +26,8 @@ export function PaymentFailureBanner({
   onRetry,
   onDismiss,
   isRetrying = false,
+  retryCount = 0,
+  maxRetries = 3,
 }: PaymentFailureBannerProps) {
   const errorCode = error.code || 'UNKNOWN';
   const errorReason = error.reason || error.description || 'Payment could not be completed';
@@ -82,6 +87,20 @@ export function PaymentFailureBanner({
           {isAppHandoffFailure && (
             <p className="text-xs text-muted-foreground mt-2">
               💡 Tip: Try using UPI ID (VPA) instead of the UPI app for more reliable payments.
+            </p>
+          )}
+          
+          {/* Show auto-retry info */}
+          {retryCount > 0 && (
+            <p className="text-xs text-muted-foreground mt-2">
+              ⚡ Auto-retried {retryCount} time{retryCount > 1 ? 's' : ''} before giving up.
+            </p>
+          )}
+          
+          {/* Show if error is retryable */}
+          {error.isRetryable && retryCount < maxRetries && (
+            <p className="text-xs text-primary mt-2">
+              🔄 This error may be temporary. A retry might succeed.
             </p>
           )}
         </div>
