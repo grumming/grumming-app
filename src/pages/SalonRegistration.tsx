@@ -42,6 +42,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { getAllStates, getDistrictsForState, getCitiesForDistrict } from '@/data/indianCities';
+import { SearchableSelect } from '@/components/SearchableSelect';
 import ImageCropDialog from '@/components/ImageCropDialog';
 import LocationPickerDialog from '@/components/LocationPickerDialog';
 
@@ -692,71 +693,53 @@ const SalonRegistration = () => {
                     {/* State Selection */}
                     <div className="space-y-2">
                       <Label>State *</Label>
-                      <Select
+                      <SearchableSelect
                         value={formData.state}
                         onValueChange={(value) => {
                           updateField('state', value);
                           setFormData(prev => ({ ...prev, district: '', city: '' }));
                         }}
-                      >
-                        <SelectTrigger className={errors.state ? 'border-destructive' : ''}>
-                          <SelectValue placeholder="Select state" />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-60">
-                          {getAllStates().map((state) => (
-                            <SelectItem key={state} value={state}>
-                              {state}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        options={getAllStates()}
+                        placeholder="Select state"
+                        searchPlaceholder="Search states..."
+                        emptyMessage="No state found."
+                        error={!!errors.state}
+                      />
                       {errors.state && <p className="text-xs text-destructive">{errors.state}</p>}
                     </div>
 
                     {/* District Selection */}
                     <div className="space-y-2">
                       <Label>District *</Label>
-                      <Select
+                      <SearchableSelect
                         value={formData.district}
                         onValueChange={(value) => {
                           updateField('district', value);
                           setFormData(prev => ({ ...prev, city: '' }));
                         }}
+                        options={getDistrictsForState(formData.state)}
+                        placeholder={formData.state ? "Select district" : "Select state first"}
+                        searchPlaceholder="Search districts..."
+                        emptyMessage="No district found."
                         disabled={!formData.state}
-                      >
-                        <SelectTrigger className={errors.district ? 'border-destructive' : ''}>
-                          <SelectValue placeholder={formData.state ? "Select district" : "Select state first"} />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-60">
-                          {getDistrictsForState(formData.state).map((district) => (
-                            <SelectItem key={district} value={district}>
-                              {district}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        error={!!errors.district}
+                      />
                       {errors.district && <p className="text-xs text-destructive">{errors.district}</p>}
                     </div>
 
                     {/* City Selection */}
                     <div className="space-y-2">
                       <Label>City *</Label>
-                      <Select
+                      <SearchableSelect
                         value={formData.city}
                         onValueChange={(value) => updateField('city', value)}
+                        options={getCitiesForDistrict(formData.state, formData.district)}
+                        placeholder={formData.district ? "Select city" : "Select district first"}
+                        searchPlaceholder="Search cities..."
+                        emptyMessage="No city found."
                         disabled={!formData.district}
-                      >
-                        <SelectTrigger className={errors.city ? 'border-destructive' : ''}>
-                          <SelectValue placeholder={formData.district ? "Select city" : "Select district first"} />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-60">
-                          {getCitiesForDistrict(formData.state, formData.district).map((city) => (
-                            <SelectItem key={city} value={city}>
-                              {city}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        error={!!errors.city}
+                      />
                       {errors.city && <p className="text-xs text-destructive">{errors.city}</p>}
                     </div>
 
