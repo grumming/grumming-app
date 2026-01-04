@@ -43,6 +43,7 @@ import { SalonCommissionReport } from '@/components/admin/SalonCommissionReport'
 import { RescheduleCommissionManagement } from '@/components/admin/RescheduleCommissionManagement';
 import { CancellationPenaltyManagement } from '@/components/admin/CancellationPenaltyManagement';
 import RecentUsers from '@/components/admin/RecentUsers';
+import { LiveChatManagement } from '@/components/admin/LiveChatManagement';
 import { getDisplayContact } from '@/utils/displayUtils';
 
 interface UserProfile {
@@ -599,6 +600,7 @@ const AdminDashboard = () => {
 
             {/* Support Tickets Tab */}
             <TabsContent value="support" className="space-y-6">
+              <LiveChatManagement />
               <SupportTicketManagement />
             </TabsContent>
 
