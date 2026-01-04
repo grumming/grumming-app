@@ -2843,10 +2843,6 @@ const SalonDetail = () => {
                       walletBalance={walletBalance}
                       walletAmountToUse={splitWalletAmount}
                       onWalletAmountChange={setSplitWalletAmount}
-                      selectedSavedMethodId={selectedSavedPaymentMethod}
-                      onSavedMethodSelect={setSelectedSavedPaymentMethod}
-                      selectedUpiAppId={selectedUpiApp}
-                      onUpiAppSelect={setSelectedUpiApp}
                     />
                   </div>
                 )}

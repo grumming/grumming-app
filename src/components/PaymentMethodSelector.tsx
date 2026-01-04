@@ -1,13 +1,9 @@
-import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   MapPin, Smartphone, 
   Check, FlaskConical
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Slider } from '@/components/ui/slider';
-import { SavedPaymentMethodPicker } from './SavedPaymentMethodPicker';
-import { UpiAppIcons } from './UpiAppSelector';
 import { usePaymentTestMode } from '@/hooks/usePaymentTestMode';
 
 export type PaymentMethodType = 'upi' | 'salon';
@@ -19,10 +15,6 @@ interface PaymentMethodSelectorProps {
   walletBalance: number;
   walletAmountToUse: number;
   onWalletAmountChange: (amount: number) => void;
-  selectedSavedMethodId?: string | null;
-  onSavedMethodSelect?: (methodId: string | null) => void;
-  selectedUpiAppId?: string | null;
-  onUpiAppSelect?: (appId: string | null) => void;
 }
 
 const paymentMethods = [
@@ -46,17 +38,8 @@ const paymentMethods = [
 export function PaymentMethodSelector({
   selectedMethod,
   onMethodChange,
-  totalAmount,
-  walletBalance,
-  walletAmountToUse,
-  onWalletAmountChange,
-  selectedSavedMethodId,
-  onSavedMethodSelect,
-  selectedUpiAppId,
-  onUpiAppSelect,
 }: PaymentMethodSelectorProps) {
   const { isTestMode, simulateSuccess, isLoading: testModeLoading } = usePaymentTestMode();
-  const maxWalletUsable = Math.min(walletBalance, totalAmount);
 
   const handleMethodSelect = (method: PaymentMethodType) => {
     onMethodChange(method);
@@ -146,7 +129,7 @@ export function PaymentMethodSelector({
       </div>
 
 
-      {/* Saved UPI Selection */}
+      {/* UPI Info Message */}
       <AnimatePresence>
         {selectedMethod === 'upi' && (
           <motion.div
@@ -155,32 +138,9 @@ export function PaymentMethodSelector({
             exit={{ opacity: 0, height: 0 }}
             className="overflow-hidden"
           >
-            <div className="p-4 rounded-2xl bg-muted/30 border border-border space-y-4">
-              {/* Saved UPI IDs */}
-              {onSavedMethodSelect && (
-                <div className="space-y-3">
-                  <p className="text-sm font-medium text-foreground">Your saved UPI IDs</p>
-                  <SavedPaymentMethodPicker
-                    paymentType="upi"
-                    selectedMethodId={selectedSavedMethodId || null}
-                    onMethodSelect={onSavedMethodSelect}
-                  />
-                </div>
-              )}
-
-              {/* UPI App Selection */}
-              {onUpiAppSelect && (
-                <div className="pt-3 border-t border-border/50">
-                  <p className="text-sm font-medium text-foreground mb-3">Choose your UPI app:</p>
-                  <UpiAppIcons
-                    selectedAppId={selectedUpiAppId || null}
-                    onAppSelect={onUpiAppSelect}
-                  />
-                </div>
-              )}
-
-              <p className="text-xs text-muted-foreground text-center pt-2">
-                You'll be redirected to your selected UPI app to complete payment
+            <div className="p-4 rounded-2xl bg-muted/30 border border-border">
+              <p className="text-xs text-muted-foreground text-center">
+                You'll be redirected to your UPI app to complete payment
               </p>
             </div>
           </motion.div>

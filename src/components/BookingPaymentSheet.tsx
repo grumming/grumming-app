@@ -297,10 +297,6 @@ export function BookingPaymentSheet({
             walletBalance={walletBalance}
             walletAmountToUse={walletAmountToUse}
             onWalletAmountChange={setWalletAmountToUse}
-            selectedSavedMethodId={selectedSavedMethodId}
-            onSavedMethodSelect={setSelectedSavedMethodId}
-            selectedUpiAppId={selectedUpiAppId}
-            onUpiAppSelect={setSelectedUpiAppId}
           />
         </div>
 
