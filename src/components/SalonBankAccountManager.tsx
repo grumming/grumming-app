@@ -790,144 +790,146 @@ export function SalonBankAccountManager({ salonId, salonName }: SalonBankAccount
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="space-y-4"
+          className="space-y-3"
         >
           <div className="flex items-center justify-between px-1">
-            <p className="text-sm font-medium text-muted-foreground">
+            <p className="text-sm font-semibold text-foreground">
               Saved Payout Methods
             </p>
-            <Badge variant="secondary" className="rounded-full">
-              {bankAccounts.length}
+            <Badge variant="outline" className="rounded-full text-xs font-medium">
+              {bankAccounts.length} {bankAccounts.length === 1 ? 'account' : 'accounts'}
             </Badge>
           </div>
           
-          {bankAccounts.map((account, index) => {
-            const isUpiOnly = account.account_type === 'upi';
-            
-            return (
-              <motion.div
-                key={account.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                whileHover={{ scale: 1.01, y: -2 }}
-              >
-                <Card className={`relative overflow-hidden transition-all duration-300 ${
-                  account.is_primary 
-                    ? 'border-primary/50 shadow-lg shadow-primary/10' 
-                    : 'hover:border-primary/30 hover:shadow-md'
-                }`}>
-                  {/* Primary Gradient */}
-                  {account.is_primary && (
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5" />
-                  )}
-                  
-                  <CardContent className="relative p-5">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-start gap-4">
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 ${
+          <div className="space-y-3">
+            {bankAccounts.map((account, index) => {
+              const isUpiOnly = account.account_type === 'upi';
+              
+              return (
+                <motion.div
+                  key={account.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.08 }}
+                >
+                  <Card className={`relative overflow-hidden transition-all duration-200 ${
+                    account.is_primary 
+                      ? 'border-primary bg-gradient-to-br from-primary/5 via-background to-primary/3 shadow-md' 
+                      : 'bg-card hover:shadow-sm'
+                  }`}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        {/* Icon */}
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
                           isUpiOnly 
-                            ? 'bg-gradient-to-br from-green-500 to-emerald-500 shadow-lg shadow-green-500/30' 
-                            : 'bg-gradient-to-br from-primary to-primary/70 shadow-lg shadow-primary/30'
+                            ? 'bg-gradient-to-br from-green-500 to-emerald-600 shadow-md shadow-green-500/20' 
+                            : 'bg-gradient-to-br from-primary to-primary/80 shadow-md shadow-primary/20'
                         }`}>
                           {isUpiOnly ? (
-                            <Smartphone className="w-7 h-7 text-white" />
+                            <Smartphone className="w-5 h-5 text-white" />
                           ) : (
-                            <Building2 className="w-7 h-7 text-primary-foreground" />
+                            <Building2 className="w-5 h-5 text-primary-foreground" />
                           )}
                         </div>
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-semibold text-foreground">{account.account_holder_name}</p>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <p className="font-semibold text-foreground truncate">{account.account_holder_name}</p>
+                          </div>
+                          
+                          {/* Badges Row */}
+                          <div className="flex items-center gap-1.5 flex-wrap mb-2">
                             {account.is_primary && (
-                              <Badge className="bg-primary/20 text-primary border-0 gap-1 rounded-full">
-                                <Star className="w-3 h-3 fill-current" />
+                              <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30 gap-1 text-[11px] px-2 py-0.5 rounded-full">
+                                <Star className="w-2.5 h-2.5 fill-current" />
                                 Primary
                               </Badge>
                             )}
                             {isUpiOnly && (
-                              <Badge variant="outline" className="border-green-500/50 text-green-600 bg-green-500/10 gap-1 rounded-full">
-                                <Zap className="w-3 h-3" />
+                              <Badge className="bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30 gap-1 text-[11px] px-2 py-0.5 rounded-full">
+                                <Zap className="w-2.5 h-2.5" />
                                 Instant
                               </Badge>
                             )}
                             {account.is_verified && (
-                              <Badge variant="outline" className="border-emerald-500/50 text-emerald-600 bg-emerald-500/10 gap-1 rounded-full">
-                                <Check className="w-3 h-3" />
+                              <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 gap-1 text-[11px] px-2 py-0.5 rounded-full">
+                                <CheckCircle2 className="w-2.5 h-2.5" />
                                 Verified
                               </Badge>
                             )}
                           </div>
                           
+                          {/* Account Details */}
                           {isUpiOnly ? (
-                            <p className="text-sm text-muted-foreground font-mono bg-muted/50 px-3 py-1 rounded-lg inline-block">
+                            <p className="text-sm text-muted-foreground font-mono bg-muted/50 px-2.5 py-1 rounded-md inline-block">
                               {account.upi_id}
                             </p>
                           ) : (
-                            <div className="space-y-1">
-                              <p className="text-sm text-muted-foreground flex items-center gap-2">
-                                <CreditCard className="w-4 h-4" />
-                                {account.bank_name || 'Bank Account'} • 
-                                <span className="font-mono">{maskAccountNumber(account.account_number)}</span>
+                            <div className="space-y-0.5">
+                              <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                                <span className="text-foreground/70">{account.bank_name || 'Bank'}</span>
+                                <span className="text-muted-foreground/50">•</span>
+                                <span className="font-mono text-foreground/80">{maskAccountNumber(account.account_number)}</span>
                               </p>
-                              <p className="text-xs text-muted-foreground">
-                                IFSC: <span className="font-mono">{account.ifsc_code}</span>
-                                {account.upi_id && (
-                                  <span className="ml-2">• UPI: <span className="font-mono">{account.upi_id}</span></span>
-                                )}
-                              </p>
+                              {account.upi_id && (
+                                <p className="text-xs text-muted-foreground">
+                                  UPI: <span className="font-mono">{account.upi_id}</span>
+                                </p>
+                              )}
                             </div>
                           )}
                         </div>
-                      </div>
 
-                      <div className="flex items-center gap-2">
-                        {!account.is_primary && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleSetPrimary(account.id)}
-                            className="text-xs h-9 px-3 rounded-lg hover:bg-primary/10 hover:text-primary"
-                          >
-                            Set Primary
-                          </Button>
-                        )}
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
+                        {/* Actions */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          {!account.is_primary && (
                             <Button
                               variant="ghost"
-                              size="icon"
-                              className="h-9 w-9 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                              size="sm"
+                              onClick={() => handleSetPrimary(account.id)}
+                              className="text-xs h-8 px-2.5 rounded-lg hover:bg-primary/10 hover:text-primary font-medium"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              Set Primary
                             </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent className="rounded-2xl">
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Remove Payout Method?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This will remove {isUpiOnly ? 'UPI ID' : 'bank account'} "{account.account_holder_name}" 
-                                from your payout methods. This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDeleteAccount(account.id)}
-                                className="bg-destructive hover:bg-destructive/90 rounded-xl"
+                          )}
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                               >
-                                Remove
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="rounded-2xl max-w-sm">
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Remove Payout Method?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will remove {isUpiOnly ? 'UPI ID' : 'bank account'} for "{account.account_holder_name}". 
+                                  This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteAccount(account.id)}
+                                  className="bg-destructive hover:bg-destructive/90 rounded-xl"
+                                >
+                                  Remove
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            );
-          })}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </div>
         </motion.div>
       )}
 
