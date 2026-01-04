@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Store, MapPin, Phone, Mail, Clock, CheckCircle, XCircle, 
-  Loader2, User, AlertTriangle, Eye, Calendar, Filter, X, Search
+  Loader2, User, AlertTriangle, Eye, Calendar, Filter, X, Search, Image, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
 } from '@/components/ui/dialog';
@@ -36,6 +37,7 @@ interface PendingSalon {
   opening_time: string;
   closing_time: string;
   created_at: string;
+  image_url: string | null;
   owner?: {
     user_id: string;
     full_name: string | null;
@@ -55,6 +57,9 @@ export const PendingSalonApprovals = () => {
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [salonImages, setSalonImages] = useState<string[]>([]);
+  const [isLoadingImages, setIsLoadingImages] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   
   // Filter states
   const [cityFilter, setCityFilter] = useState<string>('all');
@@ -315,9 +320,47 @@ export const PendingSalonApprovals = () => {
     }
   };
 
+  const fetchSalonImages = async (salonId: string) => {
+    setIsLoadingImages(true);
+    setSalonImages([]);
+    setCurrentImageIndex(0);
+    
+    try {
+      // List all files in the salon's folder
+      const { data: files, error } = await supabase.storage
+        .from('salon-images')
+        .list(salonId, {
+          limit: 10,
+          sortBy: { column: 'created_at', order: 'asc' }
+        });
+
+      if (error) {
+        console.error('Error fetching salon images:', error);
+        return;
+      }
+
+      if (files && files.length > 0) {
+        const imageUrls = files
+          .filter(file => file.name !== '.emptyFolderPlaceholder')
+          .map(file => {
+            const { data } = supabase.storage
+              .from('salon-images')
+              .getPublicUrl(`${salonId}/${file.name}`);
+            return data.publicUrl;
+          });
+        setSalonImages(imageUrls);
+      }
+    } catch (error) {
+      console.error('Error fetching salon images:', error);
+    } finally {
+      setIsLoadingImages(false);
+    }
+  };
+
   const openDetailDialog = (salon: PendingSalon) => {
     setSelectedSalon(salon);
     setIsDetailDialogOpen(true);
+    fetchSalonImages(salon.id);
   };
 
   if (isLoading) {
@@ -524,103 +567,179 @@ export const PendingSalonApprovals = () => {
 
       {/* Detail Dialog */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Salon Details</DialogTitle>
             <DialogDescription>Review the salon registration details</DialogDescription>
           </DialogHeader>
           
           {selectedSalon && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-16 h-16 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Store className="w-8 h-8 text-primary" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold">{selectedSalon.name}</h3>
-                  <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/30">
-                    Pending Approval
-                  </Badge>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-start gap-3">
-                  <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium">Location</p>
-                    <p className="text-sm text-muted-foreground">{selectedSalon.location}, {selectedSalon.city}</p>
-                  </div>
-                </div>
-
-                {selectedSalon.description && (
+            <>
+              <ScrollArea className="flex-1 pr-4 max-h-[60vh]">
+                <div className="space-y-4">
+                  {/* Salon Images Gallery */}
                   <div className="flex items-start gap-3">
-                    <Store className="w-4 h-4 text-muted-foreground mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium">Description</p>
-                      <p className="text-sm text-muted-foreground">{selectedSalon.description}</p>
+                    <Image className="w-4 h-4 text-muted-foreground mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium mb-2">Salon Photos</p>
+                      {isLoadingImages ? (
+                        <div className="flex items-center justify-center h-40 bg-muted/50 rounded-lg">
+                          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                        </div>
+                      ) : salonImages.length > 0 ? (
+                        <div className="space-y-2">
+                          {/* Main Image */}
+                          <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
+                            <img
+                              src={salonImages[currentImageIndex]}
+                              alt={`Salon photo ${currentImageIndex + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                            {salonImages.length > 1 && (
+                              <>
+                                <Button
+                                  variant="secondary"
+                                  size="icon"
+                                  className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm"
+                                  onClick={() => setCurrentImageIndex(prev => prev === 0 ? salonImages.length - 1 : prev - 1)}
+                                >
+                                  <ChevronLeft className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="secondary"
+                                  size="icon"
+                                  className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm"
+                                  onClick={() => setCurrentImageIndex(prev => prev === salonImages.length - 1 ? 0 : prev + 1)}
+                                >
+                                  <ChevronRight className="w-4 h-4" />
+                                </Button>
+                                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-background/80 backdrop-blur-sm rounded-full px-2 py-1 text-xs">
+                                  {currentImageIndex + 1} / {salonImages.length}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                          {/* Thumbnail Strip */}
+                          {salonImages.length > 1 && (
+                            <div className="flex gap-2 overflow-x-auto pb-1">
+                              {salonImages.map((url, idx) => (
+                                <button
+                                  key={idx}
+                                  onClick={() => setCurrentImageIndex(idx)}
+                                  className={`flex-shrink-0 w-16 h-12 rounded-md overflow-hidden border-2 transition-colors ${
+                                    idx === currentImageIndex ? 'border-primary' : 'border-transparent'
+                                  }`}
+                                >
+                                  <img
+                                    src={url}
+                                    alt={`Thumbnail ${idx + 1}`}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center h-32 bg-muted/50 rounded-lg text-muted-foreground">
+                          <Image className="w-8 h-8 mb-2 opacity-50" />
+                          <p className="text-sm">No photos uploaded</p>
+                        </div>
+                      )}
                     </div>
                   </div>
-                )}
 
-                <div className="flex items-start gap-3">
-                  <Clock className="w-4 h-4 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium">Operating Hours</p>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedSalon.opening_time} - {selectedSalon.closing_time}
-                    </p>
-                  </div>
-                </div>
-
-                {selectedSalon.phone && (
-                  <div className="flex items-start gap-3">
-                    <Phone className="w-4 h-4 text-muted-foreground mt-0.5" />
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Store className="w-6 h-6 text-primary" />
+                    </div>
                     <div>
-                      <p className="text-sm font-medium">Phone</p>
-                      <p className="text-sm text-muted-foreground">{selectedSalon.phone}</p>
+                      <h3 className="text-lg font-semibold">{selectedSalon.name}</h3>
+                      <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/30">
+                        Pending Approval
+                      </Badge>
                     </div>
                   </div>
-                )}
 
-                {selectedSalon.email && (
-                  <div className="flex items-start gap-3">
-                    <Mail className="w-4 h-4 text-muted-foreground mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium">Email</p>
-                      <p className="text-sm text-muted-foreground">{selectedSalon.email}</p>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3">
+                      <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium">Location</p>
+                        <p className="text-sm text-muted-foreground">{selectedSalon.location}, {selectedSalon.city}</p>
+                      </div>
                     </div>
-                  </div>
-                )}
 
-                {selectedSalon.owner && (
-                  <div className="flex items-start gap-3">
-                    <User className="w-4 h-4 text-muted-foreground mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium">Owner</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Avatar className="w-6 h-6">
-                          <AvatarImage src={selectedSalon.owner.avatar_url || ''} />
-                          <AvatarFallback>{selectedSalon.owner.full_name?.charAt(0) || 'O'}</AvatarFallback>
-                        </Avatar>
-                        <span className="text-sm text-muted-foreground">
-                          {selectedSalon.owner.full_name || 'Unknown'} • {getDisplayContact(selectedSalon.owner.phone, selectedSalon.owner.email)}
-                        </span>
+                    {selectedSalon.description && (
+                      <div className="flex items-start gap-3">
+                        <Store className="w-4 h-4 text-muted-foreground mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium">Description</p>
+                          <p className="text-sm text-muted-foreground">{selectedSalon.description}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-start gap-3">
+                      <Clock className="w-4 h-4 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium">Operating Hours</p>
+                        <p className="text-sm text-muted-foreground">
+                          {selectedSalon.opening_time} - {selectedSalon.closing_time}
+                        </p>
+                      </div>
+                    </div>
+
+                    {selectedSalon.phone && (
+                      <div className="flex items-start gap-3">
+                        <Phone className="w-4 h-4 text-muted-foreground mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium">Phone</p>
+                          <p className="text-sm text-muted-foreground">{selectedSalon.phone}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedSalon.email && (
+                      <div className="flex items-start gap-3">
+                        <Mail className="w-4 h-4 text-muted-foreground mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium">Email</p>
+                          <p className="text-sm text-muted-foreground">{selectedSalon.email}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedSalon.owner && (
+                      <div className="flex items-start gap-3">
+                        <User className="w-4 h-4 text-muted-foreground mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium">Owner</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Avatar className="w-6 h-6">
+                              <AvatarImage src={selectedSalon.owner.avatar_url || ''} />
+                              <AvatarFallback>{selectedSalon.owner.full_name?.charAt(0) || 'O'}</AvatarFallback>
+                            </Avatar>
+                            <span className="text-sm text-muted-foreground">
+                              {selectedSalon.owner.full_name || 'Unknown'} • {getDisplayContact(selectedSalon.owner.phone, selectedSalon.owner.email)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-start gap-3">
+                      <Calendar className="w-4 h-4 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium">Submitted</p>
+                        <p className="text-sm text-muted-foreground">
+                          {format(new Date(selectedSalon.created_at), 'MMMM d, yyyy \'at\' h:mm a')}
+                        </p>
                       </div>
                     </div>
                   </div>
-                )}
-
-                <div className="flex items-start gap-3">
-                  <Calendar className="w-4 h-4 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium">Submitted</p>
-                    <p className="text-sm text-muted-foreground">
-                      {format(new Date(selectedSalon.created_at), 'MMMM d, yyyy \'at\' h:mm a')}
-                    </p>
-                  </div>
                 </div>
-              </div>
+              </ScrollArea>
 
               <div className="flex justify-end gap-2 pt-4 border-t">
                 <Button
@@ -644,7 +763,7 @@ export const PendingSalonApprovals = () => {
                   Approve
                 </Button>
               </div>
-            </div>
+            </>
           )}
         </DialogContent>
       </Dialog>
