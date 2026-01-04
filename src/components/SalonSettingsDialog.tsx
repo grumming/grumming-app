@@ -74,11 +74,33 @@ interface SalonFormData {
   amenities: string[];
 }
 
+interface DayHours {
+  day_of_week: number;
+  is_open: boolean;
+  opening_time: string;
+  closing_time: string;
+}
+
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+const DEFAULT_DAY_HOURS: DayHours[] = [
+  { day_of_week: 0, is_open: false, opening_time: '09:00', closing_time: '21:00' }, // Sunday
+  { day_of_week: 1, is_open: true, opening_time: '09:00', closing_time: '21:00' },
+  { day_of_week: 2, is_open: true, opening_time: '09:00', closing_time: '21:00' },
+  { day_of_week: 3, is_open: true, opening_time: '09:00', closing_time: '21:00' },
+  { day_of_week: 4, is_open: true, opening_time: '09:00', closing_time: '21:00' },
+  { day_of_week: 5, is_open: true, opening_time: '09:00', closing_time: '21:00' },
+  { day_of_week: 6, is_open: true, opening_time: '09:00', closing_time: '21:00' },
+];
+
 const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: SalonSettingsDialogProps) => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('general');
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [dayHours, setDayHours] = useState<DayHours[]>(DEFAULT_DAY_HOURS);
+  const [useDaySpecificHours, setUseDaySpecificHours] = useState(false);
+  const [loadingHours, setLoadingHours] = useState(false);
 
   const [formData, setFormData] = useState<SalonFormData>({
     name: '',
@@ -110,8 +132,45 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
     return match ? `${match[1]}:${match[2]}` : fallback;
   };
 
+  // Fetch day-specific hours
+  const fetchDayHours = async (salonId: string) => {
+    setLoadingHours(true);
+    try {
+      const { data, error } = await supabase
+        .from('salon_business_hours')
+        .select('*')
+        .eq('salon_id', salonId)
+        .order('day_of_week');
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        setUseDaySpecificHours(true);
+        const hours = data.map(d => ({
+          day_of_week: d.day_of_week,
+          is_open: d.is_open,
+          opening_time: normalizeTime(d.opening_time, '09:00'),
+          closing_time: normalizeTime(d.closing_time, '21:00'),
+        }));
+        // Fill in any missing days
+        const fullHours = DEFAULT_DAY_HOURS.map(defaultDay => {
+          const existing = hours.find(h => h.day_of_week === defaultDay.day_of_week);
+          return existing || defaultDay;
+        });
+        setDayHours(fullHours);
+      } else {
+        setUseDaySpecificHours(false);
+        setDayHours(DEFAULT_DAY_HOURS);
+      }
+    } catch (error) {
+      console.error('Error fetching business hours:', error);
+    } finally {
+      setLoadingHours(false);
+    }
+  };
+
   useEffect(() => {
-    if (salon) {
+    if (salon && open) {
       setFormData({
         name: salon.name || '',
         description: salon.description || '',
@@ -125,6 +184,7 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
         amenities: salon.amenities || [],
       });
       setHasChanges(false);
+      fetchDayHours(salon.id);
     }
   }, [salon, open]);
 
@@ -138,6 +198,58 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
       ? formData.amenities.filter(a => a !== amenityId)
       : [...formData.amenities, amenityId];
     handleInputChange('amenities', newAmenities);
+  };
+
+  const handleDayHoursChange = (dayIndex: number, field: keyof DayHours, value: string | boolean) => {
+    setDayHours(prev => prev.map((day, idx) => 
+      idx === dayIndex ? { ...day, [field]: value } : day
+    ));
+    setHasChanges(true);
+  };
+
+  const applyToAllDays = () => {
+    const firstOpenDay = dayHours.find(d => d.is_open);
+    if (firstOpenDay) {
+      setDayHours(prev => prev.map(day => ({
+        ...day,
+        opening_time: firstOpenDay.opening_time,
+        closing_time: firstOpenDay.closing_time,
+      })));
+      setHasChanges(true);
+      toast({
+        title: "Applied to all days",
+        description: `Set all days to ${firstOpenDay.opening_time} - ${firstOpenDay.closing_time}`,
+      });
+    }
+  };
+
+  const saveDaySpecificHours = async () => {
+    if (!salon) return;
+
+    try {
+      // Delete existing hours
+      await supabase
+        .from('salon_business_hours')
+        .delete()
+        .eq('salon_id', salon.id);
+
+      // Insert new hours
+      const hoursToInsert = dayHours.map(day => ({
+        salon_id: salon.id,
+        day_of_week: day.day_of_week,
+        is_open: day.is_open,
+        opening_time: day.opening_time + ':00',
+        closing_time: day.closing_time + ':00',
+      }));
+
+      const { error } = await supabase
+        .from('salon_business_hours')
+        .insert(hoursToInsert);
+
+      if (error) throw error;
+    } catch (error) {
+      throw error;
+    }
   };
 
   const handleSaveChanges = async () => {
@@ -163,6 +275,11 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
         .eq('id', salon.id);
 
       if (error) throw error;
+
+      // Save day-specific hours if enabled
+      if (useDaySpecificHours) {
+        await saveDaySpecificHours();
+      }
 
       toast({
         title: "Settings saved",
@@ -383,79 +500,199 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
                       <p className="text-sm text-muted-foreground">Set your salon's operating hours</p>
                     </div>
 
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="opening_time">Opening Time</Label>
-                          <Select
-                            value={formData.opening_time}
-                            onValueChange={(v) => handleInputChange('opening_time', v)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {Array.from({ length: 24 }, (_, i) => {
-                                const hour = i.toString().padStart(2, '0');
-                                return (
-                                  <SelectItem key={hour} value={`${hour}:00`}>
-                                    {hour}:00
-                                  </SelectItem>
-                                );
-                              })}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="closing_time">Closing Time</Label>
-                          <Select
-                            value={formData.closing_time}
-                            onValueChange={(v) => handleInputChange('closing_time', v)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {Array.from({ length: 24 }, (_, i) => {
-                                const hour = i.toString().padStart(2, '0');
-                                return (
-                                  <SelectItem key={hour} value={`${hour}:00`}>
-                                    {hour}:00
-                                  </SelectItem>
-                                );
-                              })}
-                            </SelectContent>
-                          </Select>
-                        </div>
+                    {loadingHours ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="w-6 h-6 animate-spin text-primary" />
                       </div>
-
-                      <div className="p-4 bg-muted/50 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <Clock className="w-5 h-5 text-primary" />
-                          <div>
-                            <p className="text-sm font-medium">Current Schedule</p>
-                            <p className="text-sm text-muted-foreground">
-                              {formData.opening_time} - {formData.closing_time} (All days)
-                            </p>
+                    ) : (
+                      <div className="space-y-4">
+                        {/* Toggle for day-specific hours */}
+                        <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <Calendar className="w-5 h-5 text-primary" />
+                            <div>
+                              <p className="text-sm font-medium">Day-specific hours</p>
+                              <p className="text-xs text-muted-foreground">
+                                Set different hours for each day
+                              </p>
+                            </div>
                           </div>
+                          <Switch
+                            checked={useDaySpecificHours}
+                            onCheckedChange={(checked) => {
+                              setUseDaySpecificHours(checked);
+                              setHasChanges(true);
+                            }}
+                          />
                         </div>
-                      </div>
 
-                      <div className="p-4 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
-                        <div className="flex gap-3">
-                          <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0" />
-                          <div>
-                            <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
-                              Day-specific hours coming soon
-                            </p>
-                            <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
-                              Set different hours for each day of the week
-                            </p>
-                          </div>
-                        </div>
+                        {!useDaySpecificHours ? (
+                          <>
+                            {/* Simple hours for all days */}
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="opening_time">Opening Time</Label>
+                                <Select
+                                  value={formData.opening_time}
+                                  onValueChange={(v) => handleInputChange('opening_time', v)}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {Array.from({ length: 24 }, (_, i) => {
+                                      const hour = i.toString().padStart(2, '0');
+                                      return (
+                                        <SelectItem key={hour} value={`${hour}:00`}>
+                                          {hour}:00
+                                        </SelectItem>
+                                      );
+                                    })}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label htmlFor="closing_time">Closing Time</Label>
+                                <Select
+                                  value={formData.closing_time}
+                                  onValueChange={(v) => handleInputChange('closing_time', v)}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {Array.from({ length: 24 }, (_, i) => {
+                                      const hour = i.toString().padStart(2, '0');
+                                      return (
+                                        <SelectItem key={hour} value={`${hour}:00`}>
+                                          {hour}:00
+                                        </SelectItem>
+                                      );
+                                    })}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+
+                            <div className="p-4 bg-muted/30 rounded-lg">
+                              <div className="flex items-center gap-3">
+                                <Clock className="w-5 h-5 text-primary" />
+                                <div>
+                                  <p className="text-sm font-medium">Current Schedule</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {formData.opening_time} - {formData.closing_time} (All days)
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            {/* Day-specific hours editor */}
+                            <div className="flex justify-end">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={applyToAllDays}
+                              >
+                                Apply first day's hours to all
+                              </Button>
+                            </div>
+
+                            <div className="space-y-3">
+                              {dayHours.map((day, idx) => (
+                                <div
+                                  key={day.day_of_week}
+                                  className={`p-3 rounded-lg border transition-colors ${
+                                    day.is_open 
+                                      ? 'bg-background border-border' 
+                                      : 'bg-muted/50 border-muted'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-4">
+                                    {/* Day name and toggle */}
+                                    <div className="flex items-center gap-3 min-w-[140px]">
+                                      <Switch
+                                        checked={day.is_open}
+                                        onCheckedChange={(checked) => handleDayHoursChange(idx, 'is_open', checked)}
+                                      />
+                                      <span className={`text-sm font-medium ${!day.is_open ? 'text-muted-foreground' : ''}`}>
+                                        {DAY_NAMES[day.day_of_week]}
+                                      </span>
+                                    </div>
+
+                                    {/* Time selectors */}
+                                    {day.is_open ? (
+                                      <div className="flex items-center gap-2 flex-1">
+                                        <Select
+                                          value={day.opening_time}
+                                          onValueChange={(v) => handleDayHoursChange(idx, 'opening_time', v)}
+                                        >
+                                          <SelectTrigger className="w-24 h-8 text-xs">
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {Array.from({ length: 24 }, (_, i) => {
+                                              const hour = i.toString().padStart(2, '0');
+                                              return (
+                                                <SelectItem key={hour} value={`${hour}:00`}>
+                                                  {hour}:00
+                                                </SelectItem>
+                                              );
+                                            })}
+                                          </SelectContent>
+                                        </Select>
+                                        <span className="text-muted-foreground text-xs">to</span>
+                                        <Select
+                                          value={day.closing_time}
+                                          onValueChange={(v) => handleDayHoursChange(idx, 'closing_time', v)}
+                                        >
+                                          <SelectTrigger className="w-24 h-8 text-xs">
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {Array.from({ length: 24 }, (_, i) => {
+                                              const hour = i.toString().padStart(2, '0');
+                                              return (
+                                                <SelectItem key={hour} value={`${hour}:00`}>
+                                                  {hour}:00
+                                                </SelectItem>
+                                              );
+                                            })}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                    ) : (
+                                      <Badge variant="secondary" className="text-xs">
+                                        Closed
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* Summary */}
+                            <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
+                              <div className="flex items-start gap-3">
+                                <Check className="w-5 h-5 text-primary mt-0.5" />
+                                <div>
+                                  <p className="text-sm font-medium">Schedule Summary</p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Open {dayHours.filter(d => d.is_open).length} days a week
+                                    {dayHours.filter(d => !d.is_open).length > 0 && (
+                                      <> • Closed on {dayHours.filter(d => !d.is_open).map(d => DAY_NAMES[d.day_of_week]).join(', ')}</>
+                                    )}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </>
+                        )}
                       </div>
-                    </div>
+                    )}
                   </motion.div>
                 )}
 
