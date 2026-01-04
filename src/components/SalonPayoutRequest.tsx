@@ -197,6 +197,18 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
 
       if (penaltiesError) throw penaltiesError;
 
+      // Fetch already remitted penalties to properly account for them in balance
+      const { data: remittedPenalties, error: remittedError } = await supabase
+        .from('cancellation_penalties')
+        .select('penalty_amount')
+        .eq('collecting_salon_id', salonId)
+        .eq('is_paid', true)
+        .eq('remitted_to_platform', true);
+
+      if (remittedError) throw remittedError;
+      
+      const totalRemittedPenalties = remittedPenalties?.reduce((sum, p) => sum + Number(p.penalty_amount), 0) || 0;
+
       // Fetch customer names for penalties
       const penaltiesWithNames: PenaltyDetail[] = [];
       if (unremittedPenalties && unremittedPenalties.length > 0) {
@@ -229,12 +241,16 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
       // Pending settlement = payout requests that are pending (not yet approved)
       const pendingPayoutAmount = requests?.filter(r => r.status === 'pending').reduce((sum, r) => sum + Number(r.amount), 0) || 0;
       
+      // Include remitted penalties in the "paid out" calculation since they were deducted from payouts
+      // This ensures remitted penalties don't show up as available balance
+      const effectivePaidOut = totalPaidOut + totalRemittedPenalties;
+      
       // Deduct penalties owed to platform from available balance
       // Round to 2 decimal places to avoid floating-point precision errors
-      const netAvailable = Math.round(Math.max(0, availableAmount - totalPaidOut - pendingRequests - totalPenaltiesOwed) * 100) / 100;
+      const netAvailable = Math.round(Math.max(0, availableAmount - effectivePaidOut - pendingRequests - totalPenaltiesOwed) * 100) / 100;
       
-      // Total balance should also reflect penalties owed
-      const grossBalance = Math.round((totalEarned - totalPaidOut) * 100) / 100;
+      // Total balance should also reflect remitted penalties as "paid out"
+      const grossBalance = Math.round((totalEarned - effectivePaidOut) * 100) / 100;
       
       setPendingBalance({
         total: grossBalance,
