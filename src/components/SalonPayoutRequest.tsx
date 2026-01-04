@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
-import { Wallet, ArrowUpRight, Clock, CheckCircle, AlertCircle, Building2, Loader2, Smartphone, Zap, IndianRupee, Check, Sparkles, PartyPopper } from 'lucide-react';
+import { Wallet, ArrowUpRight, Clock, CheckCircle, AlertCircle, Building2, Loader2, Smartphone, Zap, IndianRupee, Check, Sparkles, PartyPopper, ChevronDown, ChevronUp, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -48,12 +48,24 @@ interface PendingBalance {
   penaltiesOwed: number; // Penalties collected via cash that need to be remitted to platform
 }
 
+interface PenaltyDetail {
+  id: string;
+  penalty_amount: number;
+  salon_name: string;
+  service_name: string;
+  created_at: string;
+  user_id: string;
+  customer_name?: string;
+}
+
 const INSTANT_PAYOUT_FEE_PERCENT = 1; // 1% convenience fee for instant payouts
 
 export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRequestProps) {
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [payoutRequests, setPayoutRequests] = useState<PayoutRequest[]>([]);
   const [pendingBalance, setPendingBalance] = useState<PendingBalance>({ total: 0, availableForPayout: 0, pendingSettlement: 0, penaltiesOwed: 0 });
+  const [penaltyDetails, setPenaltyDetails] = useState<PenaltyDetail[]>([]);
+  const [showPenaltyBreakdown, setShowPenaltyBreakdown] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -177,13 +189,34 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
       // Fetch unremitted penalties collected by this salon (cash payments)
       const { data: unremittedPenalties, error: penaltiesError } = await supabase
         .from('cancellation_penalties')
-        .select('penalty_amount')
+        .select('id, penalty_amount, salon_name, service_name, created_at, user_id')
         .eq('collecting_salon_id', salonId)
         .eq('is_paid', true)
-        .eq('remitted_to_platform', false);
+        .eq('remitted_to_platform', false)
+        .order('created_at', { ascending: false });
 
       if (penaltiesError) throw penaltiesError;
 
+      // Fetch customer names for penalties
+      const penaltiesWithNames: PenaltyDetail[] = [];
+      if (unremittedPenalties && unremittedPenalties.length > 0) {
+        const userIds = [...new Set(unremittedPenalties.map(p => p.user_id))];
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, full_name')
+          .in('user_id', userIds);
+        
+        const profileMap = new Map(profiles?.map(p => [p.user_id, p.full_name]) || []);
+        
+        for (const penalty of unremittedPenalties) {
+          penaltiesWithNames.push({
+            ...penalty,
+            customer_name: profileMap.get(penalty.user_id) || 'Customer'
+          });
+        }
+      }
+      
+      setPenaltyDetails(penaltiesWithNames);
       const totalPenaltiesOwed = unremittedPenalties?.reduce((sum, p) => sum + Number(p.penalty_amount), 0) || 0;
 
       const totalEarned = payments?.reduce((sum, p) => sum + Number(p.salon_amount), 0) || 0;
@@ -891,12 +924,63 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                                     <span className="font-medium font-sans">₹{parseFloat(requestAmount).toLocaleString('en-IN')}</span>
                                   </div>
                                   {pendingBalance.penaltiesOwed > 0 && (
-                                    <div className="flex justify-between text-red-600">
-                                      <span className="flex items-center gap-1">
-                                        <AlertCircle className="h-3 w-3" />
-                                        Penalty Deduction
-                                      </span>
-                                      <span className="font-medium font-sans">-₹{pendingBalance.penaltiesOwed.toLocaleString('en-IN')}</span>
+                                    <div className="space-y-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => setShowPenaltyBreakdown(!showPenaltyBreakdown)}
+                                        className="flex justify-between items-center w-full text-red-600 hover:text-red-700 transition-colors"
+                                      >
+                                        <span className="flex items-center gap-1">
+                                          <AlertCircle className="h-3 w-3" />
+                                          Penalty Deduction ({penaltyDetails.length})
+                                          {showPenaltyBreakdown ? (
+                                            <ChevronUp className="h-3 w-3" />
+                                          ) : (
+                                            <ChevronDown className="h-3 w-3" />
+                                          )}
+                                        </span>
+                                        <span className="font-medium font-sans">-₹{pendingBalance.penaltiesOwed.toLocaleString('en-IN')}</span>
+                                      </button>
+                                      
+                                      <AnimatePresence>
+                                        {showPenaltyBreakdown && (
+                                          <motion.div
+                                            initial={{ opacity: 0, height: 0 }}
+                                            animate={{ opacity: 1, height: 'auto' }}
+                                            exit={{ opacity: 0, height: 0 }}
+                                            className="overflow-hidden"
+                                          >
+                                            <div className="p-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 space-y-2 mt-1">
+                                              <p className="text-[10px] text-red-500 dark:text-red-400 font-medium uppercase tracking-wide">
+                                                Penalties Collected (Owed to Platform)
+                                              </p>
+                                              <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                                                {penaltyDetails.map((penalty) => (
+                                                  <div 
+                                                    key={penalty.id}
+                                                    className="flex items-center justify-between text-xs bg-white/50 dark:bg-black/20 rounded px-2 py-1.5"
+                                                  >
+                                                    <div className="flex items-center gap-2 min-w-0">
+                                                      <User className="h-3 w-3 text-red-400 shrink-0" />
+                                                      <div className="min-w-0">
+                                                        <p className="font-medium text-red-700 dark:text-red-300 truncate">
+                                                          {penalty.customer_name}
+                                                        </p>
+                                                        <p className="text-[10px] text-red-500/70 truncate">
+                                                          {penalty.service_name} • {format(new Date(penalty.created_at), 'dd MMM')}
+                                                        </p>
+                                                      </div>
+                                                    </div>
+                                                    <span className="font-semibold text-red-600 font-sans shrink-0 ml-2">
+                                                      ₹{Number(penalty.penalty_amount).toLocaleString('en-IN')}
+                                                    </span>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          </motion.div>
+                                        )}
+                                      </AnimatePresence>
                                     </div>
                                   )}
                                   {payoutMethod === 'instant_upi' && (
@@ -915,18 +999,6 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                                     </span>
                                   </div>
                                 </div>
-                                
-                                {/* Penalty Warning */}
-                                {pendingBalance.penaltiesOwed > 0 && (
-                                  <div className="mt-3 p-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50">
-                                    <p className="text-xs text-red-600 dark:text-red-400 flex items-start gap-1.5">
-                                      <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                                      <span>
-                                        You collected <span className="font-semibold font-sans">₹{pendingBalance.penaltiesOwed.toLocaleString('en-IN')}</span> in cancellation penalties that belong to the platform. This will be deducted from your payout.
-                                      </span>
-                                    </p>
-                                  </div>
-                                )}
                                 
                                 {/* Estimated Arrival Time */}
                                 <div className="mt-3 pt-3 border-t border-dashed space-y-2">
