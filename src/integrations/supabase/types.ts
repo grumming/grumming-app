@@ -1203,6 +1203,47 @@ export type Database = {
           },
         ]
       }
+      salon_business_hours: {
+        Row: {
+          closing_time: string
+          created_at: string
+          day_of_week: number
+          id: string
+          is_open: boolean
+          opening_time: string
+          salon_id: string
+          updated_at: string
+        }
+        Insert: {
+          closing_time?: string
+          created_at?: string
+          day_of_week: number
+          id?: string
+          is_open?: boolean
+          opening_time?: string
+          salon_id: string
+          updated_at?: string
+        }
+        Update: {
+          closing_time?: string
+          created_at?: string
+          day_of_week?: number
+          id?: string
+          is_open?: boolean
+          opening_time?: string
+          salon_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_business_hours_salon_id_fkey"
+            columns: ["salon_id"]
+            isOneToOne: false
+            referencedRelation: "salons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       salon_owners: {
         Row: {
           created_at: string
