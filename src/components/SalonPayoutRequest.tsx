@@ -230,16 +230,17 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
       const pendingPayoutAmount = requests?.filter(r => r.status === 'pending').reduce((sum, r) => sum + Number(r.amount), 0) || 0;
       
       // Deduct penalties owed to platform from available balance
-      const netAvailable = Math.max(0, availableAmount - totalPaidOut - pendingRequests - totalPenaltiesOwed);
+      // Round to 2 decimal places to avoid floating-point precision errors
+      const netAvailable = Math.round(Math.max(0, availableAmount - totalPaidOut - pendingRequests - totalPenaltiesOwed) * 100) / 100;
       
       // Total balance should also reflect penalties owed
-      const grossBalance = totalEarned - totalPaidOut;
+      const grossBalance = Math.round((totalEarned - totalPaidOut) * 100) / 100;
       
       setPendingBalance({
         total: grossBalance,
         availableForPayout: netAvailable,
-        pendingSettlement: pendingPayoutAmount,
-        penaltiesOwed: totalPenaltiesOwed
+        pendingSettlement: Math.round(pendingPayoutAmount * 100) / 100,
+        penaltiesOwed: Math.round(totalPenaltiesOwed * 100) / 100
       });
 
     } catch (error) {
@@ -731,9 +732,9 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                onClick={() => setRequestAmount(Math.floor(pendingBalance.availableForPayout * 100) / 100 + '')}
+                                onClick={() => setRequestAmount(pendingBalance.availableForPayout.toString())}
                                 className={`px-4 py-2 h-auto text-sm font-medium transition-all duration-200 ${
-                                  parseFloat(requestAmount) === Math.floor(pendingBalance.availableForPayout * 100) / 100
+                                  parseFloat(requestAmount) === pendingBalance.availableForPayout
                                     ? 'bg-primary text-primary-foreground border-primary shadow-sm'
                                     : 'border-primary/30 text-primary hover:bg-primary/5'
                                 }`}
