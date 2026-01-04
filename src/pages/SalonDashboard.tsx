@@ -1282,24 +1282,18 @@ const SalonDashboard = () => {
             {/* Overview Tab */}
             <TabsContent value="overview" className="space-y-6">
               {/* Back Button */}
-              {/* Professional Header */}
-              <div className="flex items-center gap-3 mb-4">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => {
-                    setActiveTab('bookings');
-                    navigate('/salon-dashboard?tab=bookings');
-                  }}
-                  className="h-9 w-9 rounded-full border-border/50 hover:bg-muted/80"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-                <div>
-                  <h1 className="text-lg font-semibold">Overview</h1>
-                  <p className="text-xs text-muted-foreground">Salon performance & stats</p>
-                </div>
-              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setActiveTab('bookings');
+                  navigate('/salon-dashboard?tab=bookings');
+                }}
+                className="flex items-center gap-2 text-muted-foreground hover:text-foreground -ml-2 mb-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Dashboard
+              </Button>
 
               {/* Salon Header Card */}
               <motion.div
