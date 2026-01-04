@@ -233,7 +233,15 @@ const MyBookings = () => {
                                 </p>
                               )}
                             </div>
-                            {getStatusBadge(booking.status, booking.booking_date)}
+                            <div className="flex flex-col items-end gap-1">
+                              {getStatusBadge(booking.status, booking.booking_date)}
+                              {(booking.status === 'confirmed' || booking.payment_id) && (
+                                <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 gap-1">
+                                  <CheckCircle2 className="w-3 h-3" />
+                                  Paid
+                                </Badge>
+                              )}
+                            </div>
                           </div>
                           
                           <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-4">
