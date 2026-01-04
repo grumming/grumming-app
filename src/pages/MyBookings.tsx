@@ -127,13 +127,16 @@ const MyBookings = () => {
 
   const upcomingBookings = bookings.filter(b => {
     const date = parseISO(b.booking_date);
-    return b.status === 'upcoming' && (!isPast(date) || isToday(date));
+    // Include 'upcoming', 'confirmed', and 'pending_payment' statuses as upcoming
+    return ['upcoming', 'confirmed', 'pending_payment'].includes(b.status) && (!isPast(date) || isToday(date));
   });
 
   const pastBookings = bookings
     .filter(b => {
       const date = parseISO(b.booking_date);
-      return b.status === 'completed' || b.status === 'cancelled' || (b.status === 'upcoming' && isPast(date) && !isToday(date));
+      // Include past bookings: completed, cancelled, or any booking with a past date
+      return b.status === 'completed' || b.status === 'cancelled' || 
+        (['upcoming', 'confirmed', 'pending_payment'].includes(b.status) && isPast(date) && !isToday(date));
     })
     .sort((a, b) => {
       // Sort by date descending, then by time descending
