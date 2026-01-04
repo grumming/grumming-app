@@ -1436,32 +1436,41 @@ const SalonDashboard = () => {
             {/* Bookings Tab */}
             <TabsContent value="bookings" className="space-y-4">
               <Tabs defaultValue="upcoming" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 mb-4">
-                  <TabsTrigger value="upcoming" className="flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    Upcoming
+                <TabsList className="grid w-full grid-cols-3 mb-4 h-auto p-1.5 bg-muted/60 backdrop-blur-sm rounded-xl border border-border/50 shadow-sm">
+                  <TabsTrigger 
+                    value="upcoming" 
+                    className="relative flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-background data-[state=active]:shadow-md data-[state=active]:text-primary data-[state=active]:border-primary/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-muted/80"
+                  >
+                    <Clock className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">Upcoming</span>
                     {bookings.filter(b => b.status === 'upcoming').length > 0 && (
-                      <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                      <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold rounded-full bg-primary/15 text-primary border border-primary/20">
                         {bookings.filter(b => b.status === 'upcoming').length}
-                      </Badge>
+                      </span>
                     )}
                   </TabsTrigger>
-                  <TabsTrigger value="completed" className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4" />
-                    Completed
+                  <TabsTrigger 
+                    value="completed" 
+                    className="relative flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-background data-[state=active]:shadow-md data-[state=active]:text-emerald-600 data-[state=active]:border-emerald-200/50 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-muted/80"
+                  >
+                    <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">Completed</span>
                     {bookings.filter(b => b.status === 'completed').length > 0 && (
-                      <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                      <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold rounded-full bg-emerald-500/15 text-emerald-600 border border-emerald-200/50">
                         {bookings.filter(b => b.status === 'completed').length}
-                      </Badge>
+                      </span>
                     )}
                   </TabsTrigger>
-                  <TabsTrigger value="cancelled" className="flex items-center gap-2">
-                    <XCircle className="w-4 h-4" />
-                    Cancelled
+                  <TabsTrigger 
+                    value="cancelled" 
+                    className="relative flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-background data-[state=active]:shadow-md data-[state=active]:text-destructive data-[state=active]:border-destructive/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-muted/80"
+                  >
+                    <XCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">Cancelled</span>
                     {bookings.filter(b => b.status === 'cancelled').length > 0 && (
-                      <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                      <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold rounded-full bg-destructive/15 text-destructive border border-destructive/20">
                         {bookings.filter(b => b.status === 'cancelled').length}
-                      </Badge>
+                      </span>
                     )}
                   </TabsTrigger>
                 </TabsList>
