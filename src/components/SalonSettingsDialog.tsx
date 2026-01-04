@@ -724,37 +724,6 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
                       </p>
                     </div>
 
-                    {/* Upload Button */}
-                    <div className="flex items-center gap-3">
-                      <label className="cursor-pointer">
-                        <input
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp,image/gif"
-                          className="hidden"
-                          onChange={handleUploadImage}
-                          disabled={uploadingImage}
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="gap-2"
-                          disabled={uploadingImage}
-                          asChild
-                        >
-                          <span>
-                            {uploadingImage ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Upload className="w-4 h-4" />
-                            )}
-                            {uploadingImage ? 'Uploading...' : 'Upload New Photo'}
-                          </span>
-                        </Button>
-                      </label>
-                      <p className="text-xs text-muted-foreground">
-                        JPG, PNG, WebP or GIF
-                      </p>
-                    </div>
 
                     {/* Images Grid */}
                     {loadingImages ? (
