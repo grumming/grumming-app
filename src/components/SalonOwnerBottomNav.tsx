@@ -1,11 +1,11 @@
-import { Home, LayoutDashboard, BarChart3 } from "lucide-react";
+import { Home, LayoutDashboard, Settings } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 
 const navItems = [
   { name: "Dashboard", icon: Home, path: "/salon-dashboard" },
   { name: "Overview", icon: LayoutDashboard, path: "/salon-dashboard?tab=overview" },
-  { name: "Analytics", icon: BarChart3, path: "/salon-dashboard?tab=earnings" },
+  { name: "Manage", icon: Settings, path: "/salon-dashboard?tab=manage" },
 ];
 
 const SalonOwnerBottomNav = () => {
@@ -19,7 +19,7 @@ const SalonOwnerBottomNav = () => {
     
     if (currentPath === '/salon-dashboard') {
       if (tab === 'overview') return 'Overview';
-      if (tab === 'earnings') return 'Analytics';
+      if (tab === 'manage') return 'Manage';
       return 'Dashboard';
     }
     
