@@ -24,12 +24,24 @@ interface PaymentOptions {
   penaltyAmount?: number; // Cancellation penalty from previous booking (platform revenue)
 }
 
+interface PaymentError {
+  code?: string;
+  reason?: string;
+  description?: string;
+  source?: string;
+  step?: string;
+  metadata?: Record<string, any>;
+}
+
 interface PaymentResult {
   success: boolean;
   paymentId?: string;
   error?: string;
+  errorDetails?: PaymentError;
   isSimulated?: boolean;
 }
+
+export type { PaymentError, PaymentResult };
 
 // Fetch payment test mode settings from database
 async function getPaymentTestMode(): Promise<PaymentTestModeSettings | null> {
@@ -254,9 +266,20 @@ export const useRazorpay = () => {
           const err = response?.error;
           console.error('Razorpay payment.failed', err);
           setIsLoading(false);
+          
+          const errorDetails: PaymentError = {
+            code: err?.code,
+            reason: err?.reason,
+            description: err?.description,
+            source: err?.source,
+            step: err?.step,
+            metadata: err?.metadata,
+          };
+          
           resolve({
             success: false,
             error: err?.description || err?.reason || err?.code || 'Payment failed',
+            errorDetails,
           });
         });
         razorpay.open();
