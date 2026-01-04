@@ -333,12 +333,14 @@ export const PendingSalonApprovals = () => {
     }
   };
 
-  const fetchSalonImages = async (salonId: string) => {
+  const fetchSalonImages = async (salonId: string, mainImageUrl: string | null) => {
     setIsLoadingImages(true);
     setSalonImages([]);
     setCurrentImageIndex(0);
     
     try {
+      const allImages: string[] = [];
+      
       // List all files in the salon's folder
       const { data: files, error } = await supabase.storage
         .from('salon-images')
@@ -347,12 +349,7 @@ export const PendingSalonApprovals = () => {
           sortBy: { column: 'created_at', order: 'asc' }
         });
 
-      if (error) {
-        console.error('Error fetching salon images:', error);
-        return;
-      }
-
-      if (files && files.length > 0) {
+      if (!error && files && files.length > 0) {
         const imageUrls = files
           .filter(file => file.name !== '.emptyFolderPlaceholder')
           .map(file => {
@@ -361,10 +358,21 @@ export const PendingSalonApprovals = () => {
               .getPublicUrl(`${salonId}/${file.name}`);
             return data.publicUrl;
           });
-        setSalonImages(imageUrls);
+        allImages.push(...imageUrls);
       }
+      
+      // If no images found in storage but there's a main image_url, use that
+      if (allImages.length === 0 && mainImageUrl) {
+        allImages.push(mainImageUrl);
+      }
+      
+      setSalonImages(allImages);
     } catch (error) {
       console.error('Error fetching salon images:', error);
+      // Fallback to main image_url if storage fetch fails
+      if (mainImageUrl) {
+        setSalonImages([mainImageUrl]);
+      }
     } finally {
       setIsLoadingImages(false);
     }
@@ -397,7 +405,7 @@ export const PendingSalonApprovals = () => {
   const openDetailDialog = (salon: PendingSalon) => {
     setSelectedSalon(salon);
     setIsDetailDialogOpen(true);
-    fetchSalonImages(salon.id);
+    fetchSalonImages(salon.id, salon.image_url);
     fetchSalonServices(salon.id);
   };
 
