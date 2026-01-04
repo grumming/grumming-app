@@ -500,11 +500,45 @@ const salonsData: Record<string, any> = {
   },
 };
 
-const timeSlots = [
+// Helper function to generate time slots dynamically based on business hours
+const generateTimeSlots = (openingTime: string, closingTime: string, intervalMinutes: number = 30): string[] => {
+  const slots: string[] = [];
+  
+  // Parse opening and closing times (format: "HH:MM" or "HH:MM:SS")
+  const [openHour, openMin] = openingTime.split(':').map(Number);
+  const [closeHour, closeMin] = closingTime.split(':').map(Number);
+  
+  let currentHour = openHour;
+  let currentMin = openMin;
+  
+  const closeTimeValue = closeHour * 60 + closeMin;
+  
+  while (currentHour * 60 + currentMin < closeTimeValue) {
+    // Format to 12-hour with AM/PM
+    const ampm = currentHour >= 12 ? 'PM' : 'AM';
+    const displayHour = currentHour === 0 ? 12 : currentHour > 12 ? currentHour - 12 : currentHour;
+    const formattedMin = currentMin.toString().padStart(2, '0');
+    slots.push(`${displayHour}:${formattedMin} ${ampm}`);
+    
+    // Increment by interval
+    currentMin += intervalMinutes;
+    if (currentMin >= 60) {
+      currentHour += Math.floor(currentMin / 60);
+      currentMin = currentMin % 60;
+    }
+  }
+  
+  return slots;
+};
+
+// Default fallback time slots if no business hours are set
+const DEFAULT_TIME_SLOTS = [
   "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM",
-  "12:00 PM", "12:30 PM", "2:00 PM", "2:30 PM",
-  "3:00 PM", "3:30 PM", "4:00 PM", "4:30 PM",
-  "5:00 PM", "5:30 PM", "6:00 PM", "6:30 PM",
+  "12:00 PM", "12:30 PM", "1:00 PM", "1:30 PM",
+  "2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM",
+  "4:00 PM", "4:30 PM", "5:00 PM", "5:30 PM",
+  "6:00 PM", "6:30 PM", "7:00 PM", "7:30 PM",
+  "8:00 PM", "8:30 PM",
 ];
 
 const SalonDetail = () => {
@@ -922,6 +956,22 @@ const SalonDetail = () => {
 
     fetchStylists();
   }, [id, dbSalon?.id, salon?.name]);
+
+  // Generate dynamic time slots based on business hours
+  const timeSlots = (() => {
+    // Priority 1: Day-specific business hours
+    if (salonBusinessHours && salonBusinessHours.is_open) {
+      return generateTimeSlots(salonBusinessHours.opening_time, salonBusinessHours.closing_time);
+    }
+    
+    // Priority 2: General salon hours from database
+    if (dbSalon?.opening_time && dbSalon?.closing_time) {
+      return generateTimeSlots(dbSalon.opening_time, dbSalon.closing_time);
+    }
+    
+    // Priority 3: Fallback to default time slots
+    return DEFAULT_TIME_SLOTS;
+  })();
 
   // Show loading state while fetching from database
   if (isSalonLoading) {
