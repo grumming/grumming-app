@@ -538,6 +538,10 @@ const SalonDetail = () => {
   const [selectedStylist, setSelectedStylist] = useState<{id: string; name: string; photo_url: string | null} | null>(null);
   const [availableStylists, setAvailableStylists] = useState<Array<{id: string; name: string; photo_url: string | null; specialties: string[] | null; experience_years: number | null; rating: number | null}>>([]);
   const [isStylistsLoading, setIsStylistsLoading] = useState(false);
+  
+  // Salon business hours state
+  const [salonBusinessHours, setSalonBusinessHours] = useState<{ is_open: boolean; opening_time: string; closing_time: string } | null>(null);
+  const [isSalonClosed, setIsSalonClosed] = useState(false);
   const [isBooking, setIsBooking] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('upi');
   const [selectedSavedPaymentMethod, setSelectedSavedPaymentMethod] = useState<string | null>(null);
@@ -770,7 +774,55 @@ const SalonDetail = () => {
     fetchBookedTimeSlots();
   }, [selectedDate, id, salon?.name]);
 
-  // Fetch stylist-specific booked slots and availability when a stylist is selected
+  // Fetch salon business hours for selected date
+  useEffect(() => {
+    const fetchSalonBusinessHours = async () => {
+      if (!selectedDate || !id) {
+        setSalonBusinessHours(null);
+        setIsSalonClosed(false);
+        return;
+      }
+
+      const dayOfWeek = selectedDate.getDay(); // 0 = Sunday, 6 = Saturday
+      const salonIdToUse = dbSalon?.id || id;
+
+      // Fetch business hours for this day from salon_business_hours table
+      const { data, error } = await supabase
+        .from('salon_business_hours')
+        .select('is_open, opening_time, closing_time')
+        .eq('salon_id', salonIdToUse)
+        .eq('day_of_week', dayOfWeek)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching salon business hours:', error);
+        setSalonBusinessHours(null);
+        setIsSalonClosed(false);
+        return;
+      }
+
+      if (data) {
+        if (!data.is_open) {
+          setIsSalonClosed(true);
+          setSalonBusinessHours(null);
+        } else {
+          setIsSalonClosed(false);
+          setSalonBusinessHours({
+            is_open: data.is_open,
+            opening_time: data.opening_time,
+            closing_time: data.closing_time,
+          });
+        }
+      } else {
+        // No specific hours set - fall back to general salon hours
+        setIsSalonClosed(false);
+        setSalonBusinessHours(null);
+      }
+    };
+
+    fetchSalonBusinessHours();
+  }, [selectedDate, id, dbSalon?.id]);
+
   useEffect(() => {
     const fetchStylistAvailability = async () => {
       if (!selectedDate || !selectedStylist) {
@@ -2045,6 +2097,36 @@ const SalonDetail = () => {
                     )}
                   </div>
                   
+                  {/* Salon Closed Warning */}
+                  {isSalonClosed && (
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                      <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" />
+                      <p className="text-sm text-destructive">
+                        This salon is closed on this day. Please select a different date.
+                      </p>
+                    </div>
+                  )}
+                  
+                  {/* Salon Business Hours Info */}
+                  {salonBusinessHours && !isSalonClosed && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Clock className="w-3 h-3" />
+                      <span>
+                        Salon hours:{' '}
+                        {(() => {
+                          const formatTime = (timeStr: string) => {
+                            const [h, m] = timeStr.split(':');
+                            const hour = parseInt(h);
+                            const ampm = hour >= 12 ? 'PM' : 'AM';
+                            const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                            return `${displayHour}:${m} ${ampm}`;
+                          };
+                          return `${formatTime(salonBusinessHours.opening_time)} - ${formatTime(salonBusinessHours.closing_time)}`;
+                        })()}
+                      </span>
+                    </div>
+                  )}
+                  
                   {/* Stylist Off Day Warning */}
                   {selectedStylist && isStylistOffDay && (
                     <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
@@ -2081,16 +2163,28 @@ const SalonDetail = () => {
                       const isOccupied = bookedTimeSlots.includes(time);
                       const isStylistBusy = selectedStylist && stylistBookedSlots.includes(time);
                       
+                      // Parse time to 24-hour format for comparisons
+                      const [timePart, ampm] = time.split(' ');
+                      const [hours, minutes] = timePart.split(':').map(Number);
+                      let hour24 = hours;
+                      if (ampm === 'PM' && hours !== 12) hour24 = hours + 12;
+                      if (ampm === 'AM' && hours === 12) hour24 = 0;
+                      const slotTime = hour24 * 100 + minutes;
+                      
+                      // Check if time is outside salon's business hours
+                      let isOutsideSalonHours = false;
+                      if (salonBusinessHours) {
+                        const [salonOpenH, salonOpenM] = salonBusinessHours.opening_time.split(':').map(Number);
+                        const [salonCloseH, salonCloseM] = salonBusinessHours.closing_time.split(':').map(Number);
+                        const salonOpenTime = salonOpenH * 100 + salonOpenM;
+                        const salonCloseTime = salonCloseH * 100 + salonCloseM;
+                        
+                        isOutsideSalonHours = slotTime < salonOpenTime || slotTime >= salonCloseTime;
+                      }
+                      
                       // Check if time is outside stylist's working hours
                       let isOutsideWorkingHours = false;
                       if (selectedStylist && stylistWorkingHours) {
-                        const [timePart, ampm] = time.split(' ');
-                        const [hours, minutes] = timePart.split(':').map(Number);
-                        let hour24 = hours;
-                        if (ampm === 'PM' && hours !== 12) hour24 = hours + 12;
-                        if (ampm === 'AM' && hours === 12) hour24 = 0;
-                        
-                        const slotTime = hour24 * 100 + minutes;
                         const [startH, startM] = stylistWorkingHours.start.split(':').map(Number);
                         const [endH, endM] = stylistWorkingHours.end.split(':').map(Number);
                         const startTime = startH * 100 + startM;
@@ -2103,18 +2197,13 @@ const SalonDetail = () => {
                       const isToday = selectedDate && format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
                       let isPast = false;
                       if (isToday) {
-                        const [timePart, ampm] = time.split(' ');
-                        const [hours, minutes] = timePart.split(':').map(Number);
-                        let hour24 = hours;
-                        if (ampm === 'PM' && hours !== 12) hour24 = hours + 12;
-                        if (ampm === 'AM' && hours === 12) hour24 = 0;
                         const slotDate = new Date();
                         slotDate.setHours(hour24, minutes, 0, 0);
                         isPast = slotDate <= new Date();
                       }
                       
                       const isStylistUnavailable = isStylistOffDay || isOutsideWorkingHours;
-                      const isUnavailable = isOccupied || isPast || isStylistBusy || (selectedStylist && isStylistUnavailable);
+                      const isUnavailable = isSalonClosed || isOutsideSalonHours || isOccupied || isPast || isStylistBusy || (selectedStylist && isStylistUnavailable);
                       
                       return (
                         <button
@@ -2122,24 +2211,29 @@ const SalonDetail = () => {
                           onClick={() => !isUnavailable && setSelectedTime(time)}
                           disabled={isUnavailable}
                           className={`p-2.5 rounded-xl text-sm font-medium border-2 transition-all ${
-                            (isStylistBusy || (selectedStylist && isStylistUnavailable)) && !isOccupied && !isPast
-                              ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 cursor-not-allowed'
-                              : isUnavailable
-                                ? 'bg-muted/50 border-border text-muted-foreground cursor-not-allowed opacity-60'
-                                : selectedTime === time
-                                  ? 'bg-primary text-primary-foreground border-primary shadow-md'
-                                  : 'border-border hover:border-primary bg-muted/20 hover:scale-[1.02]'
+                            isOutsideSalonHours && !isSalonClosed && !isOccupied && !isPast
+                              ? 'bg-muted/50 border-border text-muted-foreground cursor-not-allowed opacity-60'
+                              : (isStylistBusy || (selectedStylist && isStylistUnavailable)) && !isOccupied && !isPast && !isOutsideSalonHours
+                                ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 cursor-not-allowed'
+                                : isUnavailable
+                                  ? 'bg-muted/50 border-border text-muted-foreground cursor-not-allowed opacity-60'
+                                  : selectedTime === time
+                                    ? 'bg-primary text-primary-foreground border-primary shadow-md'
+                                    : 'border-border hover:border-primary bg-muted/20 hover:scale-[1.02]'
                           }`}
                         >
                           <span className={isUnavailable ? 'line-through' : ''}>{time}</span>
-                          {isStylistBusy && !isOccupied && !isPast && (
+                          {isOutsideSalonHours && !isSalonClosed && !isOccupied && !isPast && (
+                            <span className="block text-[10px] font-normal">Closed</span>
+                          )}
+                          {isStylistBusy && !isOccupied && !isPast && !isOutsideSalonHours && (
                             <span className="block text-[10px] font-normal">Stylist Busy</span>
                           )}
-                          {isOutsideWorkingHours && !isStylistBusy && !isOccupied && !isPast && (
+                          {isOutsideWorkingHours && !isStylistBusy && !isOccupied && !isPast && !isOutsideSalonHours && (
                             <span className="block text-[10px] font-normal">Not Working</span>
                           )}
                           {isOccupied && <span className="block text-[10px] font-normal">Occupied</span>}
-                          {isPast && !isOccupied && <span className="block text-[10px] font-normal">Passed</span>}
+                          {isPast && !isOccupied && !isOutsideSalonHours && <span className="block text-[10px] font-normal">Passed</span>}
                         </button>
                       );
                     })}
