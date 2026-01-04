@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Store, MapPin, Phone, Mail, Clock, CheckCircle, XCircle, 
-  Loader2, User, AlertTriangle, Eye, Calendar, Filter, X, Search, Image, ChevronLeft, ChevronRight
+  Loader2, User, AlertTriangle, Eye, Calendar, Filter, X, Search, Image, ChevronLeft, ChevronRight,
+  Scissors, ZoomIn, IndianRupee
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -47,6 +48,15 @@ interface PendingSalon {
   };
 }
 
+interface SalonService {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  duration: string;
+  description: string | null;
+}
+
 export const PendingSalonApprovals = () => {
   const { toast } = useToast();
   const [pendingSalons, setPendingSalons] = useState<PendingSalon[]>([]);
@@ -60,6 +70,9 @@ export const PendingSalonApprovals = () => {
   const [salonImages, setSalonImages] = useState<string[]>([]);
   const [isLoadingImages, setIsLoadingImages] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
+  const [salonServices, setSalonServices] = useState<SalonService[]>([]);
+  const [isLoadingServices, setIsLoadingServices] = useState(false);
   
   // Filter states
   const [cityFilter, setCityFilter] = useState<string>('all');
@@ -357,10 +370,35 @@ export const PendingSalonApprovals = () => {
     }
   };
 
+  const fetchSalonServices = async (salonId: string) => {
+    setIsLoadingServices(true);
+    setSalonServices([]);
+    
+    try {
+      const { data, error } = await supabase
+        .from('salon_services')
+        .select('id, name, category, price, duration, description')
+        .eq('salon_id', salonId)
+        .order('category', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching salon services:', error);
+        return;
+      }
+
+      setSalonServices(data || []);
+    } catch (error) {
+      console.error('Error fetching salon services:', error);
+    } finally {
+      setIsLoadingServices(false);
+    }
+  };
+
   const openDetailDialog = (salon: PendingSalon) => {
     setSelectedSalon(salon);
     setIsDetailDialogOpen(true);
     fetchSalonImages(salon.id);
+    fetchSalonServices(salon.id);
   };
 
   if (isLoading) {
@@ -589,12 +627,21 @@ export const PendingSalonApprovals = () => {
                       ) : salonImages.length > 0 ? (
                         <div className="space-y-2">
                           {/* Main Image */}
-                          <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
+                          <div className="relative aspect-video bg-muted rounded-lg overflow-hidden group">
                             <img
                               src={salonImages[currentImageIndex]}
                               alt={`Salon photo ${currentImageIndex + 1}`}
                               className="w-full h-full object-cover"
                             />
+                            {/* Zoom Button */}
+                            <Button
+                              variant="secondary"
+                              size="icon"
+                              className="absolute top-2 right-2 h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => setIsFullscreenOpen(true)}
+                            >
+                              <ZoomIn className="w-4 h-4" />
+                            </Button>
                             {salonImages.length > 1 && (
                               <>
                                 <Button
@@ -644,6 +691,50 @@ export const PendingSalonApprovals = () => {
                         <div className="flex flex-col items-center justify-center h-32 bg-muted/50 rounded-lg text-muted-foreground">
                           <Image className="w-8 h-8 mb-2 opacity-50" />
                           <p className="text-sm">No photos uploaded</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Salon Services */}
+                  <div className="flex items-start gap-3">
+                    <Scissors className="w-4 h-4 text-muted-foreground mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium mb-2">Services ({salonServices.length})</p>
+                      {isLoadingServices ? (
+                        <div className="flex items-center justify-center h-20 bg-muted/50 rounded-lg">
+                          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                        </div>
+                      ) : salonServices.length > 0 ? (
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                          {Object.entries(
+                            salonServices.reduce((acc, service) => {
+                              if (!acc[service.category]) acc[service.category] = [];
+                              acc[service.category].push(service);
+                              return acc;
+                            }, {} as Record<string, SalonService[]>)
+                          ).map(([category, services]) => (
+                            <div key={category} className="space-y-1">
+                              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{category}</p>
+                              {services.map(service => (
+                                <div key={service.id} className="flex items-center justify-between p-2 bg-muted/50 rounded-md text-sm">
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium truncate">{service.name}</p>
+                                    <p className="text-xs text-muted-foreground">{service.duration}</p>
+                                  </div>
+                                  <div className="flex items-center text-primary font-medium">
+                                    <IndianRupee className="w-3 h-3" />
+                                    {service.price}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center h-20 bg-muted/50 rounded-lg text-muted-foreground">
+                          <Scissors className="w-6 h-6 mb-1 opacity-50" />
+                          <p className="text-sm">No services added yet</p>
                         </div>
                       )}
                     </div>
@@ -830,6 +921,76 @@ export const PendingSalonApprovals = () => {
               Reject
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Fullscreen Image Viewer */}
+      <Dialog open={isFullscreenOpen} onOpenChange={setIsFullscreenOpen}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-black/95 border-none">
+          <div className="relative w-full h-[90vh] flex items-center justify-center">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-4 right-4 z-10 text-white hover:bg-white/20"
+              onClick={() => setIsFullscreenOpen(false)}
+            >
+              <X className="w-6 h-6" />
+            </Button>
+            
+            {salonImages.length > 0 && (
+              <>
+                <img
+                  src={salonImages[currentImageIndex]}
+                  alt={`Salon photo ${currentImageIndex + 1}`}
+                  className="max-w-full max-h-full object-contain"
+                />
+                
+                {salonImages.length > 1 && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute left-4 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full text-white hover:bg-white/20"
+                      onClick={() => setCurrentImageIndex(prev => prev === 0 ? salonImages.length - 1 : prev - 1)}
+                    >
+                      <ChevronLeft className="w-8 h-8" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full text-white hover:bg-white/20"
+                      onClick={() => setCurrentImageIndex(prev => prev === salonImages.length - 1 ? 0 : prev + 1)}
+                    >
+                      <ChevronRight className="w-8 h-8" />
+                    </Button>
+                    
+                    {/* Thumbnails at bottom */}
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 p-2 bg-black/50 rounded-lg backdrop-blur-sm">
+                      {salonImages.map((url, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => setCurrentImageIndex(idx)}
+                          className={`flex-shrink-0 w-16 h-12 rounded-md overflow-hidden border-2 transition-colors ${
+                            idx === currentImageIndex ? 'border-white' : 'border-transparent opacity-60 hover:opacity-100'
+                          }`}
+                        >
+                          <img
+                            src={url}
+                            alt={`Thumbnail ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </button>
+                      ))}
+                    </div>
+                    
+                    <div className="absolute top-4 left-1/2 -translate-x-1/2 text-white text-sm bg-black/50 px-3 py-1 rounded-full">
+                      {currentImageIndex + 1} / {salonImages.length}
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
