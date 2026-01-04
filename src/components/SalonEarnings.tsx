@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   IndianRupee, TrendingUp, Wallet, Calendar, ArrowUpRight, 
-  ArrowDownRight, Clock, CheckCircle, XCircle, Loader2, Building, Smartphone, Zap, Building2, AlertTriangle, User, Banknote, ChevronDown, ChevronUp
+  ArrowDownRight, Clock, CheckCircle, XCircle, Loader2, Building, Smartphone, Zap, Building2, AlertTriangle, User, Banknote, ChevronDown, ChevronUp, Receipt
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -47,6 +47,16 @@ interface Payout {
   notes: string | null;
 }
 
+interface CollectedPenalty {
+  id: string;
+  penalty_amount: number;
+  service_name: string;
+  original_salon: string;
+  customer_name: string;
+  created_at: string;
+  remitted: boolean;
+}
+
 interface EarningsStats {
   totalEarnings: number;
   pendingPayouts: number;
@@ -59,6 +69,7 @@ interface EarningsStats {
 export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [payouts, setPayouts] = useState<Payout[]>([]);
+  const [collectedPenalties, setCollectedPenalties] = useState<CollectedPenalty[]>([]);
   const [stats, setStats] = useState<EarningsStats>({
     totalEarnings: 0,
     pendingPayouts: 0,
@@ -67,9 +78,11 @@ export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
     platformFees: 0,
     totalPenalties: 0,
   });
+  const [penaltyStats, setPenaltyStats] = useState({ pending: 0, remitted: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [showMore, setShowMore] = useState(false);
+  const [showPenaltyDetails, setShowPenaltyDetails] = useState(false);
 
   useEffect(() => {
     const fetchEarningsData = async () => {
@@ -170,6 +183,44 @@ export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
           platformFees,
           totalPenalties,
         });
+
+        // Fetch collected penalties for this salon (cash payments where this salon collected penalty)
+        const { data: penaltiesData, error: penaltiesError } = await supabase
+          .from('cancellation_penalties')
+          .select('id, penalty_amount, service_name, salon_name, user_id, created_at, remitted_to_platform')
+          .eq('collecting_salon_id', salonId)
+          .eq('is_paid', true)
+          .order('created_at', { ascending: false });
+
+        if (!penaltiesError && penaltiesData) {
+          // Fetch customer names for penalties
+          const penaltyUserIds = [...new Set(penaltiesData.map(p => p.user_id))];
+          const { data: penaltyProfiles } = await supabase
+            .from('profiles')
+            .select('user_id, full_name')
+            .in('user_id', penaltyUserIds);
+
+          const penaltyProfilesMap = new Map(
+            (penaltyProfiles || []).map(p => [p.user_id, p.full_name])
+          );
+
+          const formattedPenalties: CollectedPenalty[] = penaltiesData.map(p => ({
+            id: p.id,
+            penalty_amount: Number(p.penalty_amount),
+            service_name: p.service_name,
+            original_salon: p.salon_name,
+            customer_name: penaltyProfilesMap.get(p.user_id) || 'Customer',
+            created_at: p.created_at,
+            remitted: p.remitted_to_platform === true,
+          }));
+
+          setCollectedPenalties(formattedPenalties);
+
+          // Calculate penalty stats
+          const pendingPenalties = formattedPenalties.filter(p => !p.remitted).reduce((sum, p) => sum + p.penalty_amount, 0);
+          const remittedPenalties = formattedPenalties.filter(p => p.remitted).reduce((sum, p) => sum + p.penalty_amount, 0);
+          setPenaltyStats({ pending: pendingPenalties, remitted: remittedPenalties });
+        }
       } catch (error) {
         console.error('Error fetching earnings data:', error);
       } finally {
@@ -323,33 +374,111 @@ export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
         </motion.div>
       )}
 
-      {/* Penalties Info Card - Shows penalties collected by platform */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-      >
-        <Card className="bg-gradient-to-br from-orange-500/10 to-amber-500/5 border-orange-500/20">
-          <CardContent className="py-4">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center shrink-0">
-                  <AlertTriangle className="w-5 h-5 text-orange-600" />
+      {/* Penalties Breakdown - Shows penalties collected via cash that are owed to platform */}
+      {collectedPenalties.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <Card className="bg-gradient-to-br from-red-500/10 to-orange-500/5 border-red-500/20">
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center shrink-0">
+                    <Receipt className="w-5 h-5 text-red-600" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-red-600">Penalty Deductions</p>
+                    <p className="text-xs text-muted-foreground">
+                      Cash penalties collected → deducted from payouts
+                    </p>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-orange-600">Penalties Collected by Platform</p>
-                  <p className="text-xs text-muted-foreground">
-                    From cancellation fees paid by customers
+                <button
+                  onClick={() => setShowPenaltyDetails(!showPenaltyDetails)}
+                  className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                >
+                  {showPenaltyDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  Details
+                </button>
+              </div>
+
+              {/* Summary Stats */}
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div className="bg-red-500/10 rounded-lg p-3 text-center">
+                  <p className="text-xs text-muted-foreground mb-1">Pending Remittance</p>
+                  <p className="text-lg font-bold font-sans text-red-600">
+                    ₹{penaltyStats.pending.toLocaleString()}
+                  </p>
+                </div>
+                <div className="bg-green-500/10 rounded-lg p-3 text-center">
+                  <p className="text-xs text-muted-foreground mb-1">Already Remitted</p>
+                  <p className="text-lg font-bold font-sans text-green-600">
+                    ₹{penaltyStats.remitted.toLocaleString()}
                   </p>
                 </div>
               </div>
-              <p className="text-[clamp(1rem,3.6vw,1.25rem)] font-bold font-sans tabular-nums text-orange-600 leading-tight text-right break-words max-w-[40%]">
-                ₹{stats.totalPenalties.toLocaleString()}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
+
+              {/* Detailed Breakdown */}
+              <AnimatePresence>
+                {showPenaltyDetails && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="space-y-2 overflow-hidden"
+                  >
+                    <div className="border-t border-border/50 pt-3">
+                      <p className="text-xs font-medium text-muted-foreground mb-2">Recent Penalties Collected</p>
+                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {collectedPenalties.slice(0, 10).map((penalty) => (
+                          <div key={penalty.id} className="flex items-center justify-between text-sm bg-background/50 rounded-lg p-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-foreground font-medium truncate">{penalty.customer_name}</p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {penalty.service_name} • {format(new Date(penalty.created_at), 'MMM d')}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-sans font-medium text-red-600">
+                                ₹{penalty.penalty_amount.toLocaleString()}
+                              </span>
+                              {penalty.remitted ? (
+                                <Badge className="bg-green-500/10 text-green-600 border-green-500/20 text-xs">
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  Remitted
+                                </Badge>
+                              ) : (
+                                <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-xs">
+                                  <Clock className="w-3 h-3 mr-1" />
+                                  Pending
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      {collectedPenalties.length > 10 && (
+                        <p className="text-xs text-muted-foreground text-center mt-2">
+                          + {collectedPenalties.length - 10} more penalties
+                        </p>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Explanation */}
+              <div className="mt-3 pt-3 border-t border-border/50">
+                <p className="text-xs text-muted-foreground">
+                  <span className="text-red-600 font-medium">Note:</span> When customers pay cancellation penalties via cash at your salon, these are platform fees that will be deducted from your next payout.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
 
 
       {/* Tabs for Payments and Payouts */}
