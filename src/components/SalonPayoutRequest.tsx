@@ -199,8 +199,11 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
       // Deduct penalties owed to platform from available balance
       const netAvailable = Math.max(0, availableAmount - totalPaidOut - pendingRequests - totalPenaltiesOwed);
       
+      // Total balance should also reflect penalties owed
+      const grossBalance = totalEarned - totalPaidOut;
+      
       setPendingBalance({
-        total: totalEarned - totalPaidOut,
+        total: grossBalance,
         availableForPayout: netAvailable,
         pendingSettlement: pendingPayoutAmount,
         penaltiesOwed: totalPenaltiesOwed
@@ -359,7 +362,7 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
   return (
     <div className="space-y-6">
       {/* Balance Overview */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -374,34 +377,6 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-full bg-green-500/10">
-                <ArrowUpRight className="h-5 w-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Available for Payout</p>
-                <p className="text-2xl font-bold text-green-600 font-sans">₹{pendingBalance.availableForPayout.toLocaleString('en-IN')}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-full bg-amber-500/10">
-                <Clock className="h-5 w-5 text-amber-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Pending Settlement</p>
-                <p className="text-2xl font-bold text-amber-600 font-sans">₹{pendingBalance.pendingSettlement.toLocaleString('en-IN')}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Penalties Owed Card - Only show if there are penalties to remit */}
         {pendingBalance.penaltiesOwed > 0 && (
           <Card className="border-red-200 dark:border-red-800/50 bg-red-50/50 dark:bg-red-950/20">
@@ -411,9 +386,42 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                   <AlertCircle className="h-5 w-5 text-red-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-red-600 dark:text-red-400">Penalties Owed to Platform</p>
+                  <p className="text-sm text-red-600 dark:text-red-400">Penalties Owed</p>
                   <p className="text-2xl font-bold text-red-600 font-sans">-₹{pendingBalance.penaltiesOwed.toLocaleString('en-IN')}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Collected via cash, deducted from payout</p>
+                  <p className="text-xs text-muted-foreground mt-1">Deducted from payout</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-full bg-green-500/10">
+                <ArrowUpRight className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Available for Payout</p>
+                <p className="text-2xl font-bold text-green-600 font-sans">₹{pendingBalance.availableForPayout.toLocaleString('en-IN')}</p>
+                {pendingBalance.penaltiesOwed > 0 && (
+                  <p className="text-xs text-muted-foreground mt-1">After penalty deduction</p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {pendingBalance.pendingSettlement > 0 && (
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-full bg-amber-500/10">
+                  <Clock className="h-5 w-5 text-amber-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Pending Settlement</p>
+                  <p className="text-2xl font-bold text-amber-600 font-sans">₹{pendingBalance.pendingSettlement.toLocaleString('en-IN')}</p>
                 </div>
               </div>
             </CardContent>
