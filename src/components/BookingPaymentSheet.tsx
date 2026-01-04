@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { CreditCard, Loader2, Wallet, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,7 +11,8 @@ import {
 } from '@/components/ui/sheet';
 import { PaymentMethodSelector, PaymentMethodType } from './PaymentMethodSelector';
 import { PaymentReceipt } from './PaymentReceipt';
-import { useRazorpay } from '@/hooks/useRazorpay';
+import { PaymentFailureBanner } from './PaymentFailureBanner';
+import { useRazorpay, PaymentError } from '@/hooks/useRazorpay';
 import { useWallet } from '@/hooks/useWallet';
 import { useToast } from '@/hooks/use-toast';
 import { usePendingPenalties } from '@/hooks/usePendingPenalties';
@@ -71,6 +72,7 @@ export function BookingPaymentSheet({
   const [isProcessing, setIsProcessing] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
+  const [paymentError, setPaymentError] = useState<PaymentError | null>(null);
 
   const walletBalance = wallet?.balance || 0;
   const serviceAmount = booking.service_price;
@@ -104,6 +106,7 @@ export function BookingPaymentSheet({
 
   const handlePayNow = async () => {
     setIsProcessing(true);
+    setPaymentError(null); // Clear previous errors
 
     try {
       // Handle pay at salon - just complete the booking and set payment_method
@@ -178,17 +181,21 @@ export function BookingPaymentSheet({
           showReceiptDialog(result.paymentId);
           onPaymentSuccess();
         } else {
+          // Set detailed error for the banner
+          if (result.errorDetails) {
+            setPaymentError(result.errorDetails);
+          } else {
+            setPaymentError({
+              code: 'PAYMENT_FAILED',
+              description: result.error || 'Payment could not be completed',
+            });
+          }
+          
           // If split payment and wallet was deducted, we need to inform user
           if (isSplitPayment && walletAmountToUse > 0) {
             toast({
               title: 'Payment Failed',
               description: 'Online payment failed. Wallet amount was deducted - please contact support.',
-              variant: 'destructive',
-            });
-          } else {
-            toast({
-              title: 'Payment Failed',
-              description: result.error || 'Please try again.',
               variant: 'destructive',
             });
           }
@@ -288,6 +295,18 @@ export function BookingPaymentSheet({
               <p className="font-semibold text-primary">₹{walletBalance}</p>
             </motion.div>
           )}
+
+          {/* Payment Failure Banner */}
+          <AnimatePresence>
+            {paymentError && (
+              <PaymentFailureBanner
+                error={paymentError}
+                onRetry={handlePayNow}
+                onDismiss={() => setPaymentError(null)}
+                isRetrying={isLoading}
+              />
+            )}
+          </AnimatePresence>
 
           {/* Payment Method Selector */}
           <PaymentMethodSelector
