@@ -1983,9 +1983,8 @@ const SalonDashboard = () => {
             <TabsContent value="earnings" className="space-y-6">
               {selectedSalonId && selectedSalon && (
                 <Tabs defaultValue="overview" className="space-y-4">
-                  <TabsList className="grid w-full grid-cols-3">
+                  <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="overview">Overview</TabsTrigger>
-                    <TabsTrigger value="payouts">Payout History</TabsTrigger>
                     <TabsTrigger value="request">Request Payout</TabsTrigger>
                   </TabsList>
                   
@@ -1993,13 +1992,6 @@ const SalonDashboard = () => {
                     <SalonEarnings 
                       salonId={selectedSalonId} 
                       salonName={selectedSalon.name} 
-                    />
-                  </TabsContent>
-                  
-                  <TabsContent value="payouts">
-                    <SalonPayoutHistory
-                      salonId={selectedSalonId}
-                      salonName={selectedSalon.name}
                     />
                   </TabsContent>
                   
