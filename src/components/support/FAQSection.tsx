@@ -81,8 +81,8 @@ const faqData = [
         a: 'Payouts are processed weekly for all completed bookings. You can track your earnings in the Salon Dashboard.',
       },
       {
-        q: 'What is the platform commission?',
-        a: 'We charge a small 8% commission on each booking to cover payment processing and platform maintenance.',
+        q: 'Are there any fees to join?',
+        a: 'There are no registration or monthly fees to list your salon on Grumming. Start receiving bookings right away!',
       },
     ],
   },
