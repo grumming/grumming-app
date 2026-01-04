@@ -79,18 +79,20 @@ interface DayHours {
   is_open: boolean;
   opening_time: string;
   closing_time: string;
+  break_start: string | null;
+  break_end: string | null;
 }
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 const DEFAULT_DAY_HOURS: DayHours[] = [
-  { day_of_week: 0, is_open: false, opening_time: '09:00', closing_time: '21:00' }, // Sunday
-  { day_of_week: 1, is_open: true, opening_time: '09:00', closing_time: '21:00' },
-  { day_of_week: 2, is_open: true, opening_time: '09:00', closing_time: '21:00' },
-  { day_of_week: 3, is_open: true, opening_time: '09:00', closing_time: '21:00' },
-  { day_of_week: 4, is_open: true, opening_time: '09:00', closing_time: '21:00' },
-  { day_of_week: 5, is_open: true, opening_time: '09:00', closing_time: '21:00' },
-  { day_of_week: 6, is_open: true, opening_time: '09:00', closing_time: '21:00' },
+  { day_of_week: 0, is_open: false, opening_time: '09:00', closing_time: '21:00', break_start: null, break_end: null }, // Sunday
+  { day_of_week: 1, is_open: true, opening_time: '09:00', closing_time: '21:00', break_start: null, break_end: null },
+  { day_of_week: 2, is_open: true, opening_time: '09:00', closing_time: '21:00', break_start: null, break_end: null },
+  { day_of_week: 3, is_open: true, opening_time: '09:00', closing_time: '21:00', break_start: null, break_end: null },
+  { day_of_week: 4, is_open: true, opening_time: '09:00', closing_time: '21:00', break_start: null, break_end: null },
+  { day_of_week: 5, is_open: true, opening_time: '09:00', closing_time: '21:00', break_start: null, break_end: null },
+  { day_of_week: 6, is_open: true, opening_time: '09:00', closing_time: '21:00', break_start: null, break_end: null },
 ];
 
 const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: SalonSettingsDialogProps) => {
@@ -151,6 +153,8 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
           is_open: d.is_open,
           opening_time: normalizeTime(d.opening_time, '09:00'),
           closing_time: normalizeTime(d.closing_time, '21:00'),
+          break_start: d.break_start ? normalizeTime(d.break_start, '') : null,
+          break_end: d.break_end ? normalizeTime(d.break_end, '') : null,
         }));
         // Fill in any missing days
         const fullHours = DEFAULT_DAY_HOURS.map(defaultDay => {
@@ -240,6 +244,8 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
         is_open: day.is_open,
         opening_time: day.opening_time + ':00',
         closing_time: day.closing_time + ':00',
+        break_start: day.break_start ? day.break_start + ':00' : null,
+        break_end: day.break_end ? day.break_end + ':00' : null,
       }));
 
       const { error } = await supabase
@@ -611,7 +617,7 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
                                       : 'bg-muted/50 border-muted'
                                   }`}
                                 >
-                                  <div className="flex items-center gap-4">
+                                  <div className="flex items-center gap-4 flex-wrap">
                                     {/* Day name and toggle */}
                                     <div className="flex items-center gap-3 min-w-[140px]">
                                       <Switch
@@ -625,7 +631,7 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
 
                                     {/* Time selectors */}
                                     {day.is_open ? (
-                                      <div className="flex items-center gap-2 flex-1">
+                                      <div className="flex items-center gap-2 flex-wrap flex-1">
                                         <Select
                                           value={day.opening_time}
                                           onValueChange={(v) => handleDayHoursChange(idx, 'opening_time', v)}
@@ -670,6 +676,58 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
                                       </Badge>
                                     )}
                                   </div>
+
+                                  {/* Break time section */}
+                                  {day.is_open && (
+                                    <div className="mt-3 pt-3 border-t border-dashed flex items-center gap-2 flex-wrap">
+                                      <div className="flex items-center gap-2">
+                                        <Coffee className="w-3.5 h-3.5 text-muted-foreground" />
+                                        <span className="text-xs text-muted-foreground">Break:</span>
+                                      </div>
+                                      <Select
+                                        value={day.break_start || 'none'}
+                                        onValueChange={(v) => handleDayHoursChange(idx, 'break_start', v === 'none' ? null : v)}
+                                      >
+                                        <SelectTrigger className="w-24 h-7 text-xs">
+                                          <SelectValue placeholder="Start" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="none">None</SelectItem>
+                                          {Array.from({ length: 24 }, (_, i) => {
+                                            const hour = i.toString().padStart(2, '0');
+                                            return (
+                                              <SelectItem key={hour} value={`${hour}:00`}>
+                                                {hour}:00
+                                              </SelectItem>
+                                            );
+                                          })}
+                                        </SelectContent>
+                                      </Select>
+                                      {day.break_start && (
+                                        <>
+                                          <span className="text-muted-foreground text-xs">to</span>
+                                          <Select
+                                            value={day.break_end || ''}
+                                            onValueChange={(v) => handleDayHoursChange(idx, 'break_end', v)}
+                                          >
+                                            <SelectTrigger className="w-24 h-7 text-xs">
+                                              <SelectValue placeholder="End" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              {Array.from({ length: 24 }, (_, i) => {
+                                                const hour = i.toString().padStart(2, '0');
+                                                return (
+                                                  <SelectItem key={hour} value={`${hour}:00`}>
+                                                    {hour}:00
+                                                  </SelectItem>
+                                                );
+                                              })}
+                                            </SelectContent>
+                                          </Select>
+                                        </>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               ))}
                             </div>
