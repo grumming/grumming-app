@@ -4,10 +4,7 @@ import {
   Users, 
   CreditCard, 
   TrendingUp, 
-  CheckCircle,
-  IndianRupee,
-  Shield,
-  Clock
+  CheckCircle
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -83,7 +80,7 @@ const HowItWorksSection = () => {
           ))}
         </div>
 
-        {/* Commission Info */}
+        {/* Partner Benefits */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -92,74 +89,36 @@ const HowItWorksSection = () => {
         >
           <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
             <CardContent className="p-6 md:p-8">
-              <div className="grid md:grid-cols-2 gap-8 items-center">
-                {/* Left: Commission Details */}
-                <div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <Badge className="bg-primary text-primary-foreground">
-                      Transparent Pricing
-                    </Badge>
-                  </div>
-                  <h3 className="text-xl md:text-2xl font-bold text-foreground mb-3">
-                    Simple 8% Platform Commission
-                  </h3>
-                  <p className="text-muted-foreground mb-6">
-                    We charge a flat 8% commission on every successfully completed booking. 
-                    No hidden fees, no surprises. Customers pay the service price you set — 
-                    commission is deducted only from your payout.
-                  </p>
-                  
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-                      <span className="text-sm text-foreground">No registration or monthly fees</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-                      <span className="text-sm text-foreground">Weekly automatic payouts to your bank</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-                      <span className="text-sm text-foreground">Real-time earnings dashboard</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-                      <span className="text-sm text-foreground">Works with online & cash payments</span>
-                    </div>
-                  </div>
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-2 mb-4">
+                  <Badge className="bg-primary text-primary-foreground">
+                    Partner Benefits
+                  </Badge>
                 </div>
-
-                {/* Right: Example Calculation */}
-                <div className="bg-background rounded-xl p-6 border border-border shadow-sm">
-                  <div className="flex items-center gap-2 mb-4">
-                    <IndianRupee className="w-5 h-5 text-primary" />
-                    <h4 className="font-semibold text-foreground">Example Calculation</h4>
+                <h3 className="text-xl md:text-2xl font-bold text-foreground mb-3">
+                  Why Join Grumming?
+                </h3>
+                <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
+                  Grow your salon business with our trusted platform. 
+                  No hidden fees, no surprises — just more customers and seamless bookings.
+                </p>
+                
+                <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="flex flex-col items-center gap-2 p-4 bg-background rounded-lg border border-border">
+                    <CheckCircle className="w-6 h-6 text-green-600" />
+                    <span className="text-sm font-medium text-foreground">No Registration Fees</span>
                   </div>
-                  
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center py-3 border-b border-border">
-                      <span className="text-muted-foreground">Service Price</span>
-                      <span className="text-lg font-bold text-foreground">₹1,000</span>
-                    </div>
-                    <div className="flex justify-between items-center py-3 border-b border-border">
-                      <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground">Platform Fee</span>
-                        <Badge variant="secondary" className="text-xs">8%</Badge>
-                      </div>
-                      <span className="text-lg font-medium text-red-500">-₹80</span>
-                    </div>
-                    <div className="flex justify-between items-center py-3 bg-green-500/10 rounded-lg px-3 -mx-3">
-                      <div className="flex items-center gap-2">
-                        <Shield className="w-4 h-4 text-green-600" />
-                        <span className="font-medium text-foreground">You Receive</span>
-                      </div>
-                      <span className="text-xl font-bold text-green-600">₹920</span>
-                    </div>
+                  <div className="flex flex-col items-center gap-2 p-4 bg-background rounded-lg border border-border">
+                    <CheckCircle className="w-6 h-6 text-green-600" />
+                    <span className="text-sm font-medium text-foreground">Weekly Payouts</span>
                   </div>
-
-                  <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
-                    <Clock className="w-4 h-4" />
-                    <span>Payouts processed weekly to your bank account</span>
+                  <div className="flex flex-col items-center gap-2 p-4 bg-background rounded-lg border border-border">
+                    <CheckCircle className="w-6 h-6 text-green-600" />
+                    <span className="text-sm font-medium text-foreground">Earnings Dashboard</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-2 p-4 bg-background rounded-lg border border-border">
+                    <CheckCircle className="w-6 h-6 text-green-600" />
+                    <span className="text-sm font-medium text-foreground">Online & Cash Payments</span>
                   </div>
                 </div>
               </div>
