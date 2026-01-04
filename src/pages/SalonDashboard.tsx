@@ -1282,6 +1282,20 @@ const SalonDashboard = () => {
 
             {/* Overview Tab */}
             <TabsContent value="overview" className="space-y-6">
+              {/* Back Button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setActiveTab('bookings');
+                  navigate('/salon-dashboard?tab=bookings');
+                }}
+                className="flex items-center gap-2 text-muted-foreground hover:text-foreground -ml-2 mb-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Dashboard
+              </Button>
+
               {/* Salon Header Card */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
