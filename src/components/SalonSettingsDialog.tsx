@@ -227,6 +227,28 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
     }
   };
 
+  const applyBreakToAllDays = () => {
+    const firstDayWithBreak = dayHours.find(d => d.is_open && d.break_start && d.break_end);
+    if (firstDayWithBreak) {
+      setDayHours(prev => prev.map(day => ({
+        ...day,
+        break_start: day.is_open ? firstDayWithBreak.break_start : null,
+        break_end: day.is_open ? firstDayWithBreak.break_end : null,
+      })));
+      setHasChanges(true);
+      toast({
+        title: "Break applied to all days",
+        description: `Set break to ${firstDayWithBreak.break_start} - ${firstDayWithBreak.break_end} for all open days`,
+      });
+    } else {
+      toast({
+        title: "No break set",
+        description: "Please set a break time on at least one day first",
+        variant: "destructive",
+      });
+    }
+  };
+
   const saveDaySpecificHours = async () => {
     if (!salon) return;
 
@@ -596,14 +618,22 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
                         ) : (
                           <>
                             {/* Day-specific hours editor */}
-                            <div className="flex justify-end">
+                            <div className="flex justify-end gap-2 flex-wrap">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={applyBreakToAllDays}
+                              >
+                                Apply break to all days
+                              </Button>
                               <Button
                                 type="button"
                                 variant="outline"
                                 size="sm"
                                 onClick={applyToAllDays}
                               >
-                                Apply first day's hours to all
+                                Apply hours to all days
                               </Button>
                             </div>
 
