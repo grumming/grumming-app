@@ -1786,6 +1786,12 @@ const SalonDetail = () => {
               <Clock className="w-4 h-4 text-muted-foreground" />
               <span>{salon.timing}</span>
             </div>
+            {salonBusinessHours && salonBusinessHours.break_start && salonBusinessHours.break_end && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span className="text-muted-foreground">•</span>
+                <span>Break: {salonBusinessHours.break_start.slice(0, 5)} - {salonBusinessHours.break_end.slice(0, 5)}</span>
+              </div>
+            )}
             {salonDistance !== null && (
               <div className="flex items-center gap-2 text-sm">
                 <Car className="w-4 h-4 text-muted-foreground" />
