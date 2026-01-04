@@ -253,7 +253,7 @@ export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs text-muted-foreground">This Month</p>
-                  <p className="text-lg font-bold font-sans text-primary truncate">₹{stats.thisMonthEarnings.toLocaleString()}</p>
+                  <p className="text-[clamp(1rem,3.6vw,1.25rem)] font-bold font-sans tabular-nums text-primary leading-tight break-words">₹{stats.thisMonthEarnings.toLocaleString()}</p>
                 </div>
               </div>
             </CardContent>
@@ -273,7 +273,7 @@ export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs text-muted-foreground">Pending Payouts</p>
-                  <p className="text-lg font-bold font-sans text-yellow-600 truncate">₹{stats.pendingPayouts.toLocaleString()}</p>
+                  <p className="text-[clamp(1rem,3.6vw,1.25rem)] font-bold font-sans tabular-nums text-yellow-600 leading-tight break-words">₹{stats.pendingPayouts.toLocaleString()}</p>
                 </div>
               </div>
             </CardContent>
@@ -315,7 +315,7 @@ export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs text-muted-foreground">Total Earnings</p>
-                  <p className="text-lg font-bold font-sans text-green-600 truncate">₹{stats.totalEarnings.toLocaleString()}</p>
+                  <p className="text-[clamp(1rem,3.6vw,1.25rem)] font-bold font-sans tabular-nums text-green-600 leading-tight break-words">₹{stats.totalEarnings.toLocaleString()}</p>
                 </div>
               </div>
             </CardContent>
@@ -331,19 +331,19 @@ export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
       >
         <Card className="bg-gradient-to-br from-orange-500/10 to-amber-500/5 border-orange-500/20">
           <CardContent className="py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center shrink-0">
                   <AlertTriangle className="w-5 h-5 text-orange-600" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-sm font-medium text-orange-600">Penalties Collected by Platform</p>
                   <p className="text-xs text-muted-foreground">
                     From cancellation fees paid by customers
                   </p>
                 </div>
               </div>
-              <p className="text-xl font-bold font-sans text-orange-600">
+              <p className="text-[clamp(1rem,3.6vw,1.25rem)] font-bold font-sans tabular-nums text-orange-600 leading-tight text-right break-words max-w-[40%]">
                 ₹{stats.totalPenalties.toLocaleString()}
               </p>
             </div>
