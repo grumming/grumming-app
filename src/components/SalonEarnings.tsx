@@ -246,14 +246,14 @@ export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
           transition={{ delay: 0.1 }}
         >
           <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-            <CardContent className="pt-6">
+            <CardContent className="pt-6 pb-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
                   <Calendar className="w-5 h-5 text-primary" />
                 </div>
-                <div>
+                <div className="min-w-0 flex-1">
                   <p className="text-xs text-muted-foreground">This Month</p>
-                  <p className="text-xl font-bold font-sans text-primary">₹{stats.thisMonthEarnings.toLocaleString()}</p>
+                  <p className="text-lg font-bold font-sans text-primary truncate">₹{stats.thisMonthEarnings.toLocaleString()}</p>
                 </div>
               </div>
             </CardContent>
@@ -266,14 +266,14 @@ export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
           transition={{ delay: 0.2 }}
         >
           <Card className="bg-gradient-to-br from-yellow-500/10 to-amber-500/5 border-yellow-500/20">
-            <CardContent className="pt-6">
+            <CardContent className="pt-6 pb-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center shrink-0">
                   <Clock className="w-5 h-5 text-yellow-600" />
                 </div>
-                <div>
+                <div className="min-w-0 flex-1">
                   <p className="text-xs text-muted-foreground">Pending Payouts</p>
-                  <p className="text-xl font-bold font-sans text-yellow-600">₹{stats.pendingPayouts.toLocaleString()}</p>
+                  <p className="text-lg font-bold font-sans text-yellow-600 truncate">₹{stats.pendingPayouts.toLocaleString()}</p>
                 </div>
               </div>
             </CardContent>
@@ -308,14 +308,14 @@ export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
           transition={{ duration: 0.2 }}
         >
           <Card className="bg-gradient-to-br from-green-500/10 to-emerald-500/5 border-green-500/20">
-            <CardContent className="pt-6">
+            <CardContent className="pt-6 pb-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center shrink-0">
                   <TrendingUp className="w-5 h-5 text-green-600" />
                 </div>
-                <div>
+                <div className="min-w-0 flex-1">
                   <p className="text-xs text-muted-foreground">Total Earnings</p>
-                  <p className="text-xl font-bold font-sans text-green-600">₹{stats.totalEarnings.toLocaleString()}</p>
+                  <p className="text-lg font-bold font-sans text-green-600 truncate">₹{stats.totalEarnings.toLocaleString()}</p>
                 </div>
               </div>
             </CardContent>
