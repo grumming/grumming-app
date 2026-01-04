@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -31,6 +31,7 @@ interface PaymentError {
   source?: string;
   step?: string;
   metadata?: Record<string, any>;
+  isRetryable?: boolean;
 }
 
 interface PaymentResult {
@@ -39,9 +40,35 @@ interface PaymentResult {
   error?: string;
   errorDetails?: PaymentError;
   isSimulated?: boolean;
+  retryCount?: number;
 }
 
 export type { PaymentError, PaymentResult };
+
+// Transient error codes that are safe to retry
+const RETRYABLE_ERROR_CODES = [
+  'GATEWAY_ERROR',
+  'SERVER_ERROR',
+  'NETWORK_ERROR',
+  'BAD_REQUEST_ERROR', // Often transient on iOS app handoff
+  'TIMEOUT_ERROR',
+];
+
+// Check if an error is retryable
+function isRetryableError(error: PaymentError): boolean {
+  if (!error.code) return false;
+  return RETRYABLE_ERROR_CODES.includes(error.code) || 
+    error.source === 'bank' || // Bank-side errors are often transient
+    error.reason?.toLowerCase().includes('timeout') ||
+    error.reason?.toLowerCase().includes('network');
+}
+
+// Calculate delay with exponential backoff + jitter
+function getRetryDelay(attempt: number, baseDelay = 1000, maxDelay = 10000): number {
+  const exponentialDelay = Math.min(baseDelay * Math.pow(2, attempt), maxDelay);
+  const jitter = Math.random() * 500; // Add 0-500ms jitter
+  return exponentialDelay + jitter;
+}
 
 // Fetch payment test mode settings from database
 async function getPaymentTestMode(): Promise<PaymentTestModeSettings | null> {
@@ -63,8 +90,12 @@ async function getPaymentTestMode(): Promise<PaymentTestModeSettings | null> {
   }
 }
 
+const MAX_RETRIES = 3;
+
 export const useRazorpay = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
 
   const loadRazorpayScript = useCallback((): Promise<boolean> => {
@@ -82,8 +113,18 @@ export const useRazorpay = () => {
     });
   }, []);
 
-  const initiatePayment = useCallback(async (options: PaymentOptions): Promise<PaymentResult> => {
+  // Clear any pending retry timeout
+  const cancelRetry = useCallback(() => {
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
+    }
+    setRetryCount(0);
+  }, []);
+
+  const initiatePayment = useCallback(async (options: PaymentOptions, currentRetry = 0): Promise<PaymentResult> => {
     setIsLoading(true);
+    setRetryCount(currentRetry);
 
     try {
       // Validate bookingId is required for secure payment
@@ -262,10 +303,9 @@ export const useRazorpay = () => {
         };
 
         const razorpay = new window.Razorpay(razorpayOptions);
-        razorpay.on('payment.failed', function (response: any) {
+        razorpay.on('payment.failed', async function (response: any) {
           const err = response?.error;
-          console.error('Razorpay payment.failed', err);
-          setIsLoading(false);
+          console.error('Razorpay payment.failed', err, `Attempt ${currentRetry + 1}/${MAX_RETRIES + 1}`);
           
           const errorDetails: PaymentError = {
             code: err?.code,
@@ -274,18 +314,47 @@ export const useRazorpay = () => {
             source: err?.source,
             step: err?.step,
             metadata: err?.metadata,
+            isRetryable: isRetryableError({
+              code: err?.code,
+              reason: err?.reason,
+              source: err?.source,
+            }),
           };
+          
+          // Check if we should auto-retry
+          if (errorDetails.isRetryable && currentRetry < MAX_RETRIES) {
+            const delay = getRetryDelay(currentRetry);
+            console.log(`Retryable error detected. Retrying in ${Math.round(delay)}ms...`);
+            
+            toast({
+              title: 'Payment issue detected',
+              description: `Retrying automatically (${currentRetry + 1}/${MAX_RETRIES})...`,
+            });
+            
+            // Schedule retry with exponential backoff
+            retryTimeoutRef.current = setTimeout(async () => {
+              const retryResult = await initiatePayment(options, currentRetry + 1);
+              resolve(retryResult);
+            }, delay);
+            
+            return; // Don't resolve yet, wait for retry
+          }
+          
+          setIsLoading(false);
+          setRetryCount(0);
           
           resolve({
             success: false,
             error: err?.description || err?.reason || err?.code || 'Payment failed',
             errorDetails,
+            retryCount: currentRetry,
           });
         });
         razorpay.open();
       });
     } catch (error: any) {
       setIsLoading(false);
+      setRetryCount(0);
       toast({
         title: 'Payment Error',
         description: error.message,
@@ -294,6 +363,7 @@ export const useRazorpay = () => {
       return {
         success: false,
         error: error.message,
+        retryCount: currentRetry,
       };
     }
   }, [loadRazorpayScript, toast]);
@@ -301,5 +371,7 @@ export const useRazorpay = () => {
   return {
     initiatePayment,
     isLoading,
+    retryCount,
+    cancelRetry,
   };
 };

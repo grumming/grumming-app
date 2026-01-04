@@ -60,7 +60,7 @@ export function BookingPaymentSheet({
   onPaymentSuccess,
 }: BookingPaymentSheetProps) {
   const { toast } = useToast();
-  const { initiatePayment, isLoading: razorpayLoading } = useRazorpay();
+  const { initiatePayment, isLoading: razorpayLoading, retryCount } = useRazorpay();
   const { wallet, useCredits } = useWallet();
   const { totalPenalty, hasPenalties, markPenaltiesAsPaid } = usePendingPenalties();
   
@@ -304,6 +304,8 @@ export function BookingPaymentSheet({
                 onRetry={handlePayNow}
                 onDismiss={() => setPaymentError(null)}
                 isRetrying={isLoading}
+                retryCount={retryCount}
+                maxRetries={3}
               />
             )}
           </AnimatePresence>
