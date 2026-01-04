@@ -18,6 +18,7 @@ export interface DbSalon {
   created_at: string;
   latitude: number | null;
   longitude: number | null;
+  amenities: string[] | null;
 }
 
 export interface SalonWithDistance extends DbSalon {

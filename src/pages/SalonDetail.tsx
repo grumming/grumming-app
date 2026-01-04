@@ -664,7 +664,7 @@ const SalonDetail = () => {
       price: s.price,
       category: s.category,
     })),
-    amenities: ["AC", "WiFi", "Card Payment"],
+    amenities: dbSalon.amenities?.length ? dbSalon.amenities : ["AC", "WiFi", "Card Payment"],
     reviewsList: [],
   } : (id ? salonsData[id] : null);
 

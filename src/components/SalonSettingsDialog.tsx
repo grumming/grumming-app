@@ -4,7 +4,8 @@ import {
   Settings, Store, Clock, MapPin, Phone, Mail, Globe, Camera,
   Shield, Bell, CreditCard, Users, Palette, ChevronRight,
   Save, Loader2, Check, AlertTriangle, Eye, EyeOff, Image,
-  Calendar, Star, X, Upload, Building2, Instagram, Facebook
+  Calendar, Star, X, Upload, Building2, Instagram, Facebook,
+  Sparkles, Wifi, Wind, CreditCard as CardIcon, Car, Coffee, Tv, Music, Baby, Accessibility
 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription
@@ -14,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -23,6 +25,20 @@ import {
 } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+
+// Available amenities with icons
+const AVAILABLE_AMENITIES = [
+  { id: 'AC', label: 'Air Conditioning', icon: Wind },
+  { id: 'WiFi', label: 'Free WiFi', icon: Wifi },
+  { id: 'Card Payment', label: 'Card Payment', icon: CardIcon },
+  { id: 'Parking', label: 'Parking Available', icon: Car },
+  { id: 'Beverages', label: 'Complimentary Beverages', icon: Coffee },
+  { id: 'TV', label: 'TV/Entertainment', icon: Tv },
+  { id: 'Music', label: 'Background Music', icon: Music },
+  { id: 'Kid Friendly', label: 'Kid Friendly', icon: Baby },
+  { id: 'Wheelchair Access', label: 'Wheelchair Accessible', icon: Accessibility },
+  { id: 'Premium Products', label: 'Premium Products', icon: Sparkles },
+] as const;
 
 interface SalonSettingsDialogProps {
   open: boolean;
@@ -40,6 +56,7 @@ interface SalonSettingsDialogProps {
     closing_time?: string | null;
     is_active?: boolean | null;
     status?: string;
+    amenities?: string[] | null;
   } | null;
   onSalonUpdated: () => void;
 }
@@ -54,6 +71,7 @@ interface SalonFormData {
   opening_time: string;
   closing_time: string;
   is_active: boolean;
+  amenities: string[];
 }
 
 const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: SalonSettingsDialogProps) => {
@@ -72,6 +90,7 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
     opening_time: '09:00',
     closing_time: '21:00',
     is_active: true,
+    amenities: [],
   });
 
   // Notification preferences
@@ -95,14 +114,22 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
         opening_time: salon.opening_time || '09:00',
         closing_time: salon.closing_time || '21:00',
         is_active: salon.is_active ?? true,
+        amenities: salon.amenities || [],
       });
       setHasChanges(false);
     }
   }, [salon, open]);
 
-  const handleInputChange = (field: keyof SalonFormData, value: string | boolean) => {
+  const handleInputChange = (field: keyof SalonFormData, value: string | boolean | string[]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setHasChanges(true);
+  };
+
+  const handleAmenityToggle = (amenityId: string) => {
+    const newAmenities = formData.amenities.includes(amenityId)
+      ? formData.amenities.filter(a => a !== amenityId)
+      : [...formData.amenities, amenityId];
+    handleInputChange('amenities', newAmenities);
   };
 
   const handleSaveChanges = async () => {
@@ -122,6 +149,7 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
           opening_time: formData.opening_time,
           closing_time: formData.closing_time,
           is_active: formData.is_active,
+          amenities: formData.amenities,
           updated_at: new Date().toISOString(),
         })
         .eq('id', salon.id);
@@ -148,6 +176,7 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
 
   const settingsSections = [
     { id: 'general', label: 'General', icon: Store },
+    { id: 'amenities', label: 'Amenities', icon: Sparkles },
     { id: 'hours', label: 'Business Hours', icon: Clock },
     { id: 'contact', label: 'Contact Info', icon: Phone },
     { id: 'notifications', label: 'Notifications', icon: Bell },
@@ -273,6 +302,62 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
                         </div>
                       </div>
                     </div>
+                  </motion.div>
+                )}
+
+                {/* Amenities */}
+                {activeTab === 'amenities' && (
+                  <motion.div
+                    key="amenities"
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                    className="space-y-6"
+                  >
+                    <div>
+                      <h3 className="text-lg font-semibold mb-1">Salon Amenities</h3>
+                      <p className="text-sm text-muted-foreground">Select the amenities available at your salon</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {AVAILABLE_AMENITIES.map((amenity) => {
+                        const isSelected = formData.amenities.includes(amenity.id);
+                        const AmenityIcon = amenity.icon;
+                        return (
+                          <label
+                            key={amenity.id}
+                            className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all
+                              ${isSelected 
+                                ? 'border-primary bg-primary/5 ring-1 ring-primary/20' 
+                                : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                              }`}
+                          >
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => handleAmenityToggle(amenity.id)}
+                              className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                            />
+                            <AmenityIcon className={`w-4 h-4 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
+                            <span className={`text-sm font-medium ${isSelected ? 'text-foreground' : 'text-muted-foreground'}`}>
+                              {amenity.label}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+
+                    {formData.amenities.length > 0 && (
+                      <div className="p-4 bg-muted/50 rounded-lg">
+                        <p className="text-sm font-medium mb-2">Selected Amenities ({formData.amenities.length})</p>
+                        <div className="flex flex-wrap gap-2">
+                          {formData.amenities.map(amenityId => (
+                            <Badge key={amenityId} variant="secondary" className="text-xs">
+                              {amenityId}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </motion.div>
                 )}
 
