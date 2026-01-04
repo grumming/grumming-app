@@ -1391,6 +1391,7 @@ export type Database = {
       }
       salons: {
         Row: {
+          amenities: string[] | null
           city: string
           closing_time: string | null
           created_at: string
@@ -1412,6 +1413,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          amenities?: string[] | null
           city: string
           closing_time?: string | null
           created_at?: string
@@ -1433,6 +1435,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          amenities?: string[] | null
           city?: string
           closing_time?: string | null
           created_at?: string
