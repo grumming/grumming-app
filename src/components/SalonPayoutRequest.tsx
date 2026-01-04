@@ -420,7 +420,7 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                 </div>
                 <div>
                   <p className="text-sm text-red-600 dark:text-red-400">Penalties Owed</p>
-                  <p className="text-2xl font-bold text-red-600 font-sans">-₹{pendingBalance.penaltiesOwed.toLocaleString('en-IN')}</p>
+                  <p className="text-2xl font-bold text-red-600 font-sans">₹{pendingBalance.penaltiesOwed.toLocaleString('en-IN')}</p>
                   <p className="text-xs text-muted-foreground mt-1">Deducted from payout</p>
                 </div>
               </div>
@@ -731,9 +731,9 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                onClick={() => setRequestAmount(pendingBalance.availableForPayout.toString())}
+                                onClick={() => setRequestAmount(Math.floor(pendingBalance.availableForPayout * 100) / 100 + '')}
                                 className={`px-4 py-2 h-auto text-sm font-medium transition-all duration-200 ${
-                                  requestAmount === pendingBalance.availableForPayout.toString()
+                                  parseFloat(requestAmount) === Math.floor(pendingBalance.availableForPayout * 100) / 100
                                     ? 'bg-primary text-primary-foreground border-primary shadow-sm'
                                     : 'border-primary/30 text-primary hover:bg-primary/5'
                                 }`}
