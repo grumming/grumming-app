@@ -939,10 +939,18 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                                   </span>
                                 </div>
                                 <div className="space-y-2 text-sm">
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Payout Amount</span>
-                                    <span className="font-medium font-sans">₹{parseFloat(requestAmount).toLocaleString('en-IN')}</span>
+                                  {/* Net Payout - Amount going to owner */}
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-muted-foreground flex items-center gap-1.5">
+                                      <Wallet className="h-3.5 w-3.5" />
+                                      Net Payout
+                                    </span>
+                                    <span className="font-semibold text-green-600 font-sans">
+                                      ₹{parseFloat(requestAmount).toLocaleString('en-IN')}
+                                    </span>
                                   </div>
+                                  
+                                  {/* Penalty Remittance - Separate line for clarity */}
                                   {pendingBalance.penaltiesOwed > 0 && (
                                     <div className="space-y-2">
                                       <button
@@ -950,16 +958,16 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                                         onClick={() => setShowPenaltyBreakdown(!showPenaltyBreakdown)}
                                         className="flex justify-between items-center w-full text-red-600 hover:text-red-700 transition-colors"
                                       >
-                                        <span className="flex items-center gap-1">
-                                          <AlertCircle className="h-3 w-3" />
-                                          Penalty Deduction ({penaltyDetails.length})
+                                        <span className="flex items-center gap-1.5">
+                                          <AlertCircle className="h-3.5 w-3.5" />
+                                          Penalty Remittance ({penaltyDetails.length})
                                           {showPenaltyBreakdown ? (
                                             <ChevronUp className="h-3 w-3" />
                                           ) : (
                                             <ChevronDown className="h-3 w-3" />
                                           )}
                                         </span>
-                                        <span className="font-medium font-sans">-₹{pendingBalance.penaltiesOwed.toLocaleString('en-IN')}</span>
+                                        <span className="font-medium font-sans">₹{pendingBalance.penaltiesOwed.toLocaleString('en-IN')}</span>
                                       </button>
                                       
                                       <AnimatePresence>
@@ -972,7 +980,7 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                                           >
                                             <div className="p-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 space-y-2 mt-1">
                                               <p className="text-[10px] text-red-500 dark:text-red-400 font-medium uppercase tracking-wide">
-                                                Penalties Collected (Owed to Platform)
+                                                Cash penalties collected → Platform
                                               </p>
                                               <div className="space-y-1.5 max-h-32 overflow-y-auto">
                                                 {penaltyDetails.map((penalty) => (
@@ -1003,21 +1011,41 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                                       </AnimatePresence>
                                     </div>
                                   )}
+                                  
                                   {payoutMethod === 'instant_upi' && (
                                     <div className="flex justify-between text-orange-600">
-                                      <span>Convenience Fee ({INSTANT_PAYOUT_FEE_PERCENT}%)</span>
+                                      <span className="flex items-center gap-1.5">
+                                        <Zap className="h-3.5 w-3.5" />
+                                        Convenience Fee ({INSTANT_PAYOUT_FEE_PERCENT}%)
+                                      </span>
                                       <span className="font-medium font-sans">-₹{calculateInstantFee(parseFloat(requestAmount)).toLocaleString('en-IN')}</span>
                                     </div>
                                   )}
+                                  
                                   <Separator className={payoutMethod === 'instant_upi' ? 'bg-green-200 dark:bg-green-800' : ''} />
+                                  
+                                  {/* Total being processed */}
                                   <div className="flex justify-between pt-1">
                                     <span className={`font-semibold ${payoutMethod === 'instant_upi' ? 'text-green-700 dark:text-green-400' : 'text-primary'}`}>
-                                      You'll Receive
+                                      {pendingBalance.penaltiesOwed > 0 ? 'Total Processed' : "You'll Receive"}
                                     </span>
                                     <span className={`font-bold text-lg font-sans ${payoutMethod === 'instant_upi' ? 'text-green-700 dark:text-green-400' : 'text-primary'}`}>
-                                      ₹{getNetAmount(parseFloat(requestAmount)).toLocaleString('en-IN')}
+                                      ₹{(getNetAmount(parseFloat(requestAmount)) + pendingBalance.penaltiesOwed).toLocaleString('en-IN')}
                                     </span>
                                   </div>
+                                  
+                                  {/* Show actual amount received when penalties exist */}
+                                  {pendingBalance.penaltiesOwed > 0 && (
+                                    <div className="flex justify-between items-center pt-1 bg-green-50 dark:bg-green-950/30 -mx-4 px-4 py-2 rounded-lg">
+                                      <span className="text-green-700 dark:text-green-400 font-medium flex items-center gap-1.5">
+                                        <CheckCircle className="h-4 w-4" />
+                                        You'll Receive
+                                      </span>
+                                      <span className="font-bold text-lg font-sans text-green-700 dark:text-green-400">
+                                        ₹{getNetAmount(parseFloat(requestAmount)).toLocaleString('en-IN')}
+                                      </span>
+                                    </div>
+                                  )}
                                 </div>
                                 
                                 {/* Estimated Arrival Time */}
