@@ -101,14 +101,32 @@ export const useRazorpay = () => {
   const loadRazorpayScript = useCallback((): Promise<boolean> => {
     return new Promise((resolve) => {
       if (window.Razorpay) {
+        console.log('Razorpay script already loaded');
         resolve(true);
         return;
       }
 
+      // Check if script is already being loaded
+      const existingScript = document.querySelector('script[src*="razorpay"]');
+      if (existingScript) {
+        console.log('Razorpay script already in DOM, waiting for load...');
+        existingScript.addEventListener('load', () => resolve(true));
+        existingScript.addEventListener('error', () => resolve(false));
+        return;
+      }
+
+      console.log('Loading Razorpay script...');
       const script = document.createElement('script');
       script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
+      script.async = true;
+      script.onload = () => {
+        console.log('Razorpay script loaded successfully');
+        resolve(true);
+      };
+      script.onerror = (e) => {
+        console.error('Razorpay script failed to load:', e);
+        resolve(false);
+      };
       document.body.appendChild(script);
     });
   }, []);
@@ -186,12 +204,20 @@ export const useRazorpay = () => {
       }
 
       // Live mode - proceed with real Razorpay payment
+      console.log('Starting Razorpay payment flow...');
       const scriptLoaded = await loadRazorpayScript();
       if (!scriptLoaded) {
-        throw new Error('Failed to load payment gateway');
+        throw new Error('Failed to load payment gateway. Please check your internet connection.');
+      }
+
+      // Verify Razorpay is available
+      if (!window.Razorpay) {
+        console.error('Razorpay object not available after script load');
+        throw new Error('Payment gateway initialization failed');
       }
 
       // Create order with booking_id for server-side amount validation
+      console.log('Creating Razorpay order...');
       const orderResponse = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-razorpay-order`,
         {
@@ -217,10 +243,12 @@ export const useRazorpay = () => {
 
       if (!orderResponse.ok) {
         const errorData = await orderResponse.json();
+        console.error('Order creation failed:', errorData);
         throw new Error(errorData.error || 'Failed to create order');
       }
 
       const orderData = await orderResponse.json();
+      console.log('Order created:', orderData.orderId);
 
       // Open Razorpay checkout
       return new Promise((resolve) => {
@@ -302,55 +330,73 @@ export const useRazorpay = () => {
           },
         };
 
-        const razorpay = new window.Razorpay(razorpayOptions);
-        razorpay.on('payment.failed', async function (response: any) {
-          const err = response?.error;
-          console.error('Razorpay payment.failed', err, `Attempt ${currentRetry + 1}/${MAX_RETRIES + 1}`);
+        console.log('Initializing Razorpay checkout with options:', {
+          key: orderData.keyId ? '***configured***' : 'MISSING',
+          amount: razorpayOptions.amount,
+          order_id: razorpayOptions.order_id,
+        });
+
+        try {
+          const razorpay = new window.Razorpay(razorpayOptions);
           
-          const errorDetails: PaymentError = {
-            code: err?.code,
-            reason: err?.reason,
-            description: err?.description,
-            source: err?.source,
-            step: err?.step,
-            metadata: err?.metadata,
-            isRetryable: isRetryableError({
+          razorpay.on('payment.failed', async function (response: any) {
+            const err = response?.error;
+            console.error('Razorpay payment.failed', err, `Attempt ${currentRetry + 1}/${MAX_RETRIES + 1}`);
+            
+            const errorDetails: PaymentError = {
               code: err?.code,
               reason: err?.reason,
+              description: err?.description,
               source: err?.source,
-            }),
-          };
-          
-          // Check if we should auto-retry
-          if (errorDetails.isRetryable && currentRetry < MAX_RETRIES) {
-            const delay = getRetryDelay(currentRetry);
-            console.log(`Retryable error detected. Retrying in ${Math.round(delay)}ms...`);
+              step: err?.step,
+              metadata: err?.metadata,
+              isRetryable: isRetryableError({
+                code: err?.code,
+                reason: err?.reason,
+                source: err?.source,
+              }),
+            };
             
-            toast({
-              title: 'Payment issue detected',
-              description: `Retrying automatically (${currentRetry + 1}/${MAX_RETRIES})...`,
+            // Check if we should auto-retry
+            if (errorDetails.isRetryable && currentRetry < MAX_RETRIES) {
+              const delay = getRetryDelay(currentRetry);
+              console.log(`Retryable error detected. Retrying in ${Math.round(delay)}ms...`);
+              
+              toast({
+                title: 'Payment issue detected',
+                description: `Retrying automatically (${currentRetry + 1}/${MAX_RETRIES})...`,
+              });
+              
+              // Schedule retry with exponential backoff
+              retryTimeoutRef.current = setTimeout(async () => {
+                const retryResult = await initiatePayment(options, currentRetry + 1);
+                resolve(retryResult);
+              }, delay);
+              
+              return; // Don't resolve yet, wait for retry
+            }
+            
+            setIsLoading(false);
+            setRetryCount(0);
+            
+            resolve({
+              success: false,
+              error: err?.description || err?.reason || err?.code || 'Payment failed',
+              errorDetails,
+              retryCount: currentRetry,
             });
-            
-            // Schedule retry with exponential backoff
-            retryTimeoutRef.current = setTimeout(async () => {
-              const retryResult = await initiatePayment(options, currentRetry + 1);
-              resolve(retryResult);
-            }, delay);
-            
-            return; // Don't resolve yet, wait for retry
-          }
+          });
           
+          console.log('Opening Razorpay checkout...');
+          razorpay.open();
+        } catch (razorpayError: any) {
+          console.error('Error creating Razorpay instance:', razorpayError);
           setIsLoading(false);
-          setRetryCount(0);
-          
           resolve({
             success: false,
-            error: err?.description || err?.reason || err?.code || 'Payment failed',
-            errorDetails,
-            retryCount: currentRetry,
+            error: razorpayError.message || 'Failed to open payment checkout',
           });
-        });
-        razorpay.open();
+        }
       });
     } catch (error: any) {
       setIsLoading(false);
