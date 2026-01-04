@@ -186,6 +186,19 @@ export const useRazorpay = () => {
           theme: {
             color: '#f97316',
           },
+          // Force UPI-only in checkout to avoid wallet/app flows that often fail on iOS WebViews
+          display: {
+            blocks: {
+              upi: {
+                name: 'Pay via UPI',
+                instruments: [{ method: 'upi' }],
+              },
+            },
+            sequence: ['block.upi'],
+            preferences: {
+              show_default_blocks: false,
+            },
+          },
           handler: async function (response: any) {
             try {
               // Verify payment
@@ -238,10 +251,12 @@ export const useRazorpay = () => {
 
         const razorpay = new window.Razorpay(razorpayOptions);
         razorpay.on('payment.failed', function (response: any) {
+          const err = response?.error;
+          console.error('Razorpay payment.failed', err);
           setIsLoading(false);
           resolve({
             success: false,
-            error: response.error.description || 'Payment failed',
+            error: err?.description || err?.reason || err?.code || 'Payment failed',
           });
         });
         razorpay.open();
