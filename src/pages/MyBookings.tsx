@@ -284,18 +284,21 @@ const MyBookings = () => {
                                 <RefreshCw className="w-4 h-4" />
                                 Reschedule
                               </Button>
-                              <Button
-                                variant="default"
-                                size="sm"
-                                onClick={() => {
-                                  setPaymentBooking(booking);
-                                  setShowPaymentSheet(true);
-                                }}
-                                className="gap-1"
-                              >
-                                <CreditCard className="w-4 h-4" />
-                                Pay
-                              </Button>
+                              {/* Only show Pay button if not already paid */}
+                              {booking.status !== 'confirmed' && !booking.payment_id && (
+                                <Button
+                                  variant="default"
+                                  size="sm"
+                                  onClick={() => {
+                                    setPaymentBooking(booking);
+                                    setShowPaymentSheet(true);
+                                  }}
+                                  className="gap-1"
+                                >
+                                  <CreditCard className="w-4 h-4" />
+                                  Pay
+                                </Button>
+                              )}
                               <Button
                                 variant="destructive"
                                 size="sm"
