@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Settings, Store, Clock, MapPin, Phone, Mail, Globe, Camera,
   Shield, Bell, CreditCard, Users, Palette, ChevronRight,
   Save, Loader2, Check, AlertTriangle, Eye, EyeOff, Image,
   Calendar, Star, X, Upload, Building2, Instagram, Facebook,
-  Sparkles, Wifi, Wind, CreditCard as CardIcon, Car, Coffee, Tv, Music, Baby, Accessibility
+  Sparkles, Wifi, Wind, CreditCard as CardIcon, Car, Coffee, Tv, Music, Baby, Accessibility,
+  Trash2, ImageIcon, Crown
 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription
@@ -95,6 +96,14 @@ const DEFAULT_DAY_HOURS: DayHours[] = [
   { day_of_week: 6, is_open: true, opening_time: '09:00', closing_time: '21:00', break_start: null, break_end: null },
 ];
 
+interface SalonImage {
+  id: string;
+  image_url: string;
+  storage_path: string;
+  is_primary: boolean;
+  display_order: number;
+}
+
 const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: SalonSettingsDialogProps) => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('general');
@@ -103,6 +112,13 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
   const [dayHours, setDayHours] = useState<DayHours[]>(DEFAULT_DAY_HOURS);
   const [useDaySpecificHours, setUseDaySpecificHours] = useState(false);
   const [loadingHours, setLoadingHours] = useState(false);
+
+  // Photo management state
+  const [salonImages, setSalonImages] = useState<SalonImage[]>([]);
+  const [loadingImages, setLoadingImages] = useState(false);
+  const [settingPrimary, setSettingPrimary] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [deletingImage, setDeletingImage] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<SalonFormData>({
     name: '',
@@ -173,6 +189,238 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
     }
   };
 
+  // Fetch salon images from database and storage
+  const fetchSalonImages = useCallback(async (salonId: string) => {
+    setLoadingImages(true);
+    try {
+      // First, check if we have images in the database
+      const { data: dbImages, error: dbError } = await supabase
+        .from('salon_images')
+        .select('*')
+        .eq('salon_id', salonId)
+        .order('display_order');
+
+      if (dbError) throw dbError;
+
+      if (dbImages && dbImages.length > 0) {
+        setSalonImages(dbImages);
+      } else {
+        // Fallback: scan storage for existing images and populate the table
+        const { data: storageFiles, error: storageError } = await supabase.storage
+          .from('salon-images')
+          .list(salonId);
+
+        if (storageError) {
+          console.error('Storage list error:', storageError);
+          setSalonImages([]);
+          return;
+        }
+
+        if (storageFiles && storageFiles.length > 0) {
+          // Insert discovered images into the database
+          const imagesToInsert = storageFiles
+            .filter(file => file.name.match(/\.(jpg|jpeg|png|webp|gif)$/i))
+            .map((file, index) => {
+              const { data: urlData } = supabase.storage
+                .from('salon-images')
+                .getPublicUrl(`${salonId}/${file.name}`);
+              
+              return {
+                salon_id: salonId,
+                image_url: urlData.publicUrl,
+                storage_path: `${salonId}/${file.name}`,
+                is_primary: file.name.startsWith('main'),
+                display_order: file.name.startsWith('main') ? 0 : index + 1,
+              };
+            });
+
+          if (imagesToInsert.length > 0) {
+            const { data: insertedImages, error: insertError } = await supabase
+              .from('salon_images')
+              .insert(imagesToInsert)
+              .select();
+
+            if (insertError) {
+              console.error('Error inserting images:', insertError);
+              // Still show images from storage even if DB insert fails
+              setSalonImages(imagesToInsert.map((img, i) => ({ ...img, id: `temp-${i}` })));
+            } else {
+              setSalonImages(insertedImages || []);
+            }
+          } else {
+            setSalonImages([]);
+          }
+        } else {
+          setSalonImages([]);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching salon images:', error);
+      setSalonImages([]);
+    } finally {
+      setLoadingImages(false);
+    }
+  }, []);
+
+  // Set an image as primary
+  const handleSetPrimaryImage = async (imageId: string) => {
+    if (!salon) return;
+    setSettingPrimary(imageId);
+    try {
+      const { error } = await supabase
+        .from('salon_images')
+        .update({ is_primary: true })
+        .eq('id', imageId);
+
+      if (error) throw error;
+
+      // Update local state
+      setSalonImages(prev => prev.map(img => ({
+        ...img,
+        is_primary: img.id === imageId
+      })));
+
+      toast({
+        title: "Primary image updated",
+        description: "This image will now be displayed to customers",
+      });
+
+      onSalonUpdated();
+    } catch (error: any) {
+      console.error('Error setting primary image:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to set primary image",
+        variant: "destructive",
+      });
+    } finally {
+      setSettingPrimary(null);
+    }
+  };
+
+  // Upload a new image
+  const handleUploadImage = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!salon || !event.target.files || event.target.files.length === 0) return;
+    
+    const file = event.target.files[0];
+    const fileExt = file.name.split('.').pop()?.toLowerCase();
+    
+    if (!['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(fileExt || '')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload an image (JPG, PNG, WebP, or GIF)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const fileName = `${salon.id}/gallery-${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('salon-images')
+        .upload(fileName, file, { cacheControl: '3600', upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('salon-images')
+        .getPublicUrl(fileName);
+
+      // Insert into database
+      const { data: newImage, error: insertError } = await supabase
+        .from('salon_images')
+        .insert({
+          salon_id: salon.id,
+          image_url: urlData.publicUrl,
+          storage_path: fileName,
+          is_primary: salonImages.length === 0, // First image becomes primary
+          display_order: salonImages.length,
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      setSalonImages(prev => [...prev, newImage]);
+
+      toast({
+        title: "Image uploaded",
+        description: salonImages.length === 0 ? "This image has been set as your primary image" : "Image added to your gallery",
+      });
+
+      if (salonImages.length === 0) {
+        onSalonUpdated();
+      }
+    } catch (error: any) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: "Upload failed",
+        description: error.message || "Failed to upload image",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingImage(false);
+      // Reset the input
+      event.target.value = '';
+    }
+  };
+
+  // Delete an image
+  const handleDeleteImage = async (imageId: string, storagePath: string, isPrimary: boolean) => {
+    if (!salon) return;
+    
+    if (isPrimary && salonImages.length > 1) {
+      toast({
+        title: "Cannot delete primary image",
+        description: "Please set another image as primary first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setDeletingImage(imageId);
+    try {
+      // Delete from storage
+      const { error: storageError } = await supabase.storage
+        .from('salon-images')
+        .remove([storagePath]);
+
+      if (storageError) {
+        console.error('Storage delete error:', storageError);
+      }
+
+      // Delete from database
+      const { error: dbError } = await supabase
+        .from('salon_images')
+        .delete()
+        .eq('id', imageId);
+
+      if (dbError) throw dbError;
+
+      setSalonImages(prev => prev.filter(img => img.id !== imageId));
+
+      toast({
+        title: "Image deleted",
+        description: "The image has been removed",
+      });
+
+      if (isPrimary) {
+        onSalonUpdated();
+      }
+    } catch (error: any) {
+      console.error('Error deleting image:', error);
+      toast({
+        title: "Delete failed",
+        description: error.message || "Failed to delete image",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingImage(null);
+    }
+  };
+
   useEffect(() => {
     if (salon && open) {
       setFormData({
@@ -189,8 +437,9 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
       });
       setHasChanges(false);
       fetchDayHours(salon.id);
+      fetchSalonImages(salon.id);
     }
-  }, [salon, open]);
+  }, [salon, open, fetchSalonImages]);
 
   const handleInputChange = (field: keyof SalonFormData, value: string | boolean | string[]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -329,6 +578,7 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
 
   const settingsSections = [
     { id: 'general', label: 'General', icon: Store },
+    { id: 'photos', label: 'Photos', icon: ImageIcon },
     { id: 'amenities', label: 'Amenities', icon: Sparkles },
     { id: 'hours', label: 'Business Hours', icon: Clock },
     { id: 'contact', label: 'Contact Info', icon: Phone },
@@ -455,6 +705,142 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
                         </div>
                       </div>
                     </div>
+                  </motion.div>
+                )}
+
+                {/* Photos Management */}
+                {activeTab === 'photos' && (
+                  <motion.div
+                    key="photos"
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                    className="space-y-6"
+                  >
+                    <div>
+                      <h3 className="text-lg font-semibold mb-1">Salon Photos</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Manage your salon's gallery. The primary image is shown to customers first.
+                      </p>
+                    </div>
+
+                    {/* Upload Button */}
+                    <div className="flex items-center gap-3">
+                      <label className="cursor-pointer">
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/gif"
+                          className="hidden"
+                          onChange={handleUploadImage}
+                          disabled={uploadingImage}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="gap-2"
+                          disabled={uploadingImage}
+                          asChild
+                        >
+                          <span>
+                            {uploadingImage ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Upload className="w-4 h-4" />
+                            )}
+                            {uploadingImage ? 'Uploading...' : 'Upload New Photo'}
+                          </span>
+                        </Button>
+                      </label>
+                      <p className="text-xs text-muted-foreground">
+                        JPG, PNG, WebP or GIF
+                      </p>
+                    </div>
+
+                    {/* Images Grid */}
+                    {loadingImages ? (
+                      <div className="flex items-center justify-center py-12">
+                        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                      </div>
+                    ) : salonImages.length === 0 ? (
+                      <div className="text-center py-12 border-2 border-dashed rounded-lg">
+                        <ImageIcon className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
+                        <p className="text-muted-foreground">No photos uploaded yet</p>
+                        <p className="text-sm text-muted-foreground/70 mt-1">
+                          Upload photos to showcase your salon
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {salonImages.map((image) => (
+                          <div
+                            key={image.id}
+                            className={`relative group rounded-lg overflow-hidden border-2 transition-all ${
+                              image.is_primary
+                                ? 'border-primary ring-2 ring-primary/20'
+                                : 'border-border hover:border-primary/50'
+                            }`}
+                          >
+                            <div className="aspect-[4/3]">
+                              <img
+                                src={image.image_url}
+                                alt="Salon photo"
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+
+                            {/* Primary Badge */}
+                            {image.is_primary && (
+                              <div className="absolute top-2 left-2 bg-primary text-primary-foreground px-2 py-1 rounded-md text-xs font-medium flex items-center gap-1">
+                                <Crown className="w-3 h-3" />
+                                Primary
+                              </div>
+                            )}
+
+                            {/* Hover Overlay */}
+                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                              {!image.is_primary && (
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  className="gap-1"
+                                  onClick={() => handleSetPrimaryImage(image.id)}
+                                  disabled={settingPrimary === image.id}
+                                >
+                                  {settingPrimary === image.id ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <Crown className="w-3 h-3" />
+                                  )}
+                                  Set as Primary
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                className="gap-1"
+                                onClick={() => handleDeleteImage(image.id, image.storage_path, image.is_primary)}
+                                disabled={deletingImage === image.id || (image.is_primary && salonImages.length > 1)}
+                              >
+                                {deletingImage === image.id ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-3 h-3" />
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {salonImages.length > 0 && (
+                      <div className="p-4 bg-muted/50 rounded-lg">
+                        <p className="text-sm text-muted-foreground">
+                          <strong>Tip:</strong> Click on any photo to set it as your primary image. 
+                          The primary image is displayed first on your salon's profile page.
+                        </p>
+                      </div>
+                    )}
                   </motion.div>
                 )}
 
