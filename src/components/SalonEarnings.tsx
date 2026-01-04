@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   IndianRupee, TrendingUp, Wallet, Calendar, ArrowUpRight, 
-  ArrowDownRight, Clock, CheckCircle, XCircle, Loader2, Building, Smartphone, Zap, Building2, AlertTriangle, User, Banknote
+  ArrowDownRight, Clock, CheckCircle, XCircle, Loader2, Building, Smartphone, Zap, Building2, AlertTriangle, User, Banknote, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -69,6 +69,7 @@ export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const [showMore, setShowMore] = useState(false);
 
   useEffect(() => {
     const fetchEarningsData = async () => {
@@ -279,6 +280,48 @@ export function SalonEarnings({ salonId, salonName }: SalonEarningsProps) {
           </Card>
         </motion.div>
       </div>
+
+      {/* Show More Button */}
+      <button
+        onClick={() => setShowMore(!showMore)}
+        className="w-full flex items-center justify-center gap-2 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        {showMore ? (
+          <>
+            <ChevronUp className="w-4 h-4" />
+            Show Less
+          </>
+        ) : (
+          <>
+            <ChevronDown className="w-4 h-4" />
+            Show More
+          </>
+        )}
+      </button>
+
+      {/* Total Earnings Card - Hidden by default */}
+      {showMore && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <Card className="bg-gradient-to-br from-green-500/10 to-emerald-500/5 border-green-500/20">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Total Earnings</p>
+                  <p className="text-xl font-bold font-sans text-green-600">₹{stats.totalEarnings.toLocaleString()}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
 
       {/* Penalties Info Card - Shows penalties collected by platform */}
       <motion.div
