@@ -41,7 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { indianCities } from '@/data/indianCities';
+import { getAllStates, getDistrictsForState, getCitiesForDistrict } from '@/data/indianCities';
 import ImageCropDialog from '@/components/ImageCropDialog';
 import LocationPickerDialog from '@/components/LocationPickerDialog';
 
@@ -53,6 +53,8 @@ const basicInfoSchema = z.object({
 
 const locationSchema = z.object({
   location: z.string().min(5, 'Please enter a valid address').max(200),
+  state: z.string().min(1, 'Please select a state'),
+  district: z.string().min(1, 'Please select a district'),
   city: z.string().min(1, 'Please select a city'),
 });
 
@@ -67,6 +69,8 @@ type SalonFormData = {
   name: string;
   description: string;
   location: string;
+  state: string;
+  district: string;
   city: string;
   phone: string;
   email: string;
@@ -140,6 +144,8 @@ const SalonRegistration = () => {
     name: '',
     description: '',
     location: '',
+    state: '',
+    district: '',
     city: '',
     phone: '',
     email: '',
@@ -169,7 +175,7 @@ const SalonRegistration = () => {
           basicInfoSchema.parse({ name: formData.name, description: formData.description });
           break;
         case 2:
-          locationSchema.parse({ location: formData.location, city: formData.city });
+          locationSchema.parse({ location: formData.location, state: formData.state, district: formData.district, city: formData.city });
           break;
         case 3:
           contactSchema.parse({ 
@@ -401,7 +407,7 @@ const SalonRegistration = () => {
         .insert({
           name: formData.name.trim(),
           location: formData.location.trim(),
-          city: formData.city,
+          city: `${formData.city}, ${formData.state}`,
           description: formData.description?.trim() || null,
           phone: formData.phone || null,
           email: formData.email || null,
@@ -683,17 +689,68 @@ const SalonRegistration = () => {
                   </div>
 
                   <div className="space-y-4">
+                    {/* State Selection */}
+                    <div className="space-y-2">
+                      <Label>State *</Label>
+                      <Select
+                        value={formData.state}
+                        onValueChange={(value) => {
+                          updateField('state', value);
+                          setFormData(prev => ({ ...prev, district: '', city: '' }));
+                        }}
+                      >
+                        <SelectTrigger className={errors.state ? 'border-destructive' : ''}>
+                          <SelectValue placeholder="Select state" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-60">
+                          {getAllStates().map((state) => (
+                            <SelectItem key={state} value={state}>
+                              {state}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.state && <p className="text-xs text-destructive">{errors.state}</p>}
+                    </div>
+
+                    {/* District Selection */}
+                    <div className="space-y-2">
+                      <Label>District *</Label>
+                      <Select
+                        value={formData.district}
+                        onValueChange={(value) => {
+                          updateField('district', value);
+                          setFormData(prev => ({ ...prev, city: '' }));
+                        }}
+                        disabled={!formData.state}
+                      >
+                        <SelectTrigger className={errors.district ? 'border-destructive' : ''}>
+                          <SelectValue placeholder={formData.state ? "Select district" : "Select state first"} />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-60">
+                          {getDistrictsForState(formData.state).map((district) => (
+                            <SelectItem key={district} value={district}>
+                              {district}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.district && <p className="text-xs text-destructive">{errors.district}</p>}
+                    </div>
+
+                    {/* City Selection */}
                     <div className="space-y-2">
                       <Label>City *</Label>
                       <Select
                         value={formData.city}
                         onValueChange={(value) => updateField('city', value)}
+                        disabled={!formData.district}
                       >
                         <SelectTrigger className={errors.city ? 'border-destructive' : ''}>
-                          <SelectValue placeholder="Select your city" />
+                          <SelectValue placeholder={formData.district ? "Select city" : "Select district first"} />
                         </SelectTrigger>
                         <SelectContent className="max-h-60">
-                          {indianCities.map((city) => (
+                          {getCitiesForDistrict(formData.state, formData.district).map((city) => (
                             <SelectItem key={city} value={city}>
                               {city}
                             </SelectItem>
@@ -1108,6 +1165,14 @@ const SalonRegistration = () => {
                         </button>
                       </div>
                       <div className="space-y-2 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">State:</span>
+                          <span className="ml-2 font-medium">{formData.state}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">District:</span>
+                          <span className="ml-2 font-medium">{formData.district}</span>
+                        </div>
                         <div>
                           <span className="text-muted-foreground">City:</span>
                           <span className="ml-2 font-medium">{formData.city}</span>
