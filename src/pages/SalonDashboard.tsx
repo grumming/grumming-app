@@ -1708,117 +1708,13 @@ const SalonDashboard = () => {
 
             {/* Manage Tab - with nested tabs for Reviews, Services, Stylists, Schedule, Bank Account */}
             <TabsContent value="manage" className="space-y-4">
-              <Tabs defaultValue="reviews" className="space-y-4">
-                <TabsList className="grid w-full grid-cols-5 bg-muted/50">
-                  <TabsTrigger value="reviews" className="text-xs sm:text-sm">Reviews</TabsTrigger>
+              <Tabs defaultValue="services" className="space-y-4">
+                <TabsList className="grid w-full grid-cols-4 bg-muted/50">
                   <TabsTrigger value="services" className="text-xs sm:text-sm">Services</TabsTrigger>
                   <TabsTrigger value="stylists" className="text-xs sm:text-sm">Team</TabsTrigger>
                   <TabsTrigger value="schedule" className="text-xs sm:text-sm">Schedule</TabsTrigger>
                   <TabsTrigger value="bank" className="text-xs sm:text-sm">Bank</TabsTrigger>
                 </TabsList>
-
-                {/* Reviews Sub-Tab */}
-                <TabsContent value="reviews" className="space-y-4">
-                  <Card>
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <CardTitle>Customer Reviews</CardTitle>
-                          <CardDescription>View and respond to customer feedback</CardDescription>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                          <span className="font-semibold">{stats.avgRating}</span>
-                          <span className="text-muted-foreground">({stats.totalReviews} reviews)</span>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      {reviews.length === 0 ? (
-                        <div className="text-center py-12">
-                          <MessageSquare className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
-                          <h3 className="font-medium">No reviews yet</h3>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Reviews from customers will appear here
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          {reviews.map(review => (
-                            <motion.div
-                              key={review.id}
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              className="p-4 border rounded-lg space-y-3"
-                            >
-                              {/* Review Header */}
-                              <div className="flex items-start justify-between">
-                                <div className="flex items-center gap-3">
-                                  <Avatar className="w-10 h-10">
-                                    <AvatarImage src={review.profile?.avatar_url || ''} />
-                                    <AvatarFallback className="bg-primary/10 text-primary">
-                                      {review.profile?.full_name?.charAt(0) || 'U'}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <div>
-                                    <p className="font-medium">
-                                      {review.profile?.full_name || 'Customer'}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                      {format(new Date(review.created_at), 'MMM d, yyyy')}
-                                    </p>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  {renderStars(review.rating)}
-                                </div>
-                              </div>
-
-                              {/* Review Text */}
-                              {review.review_text && (
-                                <p className="text-sm text-muted-foreground">
-                                  "{review.review_text}"
-                                </p>
-                              )}
-
-                              {/* Owner Response */}
-                              {review.owner_response ? (
-                                <div className="ml-4 p-3 bg-muted/50 rounded-lg border-l-2 border-primary">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <Reply className="w-4 h-4 text-primary" />
-                                    <span className="text-xs font-medium">Your Response</span>
-                                    <span className="text-xs text-muted-foreground">
-                                      {review.owner_response_at && format(new Date(review.owner_response_at), 'MMM d, yyyy')}
-                                    </span>
-                                  </div>
-                                  <p className="text-sm">{review.owner_response}</p>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="mt-2 h-7 text-xs"
-                                    onClick={() => handleOpenResponseDialog(review)}
-                                  >
-                                    <Edit2 className="w-3 h-3 mr-1" />
-                                    Edit Response
-                                  </Button>
-                                </div>
-                              ) : (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleOpenResponseDialog(review)}
-                                >
-                                  <Reply className="w-4 h-4 mr-2" />
-                                  Respond to Review
-                                </Button>
-                              )}
-                            </motion.div>
-                          ))}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
 
                 {/* Services Sub-Tab */}
                 <TabsContent value="services" className="space-y-4">
