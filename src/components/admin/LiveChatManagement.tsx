@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,6 +51,9 @@ export const LiveChatManagement = () => {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [isUserTyping, setIsUserTyping] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -193,10 +196,61 @@ export const LiveChatManagement = () => {
       )
       .subscribe();
 
+    // Presence channel for typing indicators
+    const presenceChannel = supabase
+      .channel(`typing-${selectedSession.id}`)
+      .on('presence', { event: 'sync' }, () => {
+        const state = presenceChannel.presenceState();
+        const users = Object.values(state).flat().filter((p: any) => p.type === 'user' && p.isTyping);
+        setIsUserTyping(users.length > 0);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED' && user) {
+          await presenceChannel.track({
+            type: 'agent',
+            agentId: user.id,
+            isTyping: false,
+          });
+        }
+      });
+
     return () => {
       supabase.removeChannel(channel);
+      supabase.removeChannel(presenceChannel);
     };
-  }, [selectedSession?.id]);
+  }, [selectedSession?.id, user]);
+
+  // Handle typing indicator broadcast
+  const updateTypingStatus = useCallback(async (typing: boolean) => {
+    if (!selectedSession?.id || !user) return;
+    
+    const channel = supabase.channel(`typing-${selectedSession.id}`);
+    await channel.track({
+      type: 'agent',
+      agentId: user.id,
+      isTyping: typing,
+    });
+  }, [selectedSession?.id, user]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputValue(e.target.value);
+    
+    if (!isTyping) {
+      setIsTyping(true);
+      updateTypingStatus(true);
+    }
+    
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    
+    // Set new timeout to stop typing indicator after 2 seconds of inactivity
+    typingTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false);
+      updateTypingStatus(false);
+    }, 2000);
+  };
 
   const handleJoinChat = async (session: ChatSession) => {
     if (!user) return;
@@ -233,6 +287,13 @@ export const LiveChatManagement = () => {
     const messageText = inputValue.trim();
     setInputValue('');
     setIsSending(true);
+    
+    // Stop typing indicator
+    setIsTyping(false);
+    updateTypingStatus(false);
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
 
     try {
       const { error } = await supabase.from('live_chat_messages').insert({
@@ -454,6 +515,22 @@ export const LiveChatManagement = () => {
                         </div>
                       </div>
                     ))}
+                    {isUserTyping && (
+                      <div className="flex gap-2">
+                        <Avatar className="h-7 w-7 flex-shrink-0">
+                          <AvatarFallback className="bg-primary text-primary-foreground">
+                            <User className="h-4 w-4" />
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="rounded-lg px-3 py-2 bg-primary/10 border border-primary/20">
+                          <div className="flex items-center gap-1">
+                            <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     <div ref={messagesEndRef} />
                   </div>
                 </ScrollArea>
@@ -463,7 +540,7 @@ export const LiveChatManagement = () => {
                     <Input
                       placeholder="Type a message..."
                       value={inputValue}
-                      onChange={(e) => setInputValue(e.target.value)}
+                      onChange={handleInputChange}
                       onKeyPress={handleKeyPress}
                       className="flex-1"
                     />
