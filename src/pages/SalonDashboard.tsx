@@ -221,9 +221,10 @@ const SalonDashboard = () => {
   const [selectedBookingForCancel, setSelectedBookingForCancel] = useState<Booking | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
 
-  // Pagination state for completed bookings
-  const [completedPage, setCompletedPage] = useState(1);
-  const COMPLETED_PER_PAGE = 10;
+  // Pagination state for past bookings
+  const [pastPage, setPastPage] = useState(1);
+  const PAST_PER_PAGE = 10;
+  const [pastFilter, setPastFilter] = useState<'all' | 'completed' | 'cancelled'>('all');
 
   const containerRef = useRef<HTMLDivElement>(null);
   const PULL_THRESHOLD = 80;
@@ -1436,40 +1437,28 @@ const SalonDashboard = () => {
             {/* Bookings Tab */}
             <TabsContent value="bookings" className="space-y-4">
               <Tabs defaultValue="upcoming" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 mb-4 h-auto p-1.5 bg-muted/60 backdrop-blur-sm rounded-xl border border-border/50 shadow-sm">
+                <TabsList className="grid w-full grid-cols-2 mb-4 h-auto p-1.5 bg-muted/60 backdrop-blur-sm rounded-xl border border-border/50 shadow-sm">
                   <TabsTrigger 
                     value="upcoming" 
-                    className="relative flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-background data-[state=active]:shadow-md data-[state=active]:text-primary data-[state=active]:border-primary/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-muted/80"
+                    className="relative flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-background data-[state=active]:shadow-md data-[state=active]:text-primary data-[state=active]:border-primary/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-muted/80"
                   >
-                    <Clock className="w-3.5 h-3.5 shrink-0" />
-                    <span className="truncate">Upcoming</span>
+                    <Clock className="w-4 h-4 shrink-0" />
+                    <span>Upcoming</span>
                     {bookings.filter(b => b.status === 'upcoming').length > 0 && (
-                      <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold rounded-full bg-primary/15 text-primary border border-primary/20">
+                      <span className="inline-flex items-center justify-center min-w-[22px] h-5 px-1.5 text-[11px] font-bold rounded-full bg-primary/15 text-primary border border-primary/20">
                         {bookings.filter(b => b.status === 'upcoming').length}
                       </span>
                     )}
                   </TabsTrigger>
                   <TabsTrigger 
-                    value="completed" 
-                    className="relative flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-background data-[state=active]:shadow-md data-[state=active]:text-emerald-600 data-[state=active]:border-emerald-200/50 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-muted/80"
+                    value="past" 
+                    className="relative flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-background data-[state=active]:shadow-md data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-muted/80"
                   >
-                    <CheckCircle className="w-3.5 h-3.5 shrink-0" />
-                    <span className="truncate">Completed</span>
-                    {bookings.filter(b => b.status === 'completed').length > 0 && (
-                      <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold rounded-full bg-emerald-500/15 text-emerald-600 border border-emerald-200/50">
-                        {bookings.filter(b => b.status === 'completed').length}
-                      </span>
-                    )}
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="cancelled" 
-                    className="relative flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg text-sm font-medium transition-all duration-200 data-[state=active]:bg-background data-[state=active]:shadow-md data-[state=active]:text-destructive data-[state=active]:border-destructive/20 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-muted/80"
-                  >
-                    <XCircle className="w-3.5 h-3.5 shrink-0" />
-                    <span className="truncate">Cancelled</span>
-                    {bookings.filter(b => b.status === 'cancelled').length > 0 && (
-                      <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold rounded-full bg-destructive/15 text-destructive border border-destructive/20">
-                        {bookings.filter(b => b.status === 'cancelled').length}
+                    <Calendar className="w-4 h-4 shrink-0" />
+                    <span>Past</span>
+                    {bookings.filter(b => b.status === 'completed' || b.status === 'cancelled').length > 0 && (
+                      <span className="inline-flex items-center justify-center min-w-[22px] h-5 px-1.5 text-[11px] font-bold rounded-full bg-muted text-muted-foreground border border-border/50">
+                        {bookings.filter(b => b.status === 'completed' || b.status === 'cancelled').length}
                       </span>
                     )}
                   </TabsTrigger>
@@ -1487,17 +1476,27 @@ const SalonDashboard = () => {
                         <p className="text-center text-muted-foreground py-8">No upcoming bookings</p>
                       ) : (
                         <div className="space-y-3">
-                          {bookings.filter(b => b.status === 'upcoming').map(booking => (
+                          {bookings
+                            .filter(b => b.status === 'upcoming')
+                            .sort((a, b) => {
+                              const dateCompare = a.booking_date.localeCompare(b.booking_date);
+                              if (dateCompare !== 0) return dateCompare;
+                              return a.booking_time.localeCompare(b.booking_time);
+                            })
+                            .map(booking => (
                             <motion.div
                               key={booking.id}
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
-                              className="flex items-center justify-between p-4 border rounded-lg"
+                              className="flex items-center justify-between p-4 border rounded-lg bg-muted/20"
                             >
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
                                   <p className="font-medium">{booking.service_name}</p>
-                                  <Badge variant="secondary">{booking.status}</Badge>
+                                  <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 border-blue-200">
+                                    <Clock className="w-3 h-3 mr-1" />
+                                    Upcoming
+                                  </Badge>
                                 </div>
                                 <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
                                   <User className="w-3 h-3" /> {booking.customer_name}
@@ -1505,7 +1504,9 @@ const SalonDashboard = () => {
                                 <p className="text-sm text-muted-foreground">
                                   {getBookingDateLabel(booking.booking_date)} at {booking.booking_time}
                                 </p>
-                                <p className="text-sm font-medium mt-1">₹{booking.service_price}</p>
+                                <p className="text-sm font-medium mt-1">
+                                  <span className="font-sans">₹</span>{booking.service_price}
+                                </p>
                               </div>
                               
                               <div className="flex gap-2 flex-wrap justify-end">
@@ -1554,99 +1555,193 @@ const SalonDashboard = () => {
                   </Card>
                 </TabsContent>
 
-                {/* Completed Bookings */}
-                <TabsContent value="completed">
+                {/* Past Bookings (Completed + Cancelled) */}
+                <TabsContent value="past">
                   <Card>
-                    <CardHeader>
-                      <CardTitle>Completed Bookings</CardTitle>
-                      <CardDescription>Successfully completed appointments</CardDescription>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between flex-wrap gap-3">
+                        <div>
+                          <CardTitle>Past Bookings</CardTitle>
+                          <CardDescription>Completed and cancelled appointments</CardDescription>
+                        </div>
+                        {/* Filter Chips */}
+                        <div className="flex items-center gap-1.5 p-1 bg-muted/50 rounded-lg border border-border/50">
+                          <button
+                            onClick={() => { setPastFilter('all'); setPastPage(1); }}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 ${
+                              pastFilter === 'all' 
+                                ? 'bg-background text-foreground shadow-sm border border-border/50' 
+                                : 'text-muted-foreground hover:text-foreground hover:bg-muted/80'
+                            }`}
+                          >
+                            All
+                            <span className="ml-1.5 text-[10px] opacity-70">
+                              {bookings.filter(b => b.status === 'completed' || b.status === 'cancelled').length}
+                            </span>
+                          </button>
+                          <button
+                            onClick={() => { setPastFilter('completed'); setPastPage(1); }}
+                            className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 ${
+                              pastFilter === 'completed' 
+                                ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-200/50' 
+                                : 'text-muted-foreground hover:text-foreground hover:bg-muted/80'
+                            }`}
+                          >
+                            <CheckCircle className="w-3 h-3" />
+                            Completed
+                            <span className="ml-1 text-[10px] opacity-70">
+                              {bookings.filter(b => b.status === 'completed').length}
+                            </span>
+                          </button>
+                          <button
+                            onClick={() => { setPastFilter('cancelled'); setPastPage(1); }}
+                            className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 ${
+                              pastFilter === 'cancelled' 
+                                ? 'bg-destructive/10 text-destructive border border-destructive/20' 
+                                : 'text-muted-foreground hover:text-foreground hover:bg-muted/80'
+                            }`}
+                          >
+                            <XCircle className="w-3 h-3" />
+                            Cancelled
+                            <span className="ml-1 text-[10px] opacity-70">
+                              {bookings.filter(b => b.status === 'cancelled').length}
+                            </span>
+                          </button>
+                        </div>
+                      </div>
                     </CardHeader>
                     <CardContent>
                       {(() => {
-                        const completedBookings = bookings
-                          .filter(b => b.status === 'completed')
+                        const pastBookings = bookings
+                          .filter(b => {
+                            if (pastFilter === 'all') return b.status === 'completed' || b.status === 'cancelled';
+                            return b.status === pastFilter;
+                          })
                           .sort((a, b) => {
                             const dateCompare = b.booking_date.localeCompare(a.booking_date);
                             if (dateCompare !== 0) return dateCompare;
                             return b.booking_time.localeCompare(a.booking_time);
                           });
                         
-                        const totalCompleted = completedBookings.length;
-                        const totalPages = Math.ceil(totalCompleted / COMPLETED_PER_PAGE);
-                        const startIndex = (completedPage - 1) * COMPLETED_PER_PAGE;
-                        const paginatedBookings = completedBookings.slice(startIndex, startIndex + COMPLETED_PER_PAGE);
+                        const totalPast = pastBookings.length;
+                        const totalPages = Math.ceil(totalPast / PAST_PER_PAGE);
+                        const startIndex = (pastPage - 1) * PAST_PER_PAGE;
+                        const paginatedBookings = pastBookings.slice(startIndex, startIndex + PAST_PER_PAGE);
                         
-                        if (totalCompleted === 0) {
-                          return <p className="text-center text-muted-foreground py-8">No completed bookings yet</p>;
+                        if (totalPast === 0) {
+                          return (
+                            <p className="text-center text-muted-foreground py-8">
+                              {pastFilter === 'all' ? 'No past bookings yet' : 
+                               pastFilter === 'completed' ? 'No completed bookings yet' : 'No cancelled bookings'}
+                            </p>
+                          );
                         }
                         
                         return (
                           <>
                             <div className="space-y-3">
-                              {paginatedBookings.map(booking => (
-                                <motion.div
-                                  key={booking.id}
-                                  initial={{ opacity: 0 }}
-                                  animate={{ opacity: 1 }}
-                                  className="flex items-center justify-between p-4 border rounded-lg bg-muted/20"
-                                >
-                                  <div className="flex-1">
-                                    <div className="flex items-center gap-2">
-                                      <p className="font-medium">{booking.service_name}</p>
-                                      <Badge variant="default" className="bg-green-500/10 text-green-600 border-green-200">
-                                        <CheckCircle className="w-3 h-3 mr-1" />
-                                        Completed
-                                      </Badge>
+                              {paginatedBookings.map(booking => {
+                                const isCompleted = booking.status === 'completed';
+                                const bookingDateTime = parseBookingDateTime(
+                                  booking.booking_date,
+                                  booking.booking_time
+                                );
+                                const isPastBooking =
+                                  isBefore(bookingDateTime, new Date()) ||
+                                  isNaN(bookingDateTime.getTime());
+
+                                return (
+                                  <motion.div
+                                    key={booking.id}
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    className="flex items-center justify-between p-4 border rounded-lg bg-muted/20"
+                                  >
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2">
+                                        <p className="font-medium">{booking.service_name}</p>
+                                        {isCompleted ? (
+                                          <Badge variant="default" className="bg-green-500/10 text-green-600 border-green-200">
+                                            <CheckCircle className="w-3 h-3 mr-1" />
+                                            Completed
+                                          </Badge>
+                                        ) : (
+                                          <Badge variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20">
+                                            <XCircle className="w-3 h-3 mr-1" />
+                                            Cancelled
+                                          </Badge>
+                                        )}
+                                      </div>
+                                      <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                                        <User className="w-3 h-3" /> {booking.customer_name}
+                                      </p>
+                                      <p className="text-sm text-muted-foreground">
+                                        {getBookingDateLabel(booking.booking_date)} at {booking.booking_time}
+                                      </p>
+                                      <p className="text-sm font-medium mt-1">
+                                        <span className="font-sans">₹</span>{booking.service_price}
+                                      </p>
                                     </div>
-                                    <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                                      <User className="w-3 h-3" /> {booking.customer_name}
-                                    </p>
-                                    <p className="text-sm text-muted-foreground">
-                                      {getBookingDateLabel(booking.booking_date)} at {booking.booking_time}
-                                    </p>
-                                    <p className="text-sm font-medium mt-1">₹{booking.service_price}</p>
-                                  </div>
-                                  
-                                  <div className="flex gap-2 flex-wrap justify-end">
-                                    <Button 
-                                      size="icon"
-                                      variant="ghost"
-                                      className="relative h-9 w-9 rounded-full bg-primary/10 hover:bg-primary/20 border border-primary/20 hover:border-primary/30 text-primary transition-all duration-200"
-                                      onClick={() => {
-                                        setSelectedBookingForChat(booking);
-                                        setIsChatDialogOpen(true);
-                                      }}
-                                    >
-                                      <MessageSquare className="w-4 h-4" />
-                                    </Button>
-                                  </div>
-                                </motion.div>
-                              ))}
+                                    
+                                    <div className="flex gap-2 flex-wrap justify-end">
+                                      <Button 
+                                        size="icon"
+                                        variant="ghost"
+                                        className="relative h-9 w-9 rounded-full bg-primary/10 hover:bg-primary/20 border border-primary/20 hover:border-primary/30 text-primary transition-all duration-200"
+                                        onClick={() => {
+                                          setSelectedBookingForChat(booking);
+                                          setIsChatDialogOpen(true);
+                                        }}
+                                      >
+                                        <MessageSquare className="w-4 h-4" />
+                                      </Button>
+                                      {/* Only show Restore button for cancelled bookings with future date/time */}
+                                      {!isCompleted && !isPastBooking && (
+                                        <Button 
+                                          size="sm" 
+                                          variant="outline"
+                                          className="text-primary hover:text-primary"
+                                          onClick={() => {
+                                            setSelectedBookingForRestore(booking);
+                                            setIsRescheduling(false);
+                                            setRescheduleDate('');
+                                            setRescheduleTime('');
+                                            setIsRestoreDialogOpen(true);
+                                          }}
+                                        >
+                                          <RefreshCw className="w-4 h-4 mr-1" />
+                                          Restore
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </motion.div>
+                                );
+                              })}
                             </div>
                             
                             {/* Pagination Controls */}
                             {totalPages > 1 && (
                               <div className="flex items-center justify-between mt-4 pt-4 border-t">
                                 <p className="text-sm text-muted-foreground">
-                                  Showing {startIndex + 1}-{Math.min(startIndex + COMPLETED_PER_PAGE, totalCompleted)} of {totalCompleted}
+                                  Showing {startIndex + 1}-{Math.min(startIndex + PAST_PER_PAGE, totalPast)} of {totalPast}
                                 </p>
                                 <div className="flex items-center gap-2">
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => setCompletedPage(p => Math.max(1, p - 1))}
-                                    disabled={completedPage === 1}
+                                    onClick={() => setPastPage(p => Math.max(1, p - 1))}
+                                    disabled={pastPage === 1}
                                   >
                                     <ChevronLeft className="w-4 h-4" />
                                   </Button>
                                   <span className="text-sm font-medium px-2">
-                                    {completedPage} / {totalPages}
+                                    {pastPage} / {totalPages}
                                   </span>
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => setCompletedPage(p => Math.min(totalPages, p + 1))}
-                                    disabled={completedPage === totalPages}
+                                    onClick={() => setPastPage(p => Math.min(totalPages, p + 1))}
+                                    disabled={pastPage === totalPages}
                                   >
                                     <ChevronRight className="w-4 h-4" />
                                   </Button>
@@ -1656,90 +1751,6 @@ const SalonDashboard = () => {
                           </>
                         );
                       })()}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-                {/* Cancelled Bookings */}
-                <TabsContent value="cancelled">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Cancelled Bookings</CardTitle>
-                      <CardDescription>Bookings that were cancelled</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      {bookings.filter(b => b.status === 'cancelled').length === 0 ? (
-                        <p className="text-center text-muted-foreground py-8">No cancelled bookings</p>
-                      ) : (
-                        <div className="space-y-3">
-                          {bookings.filter(b => b.status === 'cancelled').map(booking => {
-                            const bookingDateTime = parseBookingDateTime(
-                              booking.booking_date,
-                              booking.booking_time
-                            );
-                            const isPastBooking =
-                              isBefore(bookingDateTime, new Date()) ||
-                              isNaN(bookingDateTime.getTime());
-
-                            return (
-                              <motion.div
-                                key={booking.id}
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                className="flex items-center justify-between p-4 border rounded-lg bg-muted/20"
-                              >
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2">
-                                    <p className="font-medium">{booking.service_name}</p>
-                                    <Badge variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20">
-                                      <XCircle className="w-3 h-3 mr-1" />
-                                      Cancelled
-                                    </Badge>
-                                  </div>
-                                  <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                                    <User className="w-3 h-3" /> {booking.customer_name}
-                                  </p>
-                                  <p className="text-sm text-muted-foreground">
-                                    {getBookingDateLabel(booking.booking_date)} at {booking.booking_time}
-                                  </p>
-                                  <p className="text-sm font-medium mt-1">₹{booking.service_price}</p>
-                                </div>
-                                
-                                <div className="flex gap-2 flex-wrap justify-end">
-                                  <Button 
-                                    size="icon"
-                                    variant="ghost"
-                                    className="relative h-9 w-9 rounded-full bg-primary/10 hover:bg-primary/20 border border-primary/20 hover:border-primary/30 text-primary transition-all duration-200"
-                                    onClick={() => {
-                                      setSelectedBookingForChat(booking);
-                                      setIsChatDialogOpen(true);
-                                    }}
-                                  >
-                                    <MessageSquare className="w-4 h-4" />
-                                  </Button>
-                                  {/* Only show Restore button if booking date/time is in the future */}
-                                  {!isPastBooking && (
-                                    <Button 
-                                      size="sm" 
-                                      variant="outline"
-                                      className="text-primary hover:text-primary"
-                                      onClick={() => {
-                                        setSelectedBookingForRestore(booking);
-                                        setIsRescheduling(false);
-                                        setRescheduleDate('');
-                                        setRescheduleTime('');
-                                        setIsRestoreDialogOpen(true);
-                                      }}
-                                    >
-                                      <RefreshCw className="w-4 h-4 mr-1" />
-                                      Restore
-                                    </Button>
-                                  )}
-                                </div>
-                              </motion.div>
-                            );
-                          })}
-                        </div>
-                      )}
                     </CardContent>
                   </Card>
                 </TabsContent>
