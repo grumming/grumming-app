@@ -152,7 +152,8 @@ export const useRazorpay = () => {
             currency: 'INR',
             booking_id: options.bookingId,
             penalty_amount: options.penaltyAmount || 0, // Pass penalty for platform revenue
-            receipt: `booking_${options.bookingId}`,
+            // Razorpay enforces receipt length <= 40 chars
+            receipt: `booking_${options.bookingId.replace(/-/g, '').slice(0, 24)}`,
             notes: {
               salon: options.salonName,
               service: options.serviceName,

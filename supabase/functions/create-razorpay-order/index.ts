@@ -72,12 +72,20 @@ serve(async (req) => {
     const servicePrice = parseFloat(booking.service_price);
     const penaltyFromClient = parseFloat(penalty_amount) || 0;
     const totalAmount = servicePrice + penaltyFromClient;
-    
+
+    // Razorpay enforces receipt length <= 40 chars
+    const receiptRaw = typeof receipt === 'string' && receipt.trim().length
+      ? receipt.trim()
+      : `booking_${booking_id}`;
+    const safeReceipt = receiptRaw
+      .replace(/[^a-zA-Z0-9._-]/g, '_')
+      .slice(0, 40);
+
     console.log(`Creating order - Service: ₹${servicePrice}, Penalty: ₹${penaltyFromClient}, Total: ₹${totalAmount} ${currency} for booking: ${booking_id}`);
 
     // Create Razorpay order with total amount (service + penalty)
     const auth = btoa(`${keyId}:${keySecret}`);
-    
+
     const orderResponse = await fetch('https://api.razorpay.com/v1/orders', {
       method: 'POST',
       headers: {
@@ -87,7 +95,7 @@ serve(async (req) => {
       body: JSON.stringify({
         amount: Math.round(totalAmount * 100), // Razorpay expects amount in paise
         currency,
-        receipt: receipt || `receipt_${Date.now()}`,
+        receipt: safeReceipt,
         notes: { ...notes, booking_id, service_price: servicePrice, penalty_amount: penaltyFromClient },
       }),
     });
