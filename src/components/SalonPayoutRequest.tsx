@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
-import { Wallet, ArrowUpRight, Clock, CheckCircle, AlertCircle, Building2, Loader2, Smartphone, Zap, IndianRupee, Check, Sparkles, PartyPopper, ChevronDown, ChevronUp, User } from 'lucide-react';
+import { Wallet, ArrowUpRight, Clock, CheckCircle, AlertCircle, Building2, Loader2, Smartphone, Zap, IndianRupee, Check, Sparkles, PartyPopper, ChevronDown, ChevronUp, User, Info } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -961,6 +962,16 @@ export default function SalonPayoutRequest({ salonId, salonName }: SalonPayoutRe
                                         <span className="flex items-center gap-1.5">
                                           <AlertCircle className="h-3.5 w-3.5" />
                                           Penalty Remittance ({penaltyDetails.length})
+                                          <TooltipProvider>
+                                            <Tooltip>
+                                              <TooltipTrigger asChild>
+                                                <Info className="h-3.5 w-3.5 text-red-400 hover:text-red-500 cursor-help" />
+                                              </TooltipTrigger>
+                                              <TooltipContent side="top" className="max-w-[250px] text-xs">
+                                                <p>These are cancellation penalties you collected in cash on behalf of the platform. They are deducted from your payout and remitted to the platform.</p>
+                                              </TooltipContent>
+                                            </Tooltip>
+                                          </TooltipProvider>
                                           {showPenaltyBreakdown ? (
                                             <ChevronUp className="h-3 w-3" />
                                           ) : (
