@@ -45,15 +45,21 @@ export function usePendingPenalties() {
     setLoading(false);
   };
 
-  const markPenaltiesAsPaid = async (bookingId: string, collectingSalonId?: string) => {
+  const markPenaltiesAsPaid = async (bookingId: string, collectingSalonId?: string, paymentMethod?: 'upi' | 'salon') => {
     if (!user || penalties.length === 0) {
       console.log('markPenaltiesAsPaid: No user or no pending penalties');
       return;
     }
 
+    // Validate: Cash/salon payments MUST have a collecting salon ID for remittance tracking
+    if (paymentMethod === 'salon' && !collectingSalonId) {
+      console.error('markPenaltiesAsPaid: Cash payment requires collecting_salon_id for remittance tracking');
+      throw new Error('Cash payment penalties require a collecting salon ID');
+    }
+
     // Mark all pending penalties as paid for this booking
     const penaltyIds = penalties.map(p => p.id);
-    console.log('markPenaltiesAsPaid: Marking penalties as paid', { penaltyIds, bookingId, collectingSalonId });
+    console.log('markPenaltiesAsPaid: Marking penalties as paid', { penaltyIds, bookingId, collectingSalonId, paymentMethod });
     
     // Update each penalty individually to ensure collecting_salon_id is set correctly
     for (const penaltyId of penaltyIds) {

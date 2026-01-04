@@ -1210,9 +1210,9 @@ const SalonDetail = () => {
           .eq('id', appliedVoucher.id);
       }
 
-      // Mark pending penalties as paid - pass salon ID for tracking
+      // Mark pending penalties as paid - pass salon ID for cash payment tracking
       if (hasPenalties && salon?.id) {
-        await markPenaltiesAsPaid(bookingData.id, salon.id);
+        await markPenaltiesAsPaid(bookingData.id, salon.id, 'salon');
       }
 
       setIsBooking(false);
@@ -1423,9 +1423,9 @@ const SalonDetail = () => {
             .eq('id', appliedVoucher.id);
         }
 
-        // Mark pending penalties as paid - for UPI, no collecting salon needed
+        // Mark pending penalties as paid - UPI goes to platform directly
         if (hasPenalties) {
-          await markPenaltiesAsPaid(bookingData.id);
+          await markPenaltiesAsPaid(bookingData.id, undefined, 'upi');
         }
 
         setShowBookingModal(false);
@@ -1515,9 +1515,9 @@ const SalonDetail = () => {
           .eq('id', appliedVoucher.id);
       }
 
-      // Mark pending penalties as paid - pass salon ID for Pay at Salon tracking
+      // Mark pending penalties as paid - pass salon ID for cash payment tracking
       if (hasPenalties && salon?.id) {
-        await markPenaltiesAsPaid(bookingData.id, salon.id);
+        await markPenaltiesAsPaid(bookingData.id, salon.id, 'salon');
       }
 
       setIsBooking(false);

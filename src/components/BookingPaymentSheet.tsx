@@ -117,9 +117,7 @@ export function BookingPaymentSheet({
         // Mark any pending penalties as paid for cash payments
         // Track the collecting salon so we can deduct from their payout later
         if (hasPenalties && booking.salon_id) {
-          await markPenaltiesAsPaid(booking.id, booking.salon_id);
-        } else if (hasPenalties) {
-          await markPenaltiesAsPaid(booking.id);
+          await markPenaltiesAsPaid(booking.id, booking.salon_id, 'salon');
         }
 
         toast({
@@ -172,9 +170,9 @@ export function BookingPaymentSheet({
             .update({ payment_method: 'upi', payment_id: result.paymentId })
             .eq('id', booking.id);
           
-          // Mark any pending penalties as paid
+          // Mark any pending penalties as paid - UPI goes to platform directly
           if (hasPenalties) {
-            await markPenaltiesAsPaid(booking.id);
+            await markPenaltiesAsPaid(booking.id, undefined, 'upi');
           }
             
           showReceiptDialog(result.paymentId);
