@@ -104,6 +104,40 @@ export function BookingPaymentSheet({
     setShowReceipt(true);
   };
 
+  const handlePayAtSalon = async () => {
+    setIsProcessing(true);
+    setPaymentError(null);
+
+    try {
+      // Update booking with payment_method
+      await supabase
+        .from('bookings')
+        .update({ payment_method: 'salon', status: 'confirmed' })
+        .eq('id', booking.id);
+
+      // Mark any pending penalties as paid for cash payments
+      // Track the collecting salon so we can deduct from their payout later
+      if (hasPenalties && booking.salon_id) {
+        await markPenaltiesAsPaid(booking.id, booking.salon_id, 'salon');
+      }
+
+      toast({
+        title: 'Booking Confirmed!',
+        description: `Pay ₹${totalAmount} at ${booking.salon_name}`,
+      });
+      onPaymentSuccess();
+      onOpenChange(false);
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Could not confirm booking',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handlePayNow = async () => {
     setIsProcessing(true);
     setPaymentError(null); // Clear previous errors
@@ -111,25 +145,7 @@ export function BookingPaymentSheet({
     try {
       // Handle pay at salon - just complete the booking and set payment_method
       if (paymentMethod === 'salon') {
-        // Update booking with payment_method
-        await supabase
-          .from('bookings')
-          .update({ payment_method: 'salon' })
-          .eq('id', booking.id);
-
-        // Mark any pending penalties as paid for cash payments
-        // Track the collecting salon so we can deduct from their payout later
-        if (hasPenalties && booking.salon_id) {
-          await markPenaltiesAsPaid(booking.id, booking.salon_id, 'salon');
-        }
-
-        toast({
-          title: 'Booking Confirmed!',
-          description: `Pay ₹${totalAmount} at ${booking.salon_name}`,
-        });
-        onPaymentSuccess();
-        onOpenChange(false);
-        setIsProcessing(false);
+        await handlePayAtSalon();
         return;
       }
 
@@ -303,9 +319,11 @@ export function BookingPaymentSheet({
                 error={paymentError}
                 onRetry={handlePayNow}
                 onDismiss={() => setPaymentError(null)}
+                onPayAtSalon={handlePayAtSalon}
                 isRetrying={isLoading}
                 retryCount={retryCount}
                 maxRetries={3}
+                totalAmount={totalAmount}
               />
             )}
           </AnimatePresence>
