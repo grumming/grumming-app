@@ -585,6 +585,10 @@ const SalonDetail = () => {
   const [splitWalletAmount, setSplitWalletAmount] = useState(0);
   const [applyWalletCredits, setApplyWalletCredits] = useState(false);
   
+  // Payment failure state for fallback options
+  const [showPaymentFailure, setShowPaymentFailure] = useState(false);
+  const [failedBookingId, setFailedBookingId] = useState<string | null>(null);
+  const [paymentFailureError, setPaymentFailureError] = useState<string>('');
   // Promo code states
   const [promoCode, setPromoCode] = useState('');
   const [promoCodeInput, setPromoCodeInput] = useState('');
@@ -1570,23 +1574,23 @@ const SalonDetail = () => {
         
         navigate(`/booking-confirmation?${params.toString()}`);
       } else {
-        // Payment failed or cancelled - DELETE the booking to free up the slot
-        await supabase
-          .from('bookings')
-          .delete()
-          .eq('id', bookingData.id);
-
-        if (paymentResult.error !== 'Payment cancelled') {
-          toast({
-            title: 'Payment Failed',
-            description: 'No booking was created. Please try again.',
-            variant: 'destructive',
-          });
-        } else {
+        // Payment failed or cancelled - show fallback options instead of deleting
+        if (paymentResult.error === 'Payment cancelled') {
+          // User cancelled - delete booking
+          await supabase
+            .from('bookings')
+            .delete()
+            .eq('id', bookingData.id);
+          
           toast({
             title: 'Payment Cancelled',
             description: 'No booking was created.',
           });
+        } else {
+          // Payment failed - show fallback options
+          setFailedBookingId(bookingData.id);
+          setPaymentFailureError(paymentResult.error || 'Payment could not be completed');
+          setShowPaymentFailure(true);
         }
       }
     } else {
@@ -1712,6 +1716,88 @@ const SalonDetail = () => {
         .update({ referee_reward_used: true })
         .eq('id', refereeReward.id);
     }
+  };
+
+  // Handler for "Pay at Salon" fallback after payment failure
+  const handlePayAtSalonFallback = async () => {
+    if (!failedBookingId || !salon) return;
+    
+    try {
+      // Update booking to confirmed with salon payment
+      await supabase
+        .from('bookings')
+        .update({ 
+          status: 'confirmed', 
+          payment_method: 'salon' 
+        })
+        .eq('id', failedBookingId);
+      
+      // Mark penalties as paid if any
+      if (hasPenalties && (dbSalon?.id || salon.id)) {
+        await markPenaltiesAsPaid(failedBookingId, dbSalon?.id || salon.id, 'salon');
+      }
+      
+      setShowPaymentFailure(false);
+      setFailedBookingId(null);
+      setShowBookingModal(false);
+      setSelectedServices([]);
+      setApplyReward(false);
+      setApplyWalletCredits(false);
+      setAppliedPromo(null);
+      setAppliedVoucher(null);
+      setIsSplitPayment(false);
+      setSplitWalletAmount(0);
+      setSelectedStylist(null);
+      
+      toast({
+        title: 'Booking Confirmed!',
+        description: `Pay ₹${totalPrice} at ${salon.name} when you arrive.`,
+      });
+      
+      const params = new URLSearchParams({
+        salon: salon.name,
+        service: selectedServicesData.map((s: any) => s.name).join(', '),
+        price: totalPrice.toString(),
+        date: format(selectedDate!, 'yyyy-MM-dd'),
+        time: selectedTime!,
+        paymentMethod: 'salon',
+      });
+      
+      navigate(`/booking-confirmation?${params.toString()}`);
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Could not confirm booking. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Handler to cancel failed booking and dismiss
+  const handleCancelFailedBooking = async () => {
+    if (failedBookingId) {
+      await supabase
+        .from('bookings')
+        .delete()
+        .eq('id', failedBookingId);
+    }
+    setShowPaymentFailure(false);
+    setFailedBookingId(null);
+    toast({
+      title: 'Booking Cancelled',
+      description: 'No booking was created.',
+    });
+  };
+
+  // Handler to retry UPI payment
+  const handleRetryPayment = () => {
+    setShowPaymentFailure(false);
+    // The booking still exists with pending_payment status
+    // User can retry by clicking pay again
+    toast({
+      title: 'Retry Payment',
+      description: 'Try paying again with UPI.',
+    });
   };
 
   const next7Days = Array.from({ length: 7 }, (_, i) => addDays(new Date(), i));
@@ -2920,6 +3006,67 @@ const SalonDetail = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Payment Failure Dialog with Fallback Options */}
+      <Dialog open={showPaymentFailure} onOpenChange={(open) => {
+        if (!open) handleCancelFailedBooking();
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-5 h-5" />
+              Payment Failed
+            </DialogTitle>
+            <DialogDescription>
+              {paymentFailureError || 'Your UPI payment could not be completed.'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Don't worry! You can still complete your booking:
+            </p>
+            
+            <div className="space-y-3">
+              {/* Pay at Salon Option */}
+              <Button
+                onClick={handlePayAtSalonFallback}
+                variant="default"
+                className="w-full h-14 text-base gap-3"
+              >
+                <CreditCard className="w-5 h-5" />
+                <div className="text-left">
+                  <div className="font-semibold">Pay at Salon</div>
+                  <div className="text-xs opacity-80">Pay ₹{totalPrice} when you arrive</div>
+                </div>
+              </Button>
+              
+              {/* Retry UPI Option */}
+              <Button
+                onClick={handleRetryPayment}
+                variant="outline"
+                className="w-full h-14 text-base gap-3"
+              >
+                <Wallet className="w-5 h-5" />
+                <div className="text-left">
+                  <div className="font-semibold">Retry UPI Payment</div>
+                  <div className="text-xs text-muted-foreground">Try paying with UPI again</div>
+                </div>
+              </Button>
+              
+              {/* Cancel Option */}
+              <Button
+                onClick={handleCancelFailedBooking}
+                variant="ghost"
+                className="w-full text-muted-foreground"
+              >
+                Cancel Booking
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <BackToTop />
     </div>
   );
