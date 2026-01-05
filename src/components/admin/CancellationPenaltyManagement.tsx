@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Search, AlertTriangle, CheckCircle2, DollarSign, TrendingUp, XCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -52,6 +53,9 @@ export function CancellationPenaltyManagement() {
   const [selectedPenalty, setSelectedPenalty] = useState<CancellationPenalty | null>(null);
   const [waiveReason, setWaiveReason] = useState('');
   const [waiving, setWaiving] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkWaiveDialogOpen, setBulkWaiveDialogOpen] = useState(false);
+  const [bulkWaiveReason, setBulkWaiveReason] = useState('');
 
   useEffect(() => {
     fetchPenalties();
@@ -180,6 +184,85 @@ export function CancellationPenaltyManagement() {
     fetchPenalties();
   };
 
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const pendingIds = filteredPenalties
+        .filter(p => !p.is_paid && !p.is_waived)
+        .map(p => p.id);
+      setSelectedIds(new Set(pendingIds));
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
+
+  const handleBulkWaive = async () => {
+    if (selectedIds.size === 0) return;
+    
+    setWaiving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    const selectedPenalties = penalties.filter(p => selectedIds.has(p.id));
+    let successCount = 0;
+    
+    for (const penalty of selectedPenalties) {
+      const { error } = await supabase
+        .from('cancellation_penalties')
+        .update({ 
+          is_waived: true,
+          waived_at: new Date().toISOString(),
+          waived_by: user?.id,
+          waived_reason: bulkWaiveReason || 'Bulk admin waive'
+        })
+        .eq('id', penalty.id);
+
+      if (!error) {
+        successCount++;
+        // Send notification to each user
+        try {
+          await supabase.functions.invoke('send-penalty-waived-notification', {
+            body: {
+              user_id: penalty.user_id,
+              penalty_amount: penalty.penalty_amount,
+              salon_name: penalty.salon_name,
+              service_name: penalty.service_name,
+              waived_reason: bulkWaiveReason || 'Bulk admin waive',
+            },
+          });
+        } catch (notifError) {
+          console.error('Failed to send notification for penalty:', penalty.id, notifError);
+        }
+      }
+    }
+
+    setWaiving(false);
+    setBulkWaiveDialogOpen(false);
+    setBulkWaiveReason('');
+    setSelectedIds(new Set());
+
+    toast({
+      title: 'Penalties Waived',
+      description: `Successfully waived ${successCount} of ${selectedPenalties.length} penalties.`,
+    });
+    
+    fetchPenalties();
+  };
+
+  const selectedTotal = penalties
+    .filter(p => selectedIds.has(p.id))
+    .reduce((sum, p) => sum + Number(p.penalty_amount), 0);
+
   const filteredPenalties = penalties.filter(penalty => {
     const matchesFilter = 
       filter === 'all' ||
@@ -196,6 +279,10 @@ export function CancellationPenaltyManagement() {
 
     return matchesFilter && matchesSearch;
   });
+
+  const pendingPenaltiesInView = filteredPenalties.filter(p => !p.is_paid && !p.is_waived);
+  const allPendingSelected = pendingPenaltiesInView.length > 0 && 
+    pendingPenaltiesInView.every(p => selectedIds.has(p.id));
 
   const totalPending = penalties.filter(p => !p.is_paid && !p.is_waived).reduce((sum, p) => sum + Number(p.penalty_amount), 0);
   const totalCollected = penalties.filter(p => p.is_paid).reduce((sum, p) => sum + Number(p.penalty_amount), 0);
@@ -267,6 +354,38 @@ export function CancellationPenaltyManagement() {
         </Card>
       </div>
 
+      {/* Bulk Actions Bar */}
+      {selectedIds.size > 0 && (
+        <Card className="border-blue-200 bg-blue-50/50">
+          <CardContent className="py-3 px-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                {selectedIds.size} selected
+              </Badge>
+              <span className="text-sm text-muted-foreground">
+                Total: <span className="font-semibold font-sans">₹{selectedTotal.toLocaleString()}</span>
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedIds(new Set())}
+              >
+                Clear Selection
+              </Button>
+              <Button
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-700"
+                onClick={() => setBulkWaiveDialogOpen(true)}
+              >
+                Waive Selected
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
@@ -328,6 +447,13 @@ export function CancellationPenaltyManagement() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-10">
+                      <Checkbox
+                        checked={allPendingSelected && pendingPenaltiesInView.length > 0}
+                        onCheckedChange={handleSelectAll}
+                        aria-label="Select all pending"
+                      />
+                    </TableHead>
                     <TableHead>Customer</TableHead>
                     <TableHead>Salon</TableHead>
                     <TableHead>Service</TableHead>
@@ -340,7 +466,18 @@ export function CancellationPenaltyManagement() {
                 </TableHeader>
                 <TableBody>
                   {filteredPenalties.map((penalty) => (
-                    <TableRow key={penalty.id}>
+                    <TableRow key={penalty.id} className={selectedIds.has(penalty.id) ? 'bg-blue-50/50' : ''}>
+                      <TableCell>
+                        {!penalty.is_paid && !penalty.is_waived ? (
+                          <Checkbox
+                            checked={selectedIds.has(penalty.id)}
+                            onCheckedChange={() => handleToggleSelect(penalty.id)}
+                            aria-label={`Select penalty for ${penalty.profile?.full_name || 'user'}`}
+                          />
+                        ) : (
+                          <span className="w-4 h-4" />
+                        )}
+                      </TableCell>
                       <TableCell>
                         <div>
                           <p className="font-medium">{penalty.profile?.full_name || 'Unknown'}</p>
@@ -457,6 +594,54 @@ export function CancellationPenaltyManagement() {
                 </>
               ) : (
                 'Waive Penalty'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Waive Confirmation Dialog */}
+      <AlertDialog open={bulkWaiveDialogOpen} onOpenChange={setBulkWaiveDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Waive {selectedIds.size} Penalties?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-4">
+                <p>
+                  You are about to waive <strong>{selectedIds.size} penalties</strong> totaling{' '}
+                  <strong className="font-sans">₹{selectedTotal.toLocaleString()}</strong>.
+                </p>
+                <p className="text-sm">
+                  This action cannot be undone. All selected users will receive notifications that their penalties have been waived.
+                </p>
+                <div className="pt-2">
+                  <label className="text-sm font-medium text-foreground">
+                    Reason for waiving (optional)
+                  </label>
+                  <Textarea
+                    placeholder="e.g., Promotional amnesty, system issue, customer appreciation..."
+                    value={bulkWaiveReason}
+                    onChange={(e) => setBulkWaiveReason(e.target.value)}
+                    className="mt-1.5"
+                  />
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={waiving}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkWaive}
+              disabled={waiving}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {waiving ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Waiving {selectedIds.size}...
+                </>
+              ) : (
+                `Waive ${selectedIds.size} Penalties`
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
