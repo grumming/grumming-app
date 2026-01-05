@@ -93,6 +93,41 @@ async function getPaymentTestMode(): Promise<PaymentTestModeSettings | null> {
 
 const MAX_RETRIES = 3;
 
+// Preload Razorpay script on module load for faster checkout
+let razorpayScriptPromise: Promise<boolean> | null = null;
+
+function preloadRazorpayScript(): Promise<boolean> {
+  if (razorpayScriptPromise) return razorpayScriptPromise;
+  
+  razorpayScriptPromise = new Promise((resolve) => {
+    if (window.Razorpay) {
+      resolve(true);
+      return;
+    }
+
+    const existingScript = document.querySelector('script[src*="razorpay"]');
+    if (existingScript) {
+      existingScript.addEventListener('load', () => resolve(true));
+      existingScript.addEventListener('error', () => resolve(false));
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+  
+  return razorpayScriptPromise;
+}
+
+// Start preloading immediately when this module is imported
+if (typeof window !== 'undefined') {
+  preloadRazorpayScript();
+}
+
 export const useRazorpay = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
@@ -100,36 +135,7 @@ export const useRazorpay = () => {
   const { toast } = useToast();
 
   const loadRazorpayScript = useCallback((): Promise<boolean> => {
-    return new Promise((resolve) => {
-      if (window.Razorpay) {
-        console.log('Razorpay script already loaded');
-        resolve(true);
-        return;
-      }
-
-      // Check if script is already being loaded
-      const existingScript = document.querySelector('script[src*="razorpay"]');
-      if (existingScript) {
-        console.log('Razorpay script already in DOM, waiting for load...');
-        existingScript.addEventListener('load', () => resolve(true));
-        existingScript.addEventListener('error', () => resolve(false));
-        return;
-      }
-
-      console.log('Loading Razorpay script...');
-      const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.async = true;
-      script.onload = () => {
-        console.log('Razorpay script loaded successfully');
-        resolve(true);
-      };
-      script.onerror = (e) => {
-        console.error('Razorpay script failed to load:', e);
-        resolve(false);
-      };
-      document.body.appendChild(script);
-    });
+    return preloadRazorpayScript();
   }, []);
 
   // Clear any pending retry timeout
