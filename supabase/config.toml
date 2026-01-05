@@ -83,3 +83,9 @@ verify_jwt = false
 
 [functions.send-penalty-waived-notification]
 verify_jwt = false
+
+[functions.reconcile-razorpay-order]
+verify_jwt = false
+
+[functions.razorpay-webhook]
+verify_jwt = false
