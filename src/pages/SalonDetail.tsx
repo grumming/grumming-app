@@ -1214,76 +1214,66 @@ const SalonDetail = () => {
     // Note: Even if penalties exist, we still need payment if totalPrice > 0
     const isFullyCoveredByCredits = servicePrice === 0 && totalPenalty === 0;
 
-    // Create new booking or update existing one (retry mode)
-    const bookingStatus = isFullyCoveredByCredits 
-      ? 'upcoming' 
-      : (paymentMethod === 'upi') 
-        ? 'pending_payment' 
-        : 'upcoming';
+    // Helper function to create booking after payment is confirmed or for non-UPI payments
+    const createBooking = async (status: string): Promise<{ id: string } | null> => {
+      if (isRetryMode && retryBookingId) {
+        // Update existing booking for retry
+        const { data, error } = await supabase
+          .from('bookings')
+          .update({
+            service_price: totalPrice,
+            status: status,
+          })
+          .eq('id', retryBookingId)
+          .eq('user_id', user.id)
+          .select()
+          .single();
+        
+        if (error) {
+          console.error('Failed to update booking:', error);
+          return null;
+        }
+        return data;
+      } else {
+        // Create new booking
+        const { data, error } = await supabase
+          .from('bookings')
+          .insert({
+            user_id: user.id,
+            salon_id: dbSalon?.id || null,
+            salon_name: salon.name,
+            service_name: serviceNames,
+            service_price: totalPrice,
+            booking_date: format(selectedDate, 'yyyy-MM-dd'),
+            booking_time: selectedTime,
+            status: status,
+            stylist_id: selectedStylist?.id || null,
+            stylist_name: selectedStylist?.name || null,
+          })
+          .select()
+          .single();
+        
+        if (error) {
+          console.error('Failed to create booking:', error);
+          return null;
+        }
+        return data;
+      }
+    };
 
-    let bookingData: { id: string } | null = null;
-    let bookingError: Error | null = null;
-
-    if (isRetryMode && retryBookingId) {
-      // Update existing booking for retry
-      const { data, error } = await supabase
-        .from('bookings')
-        .update({
-          service_price: totalPrice,
-          status: bookingStatus,
-        })
-        .eq('id', retryBookingId)
-        .eq('user_id', user.id)
-        .select()
-        .single();
-      
-      bookingData = data;
-      bookingError = error;
-    } else {
-      // Create new booking
-      const { data, error } = await supabase
-        .from('bookings')
-        .insert({
-          user_id: user.id,
-          salon_id: dbSalon?.id || null, // Link to actual salon in database
-          salon_name: salon.name,
-          service_name: serviceNames,
-          service_price: totalPrice,
-          booking_date: format(selectedDate, 'yyyy-MM-dd'),
-          booking_time: selectedTime,
-          status: bookingStatus,
-          stylist_id: selectedStylist?.id || null,
-          stylist_name: selectedStylist?.name || null,
-        })
-        .select()
-        .single();
-      
-      bookingData = data;
-      bookingError = error;
-    }
-
-    if (bookingError || !bookingData) {
-      setIsBooking(false);
-      toast({
-        title: 'Booking failed',
-        description: 'Unable to complete booking. Please try again.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    // Handle wallet payment - deduct from wallet
-    if (walletPaymentAmount > 0) {
-      await useCredits({
-        amount: walletPaymentAmount,
-        category: 'booking_discount',
-        description: `Wallet payment for booking at ${salon.name}`,
-        referenceId: bookingData.id,
-      });
-    }
-
-    // Handle fully covered by credits - skip payment gateway entirely
+    // Handle fully covered by credits - create booking and skip payment gateway entirely
     if (isFullyCoveredByCredits) {
+      const bookingData = await createBooking('confirmed');
+      if (!bookingData) {
+        setIsBooking(false);
+        toast({
+          title: 'Booking failed',
+          description: 'Unable to complete booking. Please try again.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       // Mark reward as used if applied
       if (applyReward && rewardDiscount > 0) {
         await markRewardAsUsed();
@@ -1393,101 +1383,33 @@ const SalonDetail = () => {
       return;
     }
 
-    // If UPI payment with selected app, use deep link
-    if (paymentMethod === 'upi' && selectedUpiApp && isMobileDevice()) {
-      const upiResult = await initiateUpiPayment(selectedUpiApp, {
-        amount: totalPrice,
-        merchantVpa: 'merchant@upi', // This should be your actual merchant VPA
-        merchantName: salon.name,
-        transactionNote: `Booking at ${salon.name}`,
-        orderId: bookingData.id,
-      });
-
-      if (upiResult.success) {
-        // Mark reward as used if applied
-        if (applyReward && rewardDiscount > 0) {
-          await markRewardAsUsed();
-        }
-
-        // Deduct wallet credits if applied
-        if (applyWalletCredits && walletCreditsDiscount > 0) {
-          await useCredits({
-            amount: walletCreditsDiscount,
-            category: 'booking_discount',
-            description: `Used for booking at ${salon.name}`,
-            referenceId: bookingData.id,
-          });
-        }
-
-        // Record promo code usage
-        if (appliedPromo && user) {
-          await supabase.from('promo_code_usage').insert({
-            promo_code_id: appliedPromo.id,
-            user_id: user.id,
-            booking_id: bookingData.id,
-          });
-        }
-
-        // Mark voucher as used
-        if (appliedVoucher && user) {
-          await supabase
-            .from('user_vouchers')
-            .update({ 
-              is_used: true, 
-              used_at: new Date().toISOString(),
-              booking_id: bookingData.id 
-            })
-            .eq('id', appliedVoucher.id);
-        }
-
-        setShowBookingModal(false);
-        setSelectedServices([]);
-        setApplyReward(false);
-        setApplyWalletCredits(false);
-        setAppliedPromo(null);
-        setAppliedVoucher(null);
-        setIsSplitPayment(false);
-        setSplitWalletAmount(0);
-        setSelectedUpiApp(null);
-        setSelectedStylist(null);
-        
-        // Note: In production, you'd verify payment via webhook before confirming
-        toast({
-          title: `Opening ${getUpiAppName(selectedUpiApp)}`,
-          description: 'Complete payment in the app. Your booking will be confirmed after payment.',
-        });
-
-        const params = new URLSearchParams({
-          salon: salon.name,
-          service: serviceNames,
-          price: totalPrice.toString(),
-          date: format(selectedDate, 'yyyy-MM-dd'),
-          time: selectedTime,
-          paymentMethod: 'upi',
-          upiApp: selectedUpiApp,
-          discount: totalDiscount.toString(),
-          pending: 'true', // Mark as pending UPI verification
-          bookingId: bookingData.id, // Include booking ID for status verification
-          ...(appliedPromo && { promoCode: appliedPromo.code, promoDiscount: promoDiscount.toString() }),
-          ...(appliedVoucher && { voucherCode: appliedVoucher.code, voucherDiscount: voucherDiscount.toString() }),
-          ...(rewardDiscount > 0 && { rewardDiscount: rewardDiscount.toString() }),
-          ...(walletCreditsDiscount > 0 && { walletDiscount: walletCreditsDiscount.toString() }),
-          ...(totalPenalty > 0 && { penaltyPaid: totalPenalty.toString() }),
-          ...(selectedStylist && { stylistName: selectedStylist.name }),
-        });
-        
-        navigate(`/booking-confirmation?${params.toString()}`);
-      }
-      
-      setIsBooking(false);
-      return;
-    }
-
-    // If UPI payment selected, initiate Razorpay
+    // If UPI payment selected, initiate Razorpay FIRST (before creating booking)
     if (paymentMethod === 'upi') {
+      // For UPI, we need a temporary booking ID for Razorpay - create with pending_payment status
+      const tempBookingData = await createBooking('pending_payment');
+      if (!tempBookingData) {
+        setIsBooking(false);
+        toast({
+          title: 'Booking failed',
+          description: 'Unable to initiate payment. Please try again.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Handle wallet payment - deduct from wallet before UPI
+      if (walletPaymentAmount > 0) {
+        await useCredits({
+          amount: walletPaymentAmount,
+          category: 'booking_discount',
+          description: `Wallet payment for booking at ${salon.name}`,
+          referenceId: tempBookingData.id,
+        });
+      }
+
       const paymentResult = await initiatePayment({
         amount: totalPrice,
-        bookingId: bookingData.id,
+        bookingId: tempBookingData.id,
         salonName: salon.name,
         serviceName: serviceNames,
         customerPhone: user.phone || '',
@@ -1497,6 +1419,12 @@ const SalonDetail = () => {
       setIsBooking(false);
 
       if (paymentResult.success) {
+        // Payment successful - update booking to confirmed
+        await supabase
+          .from('bookings')
+          .update({ status: 'confirmed', payment_method: 'upi', payment_id: paymentResult.paymentId })
+          .eq('id', tempBookingData.id);
+
         // Mark reward as used if applied
         if (applyReward && rewardDiscount > 0) {
           await markRewardAsUsed();
@@ -1508,7 +1436,7 @@ const SalonDetail = () => {
             amount: walletCreditsDiscount,
             category: 'booking_discount',
             description: `Used for booking at ${salon.name}`,
-            referenceId: bookingData.id,
+            referenceId: tempBookingData.id,
           });
         }
 
@@ -1517,7 +1445,7 @@ const SalonDetail = () => {
           await supabase.from('promo_code_usage').insert({
             promo_code_id: appliedPromo.id,
             user_id: user.id,
-            booking_id: bookingData.id,
+            booking_id: tempBookingData.id,
           });
         }
 
@@ -1528,14 +1456,14 @@ const SalonDetail = () => {
             .update({ 
               is_used: true, 
               used_at: new Date().toISOString(),
-              booking_id: bookingData.id 
+              booking_id: tempBookingData.id 
             })
             .eq('id', appliedVoucher.id);
         }
 
         // Mark pending penalties as paid - UPI goes to platform directly
         if (hasPenalties) {
-          await markPenaltiesAsPaid(bookingData.id, undefined, 'upi');
+          await markPenaltiesAsPaid(tempBookingData.id, undefined, 'upi');
         }
 
         setShowBookingModal(false);
@@ -1576,6 +1504,7 @@ const SalonDetail = () => {
       } else {
         // Payment failed/cancelled/pending
         if (paymentResult.errorDetails?.code === 'PAYMENT_PENDING' || paymentResult.error === 'Payment pending') {
+          // Keep booking as pending_payment - webhook will confirm when payment completes
           setShowBookingModal(false);
           setSelectedServices([]);
           setApplyReward(false);
@@ -1595,27 +1524,49 @@ const SalonDetail = () => {
           return;
         }
 
-        // Payment failed or cancelled - show fallback options instead of deleting
+        // Payment failed or cancelled - delete the temporary booking
         if (paymentResult.error === 'Payment cancelled') {
-          // User cancelled - delete booking
-          await supabase
-            .from('bookings')
-            .delete()
-            .eq('id', bookingData.id);
-
+          await supabase.from('bookings').delete().eq('id', tempBookingData.id);
           toast({
             title: 'Payment Cancelled',
             description: 'No booking was created.',
           });
         } else {
-          // Payment failed - show fallback options
-          setFailedBookingId(bookingData.id);
+          // Payment failed - show fallback options (keep booking for retry or pay at salon)
+          setFailedBookingId(tempBookingData.id);
           setPaymentFailureError(paymentResult.error || 'Payment could not be completed');
           setShowPaymentFailure(true);
         }
       }
     } else {
-      // Pay at salon or split payment - complete booking
+      // Pay at salon - create booking immediately with confirmed status
+      const bookingData = await createBooking('confirmed');
+      if (!bookingData) {
+        setIsBooking(false);
+        toast({
+          title: 'Booking failed',
+          description: 'Unable to complete booking. Please try again.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Update payment method
+      await supabase
+        .from('bookings')
+        .update({ payment_method: 'salon' })
+        .eq('id', bookingData.id);
+
+      // Handle wallet payment - deduct from wallet
+      if (walletPaymentAmount > 0) {
+        await useCredits({
+          amount: walletPaymentAmount,
+          category: 'booking_discount',
+          description: `Wallet payment for booking at ${salon.name}`,
+          referenceId: bookingData.id,
+        });
+      }
+
       if (applyReward && rewardDiscount > 0) {
         await markRewardAsUsed();
       }
