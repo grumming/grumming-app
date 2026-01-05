@@ -1570,17 +1570,22 @@ const SalonDetail = () => {
         
         navigate(`/booking-confirmation?${params.toString()}`);
       } else {
-        // Payment failed or cancelled, update booking status
+        // Payment failed or cancelled - DELETE the booking to free up the slot
         await supabase
           .from('bookings')
-          .update({ status: 'payment_failed' })
+          .delete()
           .eq('id', bookingData.id);
 
         if (paymentResult.error !== 'Payment cancelled') {
           toast({
             title: 'Payment Failed',
-            description: paymentResult.error || 'Please try again.',
+            description: 'No booking was created. Please try again.',
             variant: 'destructive',
+          });
+        } else {
+          toast({
+            title: 'Payment Cancelled',
+            description: 'No booking was created.',
           });
         }
       }
