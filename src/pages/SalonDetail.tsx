@@ -780,12 +780,13 @@ const SalonDetail = () => {
       const formattedDate = format(selectedDate, 'yyyy-MM-dd');
       
       // Fetch bookings for this salon on the selected date
+      // Include pending_payment to block slots where payment is in progress
       const { data: bookings, error } = await supabase
         .from('bookings')
         .select('booking_time')
         .or(`salon_id.eq.${id},salon_name.eq.${salon?.name || ''}`)
         .eq('booking_date', formattedDate)
-        .in('status', ['upcoming', 'confirmed', 'pending']);
+        .in('status', ['upcoming', 'confirmed', 'pending', 'pending_payment']);
 
       if (error) {
         console.error('Error fetching booked time slots:', error);
@@ -872,12 +873,13 @@ const SalonDetail = () => {
       const dayOfWeek = selectedDate.getDay(); // 0 = Sunday, 6 = Saturday
       
       // Fetch bookings for the selected stylist on the selected date
+      // Include pending_payment to block slots where payment is in progress
       const { data: bookings, error: bookingsError } = await supabase
         .from('bookings')
         .select('booking_time')
         .eq('stylist_id', selectedStylist.id)
         .eq('booking_date', formattedDate)
-        .in('status', ['upcoming', 'confirmed', 'pending']);
+        .in('status', ['upcoming', 'confirmed', 'pending', 'pending_payment']);
 
       if (bookingsError) {
         console.error('Error fetching stylist booked slots:', bookingsError);
