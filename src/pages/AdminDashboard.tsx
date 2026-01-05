@@ -44,6 +44,7 @@ import { RescheduleCommissionManagement } from '@/components/admin/RescheduleCom
 import { CancellationPenaltyManagement } from '@/components/admin/CancellationPenaltyManagement';
 import RecentUsers from '@/components/admin/RecentUsers';
 import { LiveChatManagement } from '@/components/admin/LiveChatManagement';
+import { WebhookLogViewer } from '@/components/admin/WebhookLogViewer';
 import { getDisplayContact } from '@/utils/displayUtils';
 
 interface UserProfile {
@@ -392,6 +393,7 @@ const AdminDashboard = () => {
               <TabsTrigger value="promos">Promos</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
               <TabsTrigger value="users">Users</TabsTrigger>
+              <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
               <TabsTrigger value="tools">Tools</TabsTrigger>
             </TabsList>
 
@@ -632,6 +634,11 @@ const AdminDashboard = () => {
             {/* Users Tab */}
             <TabsContent value="users" className="space-y-4">
               <UserManagement />
+            </TabsContent>
+
+            {/* Webhooks Tab */}
+            <TabsContent value="webhooks" className="space-y-6">
+              <WebhookLogViewer />
             </TabsContent>
 
             {/* Tools Tab */}

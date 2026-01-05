@@ -27,6 +27,8 @@ serve(async (req) => {
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+  let logId: string | null = null;
+
   try {
     const signature = req.headers.get("x-razorpay-signature");
     const body = await req.text();
@@ -57,7 +59,27 @@ serve(async (req) => {
 
     const payload = JSON.parse(body);
     const event = payload.event as string;
+    const eventId = payload.payload?.payment?.entity?.id || payload.payload?.order?.entity?.id || null;
     console.log("Webhook event:", event);
+
+    // Log the webhook event to database
+    const { data: logData, error: logError } = await supabase
+      .from("webhook_logs")
+      .insert({
+        event_type: event,
+        event_id: eventId,
+        payload: payload,
+        status: "received",
+      })
+      .select("id")
+      .single();
+
+    if (logError) {
+      console.error("Failed to log webhook:", logError);
+    } else {
+      logId = logData?.id;
+      console.log("Webhook logged with ID:", logId);
+    }
 
     // Handle payment.captured or order.paid
     if (event === "payment.captured" || event === "payment.authorized") {
@@ -231,6 +253,14 @@ serve(async (req) => {
         console.error("Payment receipt email failed:", e);
       }
 
+      // Update log status
+      if (logId) {
+        await supabase.from("webhook_logs").update({
+          status: "processed",
+          processed_at: new Date().toISOString(),
+        }).eq("id", logId);
+      }
+
       return new Response(
         JSON.stringify({ received: true, booking_confirmed: true, booking_id: bookingId }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -293,6 +323,14 @@ serve(async (req) => {
       );
     }
 
+    // Update log to processed for unhandled events
+    if (logId) {
+      await supabase.from("webhook_logs").update({
+        status: "processed",
+        processed_at: new Date().toISOString(),
+      }).eq("id", logId);
+    }
+
     // Other events - just acknowledge
     console.log("Unhandled event type:", event);
     return new Response(
@@ -302,6 +340,16 @@ serve(async (req) => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("Webhook processing error:", errorMessage);
+
+    // Update log to failed
+    if (logId) {
+      await supabase.from("webhook_logs").update({
+        status: "failed",
+        error_message: errorMessage,
+        processed_at: new Date().toISOString(),
+      }).eq("id", logId);
+    }
+
     return new Response(
       JSON.stringify({ error: "Internal server error", details: errorMessage }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
