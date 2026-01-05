@@ -128,6 +128,23 @@ if (typeof window !== 'undefined') {
   preloadRazorpayScript();
 }
 
+// Cache for order data to speed up retries
+const orderCache = new Map<string, { orderId: string; keyId: string; amount: number; currency: string; timestamp: number }>();
+const ORDER_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function getCachedOrder(bookingId: string) {
+  const cached = orderCache.get(bookingId);
+  if (cached && Date.now() - cached.timestamp < ORDER_CACHE_TTL) {
+    return cached;
+  }
+  orderCache.delete(bookingId);
+  return null;
+}
+
+function setCachedOrder(bookingId: string, data: { orderId: string; keyId: string; amount: number; currency: string }) {
+  orderCache.set(bookingId, { ...data, timestamp: Date.now() });
+}
+
 export const useRazorpay = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
@@ -223,39 +240,56 @@ export const useRazorpay = () => {
         throw new Error('Payment gateway initialization failed');
       }
 
-      // Create order with booking_id for server-side amount validation
-      console.log('Creating Razorpay order...');
-      const orderResponse = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-razorpay-order`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({
-            amount: options.amount,
-            currency: 'INR',
-            booking_id: options.bookingId,
-            penalty_amount: options.penaltyAmount || 0, // Pass penalty for platform revenue
-            // Razorpay enforces receipt length <= 40 chars
-            receipt: `booking_${options.bookingId.replace(/-/g, '').slice(0, 24)}`,
-            notes: {
-              salon: options.salonName,
-              service: options.serviceName,
+      // Check cache first for retries
+      let orderData = getCachedOrder(options.bookingId!);
+      
+      if (!orderData) {
+        // Create order with booking_id for server-side amount validation
+        console.log('Creating Razorpay order...');
+        const orderResponse = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-razorpay-order`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
             },
-          }),
+            body: JSON.stringify({
+              amount: options.amount,
+              currency: 'INR',
+              booking_id: options.bookingId,
+              penalty_amount: options.penaltyAmount || 0, // Pass penalty for platform revenue
+              // Razorpay enforces receipt length <= 40 chars
+              receipt: `booking_${options.bookingId.replace(/-/g, '').slice(0, 24)}`,
+              notes: {
+                salon: options.salonName,
+                service: options.serviceName,
+              },
+            }),
+          }
+        );
+
+        if (!orderResponse.ok) {
+          const errorData = await orderResponse.json();
+          console.error('Order creation failed:', errorData);
+          throw new Error(errorData.error || 'Failed to create order');
         }
-      );
 
-      if (!orderResponse.ok) {
-        const errorData = await orderResponse.json();
-        console.error('Order creation failed:', errorData);
-        throw new Error(errorData.error || 'Failed to create order');
+        const responseData = await orderResponse.json();
+        const newOrder = {
+          orderId: responseData.orderId,
+          keyId: responseData.keyId,
+          amount: responseData.amount,
+          currency: responseData.currency,
+        };
+        
+        // Cache for retries
+        setCachedOrder(options.bookingId!, newOrder);
+        orderData = getCachedOrder(options.bookingId!)!;
+        console.log('Order created and cached:', orderData.orderId);
+      } else {
+        console.log('Using cached order:', orderData.orderId);
       }
-
-      const orderData = await orderResponse.json();
-      console.log('Order created:', orderData.orderId);
 
       // Open Razorpay checkout
       return new Promise((resolve) => {
