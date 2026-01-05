@@ -267,17 +267,24 @@ export const useRazorpay = () => {
           theme: {
             color: '#f97316',
           },
-          // Force UPI-only in checkout to avoid wallet/app flows that often fail on iOS WebViews
-          display: {
-            blocks: {
-              upi: {
-                name: 'Pay via UPI',
-                instruments: [{ method: 'upi' }],
+          // Allow all payment methods for better compatibility
+          config: {
+            display: {
+              blocks: {
+                banks: {
+                  name: 'Methods',
+                  instruments: [
+                    { method: 'upi' },
+                    { method: 'card' },
+                    { method: 'netbanking' },
+                    { method: 'wallet' },
+                  ],
+                },
               },
-            },
-            sequence: ['block.upi'],
-            preferences: {
-              show_default_blocks: false,
+              sequence: ['block.banks'],
+              preferences: {
+                show_default_blocks: true, // Show all payment options
+              },
             },
           },
           handler: async function (response: any) {
@@ -327,6 +334,11 @@ export const useRazorpay = () => {
                 error: 'Payment cancelled',
               });
             },
+            // Enable animation and back button handling for mobile
+            animation: true,
+            backdropclose: false,
+            escape: true,
+            confirm_close: true,
           },
         };
 
