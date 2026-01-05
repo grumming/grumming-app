@@ -1574,6 +1574,27 @@ const SalonDetail = () => {
         
         navigate(`/booking-confirmation?${params.toString()}`);
       } else {
+        // Payment failed/cancelled/pending
+        if (paymentResult.errorDetails?.code === 'PAYMENT_PENDING' || paymentResult.error === 'Payment pending') {
+          setShowBookingModal(false);
+          setSelectedServices([]);
+          setApplyReward(false);
+          setApplyWalletCredits(false);
+          setAppliedPromo(null);
+          setAppliedVoucher(null);
+          setIsSplitPayment(false);
+          setSplitWalletAmount(0);
+          setSelectedStylist(null);
+
+          toast({
+            title: 'Payment Pending',
+            description: 'Your UPI payment is processing. Check My Bookings in a minute for confirmation.',
+          });
+
+          navigate('/my-bookings');
+          return;
+        }
+
         // Payment failed or cancelled - show fallback options instead of deleting
         if (paymentResult.error === 'Payment cancelled') {
           // User cancelled - delete booking
@@ -1581,7 +1602,7 @@ const SalonDetail = () => {
             .from('bookings')
             .delete()
             .eq('id', bookingData.id);
-          
+
           toast({
             title: 'Payment Cancelled',
             description: 'No booking was created.',

@@ -188,14 +188,22 @@ export function BookingPaymentSheet({
             .from('bookings')
             .update({ payment_method: 'upi', payment_id: result.paymentId })
             .eq('id', booking.id);
-          
+
           // Mark any pending penalties as paid - UPI goes to platform directly
           if (hasPenalties) {
             await markPenaltiesAsPaid(booking.id, undefined, 'upi');
           }
-            
+
           showReceiptDialog(result.paymentId);
           onPaymentSuccess();
+        } else if (result.errorDetails?.code === 'PAYMENT_PENDING') {
+          toast({
+            title: 'Payment Pending',
+            description: 'Your UPI payment is processing. Check My Bookings in a minute for confirmation.',
+          });
+          onPaymentSuccess();
+          onOpenChange(false);
+          return;
         } else {
           // Set detailed error for the banner
           if (result.errorDetails) {
@@ -206,7 +214,7 @@ export function BookingPaymentSheet({
               description: result.error || 'Payment could not be completed',
             });
           }
-          
+
           // If split payment and wallet was deducted, we need to inform user
           if (isSplitPayment && walletAmountToUse > 0) {
             toast({
