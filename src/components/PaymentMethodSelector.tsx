@@ -45,10 +45,29 @@ export function PaymentMethodSelector({
     onMethodChange(method);
   };
 
+  // Show skeleton while loading
+  if (testModeLoading) {
+    return (
+      <div className="space-y-5">
+        <div className="grid grid-cols-2 gap-3">
+          {[1, 2].map((i) => (
+            <div
+              key={i}
+              className="relative flex flex-col items-center p-3 rounded-2xl border-2 border-border bg-card min-h-[80px] animate-pulse"
+            >
+              <div className="w-10 h-10 rounded-xl bg-muted/50" />
+              <div className="w-12 h-3 mt-2 rounded bg-muted/50" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       {/* Test Mode Indicator */}
-      {isTestMode && !testModeLoading && (
+      {isTestMode && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
