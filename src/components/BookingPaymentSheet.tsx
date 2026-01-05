@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CreditCard, Loader2, Wallet, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Sheet,
   SheetContent,
@@ -349,34 +350,62 @@ export function BookingPaymentSheet({
 
         {/* Pay Button */}
         <div className="absolute bottom-0 left-0 right-0 p-4 bg-background border-t border-border">
-          <Button
-            onClick={handlePayNow}
-            disabled={isLoading}
-            className="w-full h-14 text-lg font-semibold gap-2"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Processing...
-              </>
-            ) : paymentMethod === 'salon' ? (
-              <>
-                <CheckCircle2 className="w-5 h-5" />
-                Confirm Booking
-              </>
+          <AnimatePresence mode="wait">
+            {razorpayLoading && !isProcessing ? (
+              <motion.div
+                key="skeleton"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="space-y-3"
+              >
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">Opening payment gateway...</p>
+                    <p className="text-xs text-muted-foreground">Please wait</p>
+                  </div>
+                </div>
+                <Skeleton className="h-14 w-full rounded-lg" />
+              </motion.div>
             ) : (
-              <>
-                <CreditCard className="w-5 h-5" />
-                Pay ₹{amountToPay}
-              </>
+              <motion.div
+                key="button"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <Button
+                  onClick={handlePayNow}
+                  disabled={isLoading}
+                  className="w-full h-14 text-lg font-semibold gap-2"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Processing...
+                    </>
+                  ) : paymentMethod === 'salon' ? (
+                    <>
+                      <CheckCircle2 className="w-5 h-5" />
+                      Confirm Booking
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="w-5 h-5" />
+                      Pay ₹{amountToPay}
+                    </>
+                  )}
+                </Button>
+                
+                {paymentMethod === 'salon' && (
+                  <p className="text-xs text-center text-muted-foreground mt-2">
+                    Pay ₹{totalAmount} at the salon when you arrive
+                  </p>
+                )}
+              </motion.div>
             )}
-          </Button>
-          
-          {paymentMethod === 'salon' && (
-            <p className="text-xs text-center text-muted-foreground mt-2">
-              Pay ₹{totalAmount} at the salon when you arrive
-            </p>
-          )}
+          </AnimatePresence>
         </div>
       </SheetContent>
 
