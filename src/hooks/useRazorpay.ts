@@ -37,6 +37,7 @@ interface PaymentError {
 interface PaymentResult {
   success: boolean;
   paymentId?: string;
+  orderId?: string;
   error?: string;
   errorDetails?: PaymentError;
   isSimulated?: boolean;
@@ -252,13 +253,71 @@ export const useRazorpay = () => {
 
       // Open Razorpay checkout
       return new Promise((resolve) => {
+        const orderId = orderData.orderId as string;
+
+        const reconcileOnDismiss = async (): Promise<PaymentResult> => {
+          try {
+            const res = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/reconcile-razorpay-order`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+                },
+                body: JSON.stringify({
+                  booking_id: options.bookingId,
+                  razorpay_order_id: orderId,
+                }),
+              }
+            );
+
+            const data = await res.json().catch(() => null);
+
+            if (res.ok && data?.status === 'captured' && data?.payment_id) {
+              return {
+                success: true,
+                paymentId: data.payment_id,
+                orderId,
+              };
+            }
+
+            if (res.ok && data?.status === 'pending') {
+              return {
+                success: false,
+                error: 'Payment pending',
+                orderId,
+                errorDetails: {
+                  code: 'PAYMENT_PENDING',
+                  description:
+                    'Your UPI payment is still processing. Please wait a minute and check My Bookings.',
+                  metadata: data ?? undefined,
+                },
+              };
+            }
+
+            // If no payment attempt was created for this order, treat as cancelled
+            return {
+              success: false,
+              error: 'Payment cancelled',
+              orderId,
+            };
+          } catch (e) {
+            return {
+              success: false,
+              error: 'Payment cancelled',
+              orderId,
+            };
+          }
+        };
+
         const razorpayOptions = {
           key: orderData.keyId,
           amount: orderData.amount,
           currency: orderData.currency,
           name: 'Grumming',
           description: `${options.serviceName} at ${options.salonName}`,
-          order_id: orderData.orderId,
+          order_id: orderId,
           prefill: {
             name: options.customerName || '',
             email: options.customerEmail || '',
@@ -296,7 +355,7 @@ export const useRazorpay = () => {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
-                    'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+                    apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
                   },
                   body: JSON.stringify({
                     razorpay_order_id: response.razorpay_order_id,
@@ -314,6 +373,7 @@ export const useRazorpay = () => {
                 resolve({
                   success: true,
                   paymentId: response.razorpay_payment_id,
+                  orderId,
                 });
               } else {
                 throw new Error(verifyData.error || 'Payment verification failed');
@@ -323,16 +383,22 @@ export const useRazorpay = () => {
               resolve({
                 success: false,
                 error: error.message,
+                orderId,
               });
             }
           },
           modal: {
             ondismiss: function () {
-              setIsLoading(false);
-              resolve({
-                success: false,
-                error: 'Payment cancelled',
-              });
+              void (async () => {
+                toast({
+                  title: 'Checking payment status…',
+                  description: 'Please wait a moment.',
+                });
+
+                const result = await reconcileOnDismiss();
+                setIsLoading(false);
+                resolve(result);
+              })();
             },
             // Enable animation and back button handling for mobile
             animation: true,
@@ -396,6 +462,7 @@ export const useRazorpay = () => {
               error: err?.description || err?.reason || err?.code || 'Payment failed',
               errorDetails,
               retryCount: currentRetry,
+              orderId: orderData.orderId,
             });
           });
           
