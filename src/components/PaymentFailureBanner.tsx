@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { AlertCircle, RefreshCw, X } from 'lucide-react';
+import { AlertCircle, RefreshCw, X, Store } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface PaymentError {
@@ -16,18 +16,22 @@ interface PaymentFailureBannerProps {
   error: PaymentError;
   onRetry: () => void;
   onDismiss: () => void;
+  onPayAtSalon?: () => void;
   isRetrying?: boolean;
   retryCount?: number;
   maxRetries?: number;
+  totalAmount?: number;
 }
 
 export function PaymentFailureBanner({
   error,
   onRetry,
   onDismiss,
+  onPayAtSalon,
   isRetrying = false,
   retryCount = 0,
   maxRetries = 3,
+  totalAmount,
 }: PaymentFailureBannerProps) {
   const errorCode = error.code || 'UNKNOWN';
   const errorReason = error.reason || error.description || 'Payment could not be completed';
@@ -106,25 +110,46 @@ export function PaymentFailureBanner({
         </div>
       </div>
 
-      <Button
-        onClick={onRetry}
-        disabled={isRetrying}
-        variant="destructive"
-        size="sm"
-        className="w-full gap-2"
-      >
-        {isRetrying ? (
-          <>
-            <RefreshCw className="w-4 h-4 animate-spin" />
-            Retrying...
-          </>
-        ) : (
-          <>
-            <RefreshCw className="w-4 h-4" />
-            Try Again
-          </>
+      <div className="flex flex-col gap-2">
+        <Button
+          onClick={onRetry}
+          disabled={isRetrying}
+          variant="destructive"
+          size="sm"
+          className="w-full gap-2"
+        >
+          {isRetrying ? (
+            <>
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              Retrying...
+            </>
+          ) : (
+            <>
+              <RefreshCw className="w-4 h-4" />
+              Try Again
+            </>
+          )}
+        </Button>
+        
+        {/* Pay at Salon Fallback */}
+        {onPayAtSalon && (
+          <Button
+            onClick={onPayAtSalon}
+            variant="outline"
+            size="sm"
+            className="w-full gap-2 border-primary/30 hover:bg-primary/10"
+          >
+            <Store className="w-4 h-4" />
+            Pay ₹{totalAmount || 0} at Salon Instead
+          </Button>
         )}
-      </Button>
+      </div>
+      
+      {onPayAtSalon && (
+        <p className="text-xs text-muted-foreground text-center">
+          Your booking will be confirmed. Pay when you arrive.
+        </p>
+      )}
     </motion.div>
   );
 }
