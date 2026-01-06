@@ -65,7 +65,7 @@ export function BookingPaymentSheet({
   const { wallet, useCredits } = useWallet();
   const { totalPenalty, hasPenalties, markPenaltiesAsPaid } = usePendingPenalties();
   
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('upi');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('salon');
   const [walletAmountToUse, setWalletAmountToUse] = useState(0);
   const [isSplitPayment, setIsSplitPayment] = useState(false);
   const [selectedSavedMethodId, setSelectedSavedMethodId] = useState<string | null>(null);
@@ -82,9 +82,8 @@ export function BookingPaymentSheet({
 
   const getPaymentMethodLabel = (method: PaymentMethodType) => {
     switch (method) {
-      case 'upi': return 'UPI';
       case 'salon': return 'Pay at Salon';
-      default: return 'UPI';
+      default: return 'Pay at Salon';
     }
   };
 

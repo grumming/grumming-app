@@ -6,7 +6,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { usePaymentTestMode } from '@/hooks/usePaymentTestMode';
 
-export type PaymentMethodType = 'upi' | 'salon';
+export type PaymentMethodType = 'salon';
 
 interface PaymentMethodSelectorProps {
   selectedMethod: PaymentMethodType;
@@ -18,14 +18,6 @@ interface PaymentMethodSelectorProps {
 }
 
 const paymentMethods = [
-  {
-    id: 'upi' as PaymentMethodType,
-    name: 'UPI',
-    description: 'GPay, PhonePe, Paytm',
-    icon: Smartphone,
-    badge: 'Popular',
-    badgeColor: 'primary',
-  },
   {
     id: 'salon' as PaymentMethodType,
     name: 'Pay at Salon',
@@ -107,11 +99,7 @@ export function PaymentMethodSelector({
             >
               {/* Badge */}
               {method.badge && (
-                <div className={`absolute -top-2.5 right-3 px-2.5 py-0.5 rounded-full text-[10px] font-semibold tracking-wide uppercase shadow-sm ${
-                  method.badgeColor === 'primary' 
-                    ? 'bg-primary text-primary-foreground' 
-                    : 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white'
-                }`}>
+                <div className="absolute -top-2.5 right-3 px-2.5 py-0.5 rounded-full text-[10px] font-semibold tracking-wide uppercase shadow-sm bg-primary text-primary-foreground">
                   {method.badge}
                 </div>
               )}
@@ -148,23 +136,6 @@ export function PaymentMethodSelector({
       </div>
 
 
-      {/* UPI Info Message */}
-      <AnimatePresence>
-        {selectedMethod === 'upi' && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="p-4 rounded-2xl bg-muted/30 border border-border">
-              <p className="text-xs text-muted-foreground text-center">
-                You'll be redirected to your UPI app to complete payment
-              </p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
     </div>
   );
