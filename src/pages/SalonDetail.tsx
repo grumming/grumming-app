@@ -589,6 +589,9 @@ const SalonDetail = () => {
   const [showPaymentFailure, setShowPaymentFailure] = useState(false);
   const [failedBookingId, setFailedBookingId] = useState<string | null>(null);
   const [paymentFailureError, setPaymentFailureError] = useState<string>('');
+  
+  // Payment preparation overlay state
+  const [showPaymentPrep, setShowPaymentPrep] = useState(false);
   // Promo code states
   const [promoCode, setPromoCode] = useState('');
   const [promoCodeInput, setPromoCodeInput] = useState('');
@@ -1385,9 +1388,13 @@ const SalonDetail = () => {
 
     // If UPI payment selected, initiate Razorpay FIRST (before creating booking)
     if (paymentMethod === 'upi') {
+      // Show payment preparation overlay immediately
+      setShowPaymentPrep(true);
+      
       // For UPI, we need a temporary booking ID for Razorpay - create with pending_payment status
       const tempBookingData = await createBooking('pending_payment');
       if (!tempBookingData) {
+        setShowPaymentPrep(false);
         setIsBooking(false);
         toast({
           title: 'Booking failed',
@@ -1406,6 +1413,9 @@ const SalonDetail = () => {
           referenceId: tempBookingData.id,
         });
       }
+
+      // Dismiss overlay just before Razorpay checkout opens
+      setShowPaymentPrep(false);
 
       const paymentResult = await initiatePayment({
         amount: totalPrice,
@@ -3038,6 +3048,53 @@ const SalonDetail = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Payment Preparation Overlay */}
+      <AnimatePresence>
+        {showPaymentPrep && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-sm flex flex-col items-center justify-center"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ delay: 0.1 }}
+              className="flex flex-col items-center gap-6 p-8"
+            >
+              <div className="relative">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                </div>
+                <motion.div
+                  className="absolute inset-0 rounded-full border-2 border-primary/30"
+                  animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                />
+              </div>
+              <div className="text-center space-y-2">
+                <h3 className="text-lg font-semibold">Preparing payment…</h3>
+                <p className="text-sm text-muted-foreground">Opening checkout shortly</p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setShowPaymentPrep(false);
+                  setIsBooking(false);
+                }}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-4 h-4 mr-2" />
+                Cancel
+              </Button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <BackToTop />
     </div>
