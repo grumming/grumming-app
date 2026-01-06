@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   ArrowLeft, Mail, Phone, Calendar, Edit2, Loader2, 
-  ChevronRight, Gift, Settings, LogOut, CreditCard, Heart, Wallet, Ticket,
+  ChevronRight, Settings, LogOut, CreditCard, Heart, Wallet, Ticket,
   CheckCircle2, AlertCircle, Shield, Receipt
 } from 'lucide-react';
 import { useWallet } from '@/hooks/useWallet';
@@ -104,11 +104,10 @@ const Profile = () => {
     { icon: Wallet, label: 'Wallet', onClick: () => navigate('/wallet'), color: 'text-green-500', badge: `₹${wallet?.balance?.toFixed(0) || 0}` },
     { icon: Ticket, label: 'My Vouchers', onClick: () => navigate('/my-vouchers'), color: 'text-purple-500' },
     { icon: Calendar, label: 'My Bookings', onClick: () => navigate('/my-bookings'), color: 'text-primary' },
-    { icon: Gift, label: 'Refer & Earn', onClick: () => navigate('/referrals'), color: 'text-accent' },
+    { icon: Heart, label: 'Favorites', onClick: () => navigate('/favorites'), color: 'text-red-500' },
   ];
 
   const menuItems = [
-    { icon: Heart, label: 'Favorites', onClick: () => navigate('/favorites'), badge: favorites.length > 0 ? `${favorites.length}` : undefined },
     { icon: Receipt, label: 'Payment History', onClick: () => navigate('/payment-history') },
     { icon: CreditCard, label: 'Payment Methods', onClick: () => navigate('/payment-methods') },
     { icon: Settings, label: 'Settings', onClick: () => navigate('/settings') },
@@ -278,9 +277,6 @@ const Profile = () => {
               <item.icon className="w-4.5 h-4.5 text-muted-foreground" />
             </div>
             <span className="flex-1 text-left text-sm font-medium text-foreground">{item.label}</span>
-            {item.badge && (
-              <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{item.badge}</span>
-            )}
             <ChevronRight className="w-4 h-4 text-muted-foreground" />
           </button>
         ))}

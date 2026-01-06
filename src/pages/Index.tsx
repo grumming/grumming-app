@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import Header from "@/components/Header";
 import FirstBookingBanner from "@/components/FirstBookingBanner";
-import CashbackBanner from "@/components/CashbackBanner";
 import FeaturedSalons from "@/components/FeaturedSalons";
 import BottomNav from "@/components/BottomNav";
 import WelcomeBanner from "@/components/WelcomeBanner";
@@ -28,7 +27,6 @@ const Index = () => {
         <PenaltyWarningBanner />
         <WelcomeBanner />
         <FirstBookingBanner />
-        <CashbackBanner />
         <FeaturedSalons />
       </main>
       <Footer />

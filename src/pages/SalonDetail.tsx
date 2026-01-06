@@ -577,7 +577,7 @@ const SalonDetail = () => {
   const [salonBusinessHours, setSalonBusinessHours] = useState<{ is_open: boolean; opening_time: string; closing_time: string; break_start: string | null; break_end: string | null } | null>(null);
   const [isSalonClosed, setIsSalonClosed] = useState(false);
   const [isBooking, setIsBooking] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('upi');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('salon');
   const [selectedSavedPaymentMethod, setSelectedSavedPaymentMethod] = useState<string | null>(null);
   const [selectedUpiApp, setSelectedUpiApp] = useState<string | null>(null);
   const [applyReward, setApplyReward] = useState(false);
@@ -1386,169 +1386,8 @@ const SalonDetail = () => {
       return;
     }
 
-    // If UPI payment selected, initiate Razorpay FIRST (before creating booking)
-    if (paymentMethod === 'upi') {
-      // Show payment preparation overlay immediately
-      setShowPaymentPrep(true);
-      
-      // For UPI, we need a temporary booking ID for Razorpay - create with pending_payment status
-      const tempBookingData = await createBooking('pending_payment');
-      if (!tempBookingData) {
-        setShowPaymentPrep(false);
-        setIsBooking(false);
-        toast({
-          title: 'Booking failed',
-          description: 'Unable to initiate payment. Please try again.',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      // Handle wallet payment - deduct from wallet before UPI
-      if (walletPaymentAmount > 0) {
-        await useCredits({
-          amount: walletPaymentAmount,
-          category: 'booking_discount',
-          description: `Wallet payment for booking at ${salon.name}`,
-          referenceId: tempBookingData.id,
-        });
-      }
-
-      // Dismiss overlay just before Razorpay checkout opens
-      setShowPaymentPrep(false);
-
-      const paymentResult = await initiatePayment({
-        amount: totalPrice,
-        bookingId: tempBookingData.id,
-        salonName: salon.name,
-        serviceName: serviceNames,
-        customerPhone: user.phone || '',
-        penaltyAmount: totalPenalty, // Pass penalty as platform revenue (not salon revenue)
-      });
-
-      setIsBooking(false);
-
-      if (paymentResult.success) {
-        // Payment successful - update booking to confirmed
-        await supabase
-          .from('bookings')
-          .update({ status: 'confirmed', payment_method: 'upi', payment_id: paymentResult.paymentId })
-          .eq('id', tempBookingData.id);
-
-        // Mark reward as used if applied
-        if (applyReward && rewardDiscount > 0) {
-          await markRewardAsUsed();
-        }
-
-        // Deduct wallet credits if applied
-        if (applyWalletCredits && walletCreditsDiscount > 0) {
-          await useCredits({
-            amount: walletCreditsDiscount,
-            category: 'booking_discount',
-            description: `Used for booking at ${salon.name}`,
-            referenceId: tempBookingData.id,
-          });
-        }
-
-        // Record promo code usage
-        if (appliedPromo && user) {
-          await supabase.from('promo_code_usage').insert({
-            promo_code_id: appliedPromo.id,
-            user_id: user.id,
-            booking_id: tempBookingData.id,
-          });
-        }
-
-        // Mark voucher as used
-        if (appliedVoucher && user) {
-          await supabase
-            .from('user_vouchers')
-            .update({ 
-              is_used: true, 
-              used_at: new Date().toISOString(),
-              booking_id: tempBookingData.id 
-            })
-            .eq('id', appliedVoucher.id);
-        }
-
-        // Mark pending penalties as paid - UPI goes to platform directly
-        if (hasPenalties) {
-          await markPenaltiesAsPaid(tempBookingData.id, undefined, 'upi');
-        }
-
-        setShowBookingModal(false);
-        setSelectedServices([]);
-        setApplyReward(false);
-        setApplyWalletCredits(false);
-        setAppliedPromo(null);
-        setAppliedVoucher(null);
-        setIsSplitPayment(false);
-        setSplitWalletAmount(0);
-        setSelectedStylist(null);
-        
-        toast({
-          title: 'Payment Successful!',
-          description: totalDiscount > 0 
-            ? `Your booking is confirmed! You saved ₹${totalDiscount}.`
-            : 'Your booking has been confirmed.',
-        });
-
-        const params = new URLSearchParams({
-          salon: salon.name,
-          service: serviceNames,
-          price: totalPrice.toString(),
-          date: format(selectedDate, 'yyyy-MM-dd'),
-          time: selectedTime,
-          paymentId: paymentResult.paymentId || '',
-          paymentMethod: paymentMethod,
-          discount: totalDiscount.toString(),
-          ...(appliedPromo && { promoCode: appliedPromo.code, promoDiscount: promoDiscount.toString() }),
-          ...(appliedVoucher && { voucherCode: appliedVoucher.code, voucherDiscount: voucherDiscount.toString() }),
-          ...(rewardDiscount > 0 && { rewardDiscount: rewardDiscount.toString() }),
-          ...(walletCreditsDiscount > 0 && { walletDiscount: walletCreditsDiscount.toString() }),
-          ...(totalPenalty > 0 && { penaltyPaid: totalPenalty.toString() }),
-          ...(selectedStylist && { stylistName: selectedStylist.name }),
-        });
-        
-        navigate(`/booking-confirmation?${params.toString()}`);
-      } else {
-        // Payment failed/cancelled/pending
-        if (paymentResult.errorDetails?.code === 'PAYMENT_PENDING' || paymentResult.error === 'Payment pending') {
-          // Keep booking as pending_payment - webhook will confirm when payment completes
-          setShowBookingModal(false);
-          setSelectedServices([]);
-          setApplyReward(false);
-          setApplyWalletCredits(false);
-          setAppliedPromo(null);
-          setAppliedVoucher(null);
-          setIsSplitPayment(false);
-          setSplitWalletAmount(0);
-          setSelectedStylist(null);
-
-          toast({
-            title: 'Payment Pending',
-            description: 'Your UPI payment is processing. Check My Bookings in a minute for confirmation.',
-          });
-
-          navigate('/my-bookings');
-          return;
-        }
-
-        // Payment failed or cancelled - delete the temporary booking
-        if (paymentResult.error === 'Payment cancelled') {
-          await supabase.from('bookings').delete().eq('id', tempBookingData.id);
-          toast({
-            title: 'Payment Cancelled',
-            description: 'No booking was created.',
-          });
-        } else {
-          // Payment failed - show fallback options (keep booking for retry or pay at salon)
-          setFailedBookingId(tempBookingData.id);
-          setPaymentFailureError(paymentResult.error || 'Payment could not be completed');
-          setShowPaymentFailure(true);
-        }
-      }
-    } else {
+    // UPI payments disabled - proceed directly to Pay at Salon flow
+    {
       // Pay at salon - create booking immediately with confirmed status
       const bookingData = await createBooking('confirmed');
       if (!bookingData) {
@@ -2957,16 +2796,6 @@ const SalonDetail = () => {
                         <div className="flex items-center gap-2">
                           <Loader2 className="w-5 h-5 animate-spin" />
                           Processing...
-                        </div>
-                      ) : paymentMethod === 'upi' && selectedUpiApp ? (
-                        <div className="flex items-center gap-2">
-                          <CreditCard className="w-5 h-5" />
-                          Pay ₹{totalPrice} with {getUpiAppName(selectedUpiApp)}
-                        </div>
-                      ) : paymentMethod === 'upi' ? (
-                        <div className="flex items-center gap-2">
-                          <CreditCard className="w-5 h-5" />
-                          Pay ₹{totalPrice}
                         </div>
                       ) : splitWalletAmount > 0 ? (
                         <div className="flex items-center gap-2">

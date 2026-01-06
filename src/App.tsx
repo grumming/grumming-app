@@ -9,7 +9,8 @@ import { LocationProvider } from "@/contexts/LocationContext";
 import { FavoritesProvider } from "@/contexts/FavoritesContext";
 import { WalletProvider } from "@/contexts/WalletContext";
 import { PushNotificationSetup } from "@/components/PushNotificationSetup";
-import { ReferralRewardListener } from "@/components/ReferralRewardListener";
+// Referral system disabled
+// import { ReferralRewardListener } from "@/components/ReferralRewardListener";
 import { DeepLinkHandler } from "@/components/DeepLinkHandler";
 import { SalonOwnerRouteGuard } from "@/components/SalonOwnerRouteGuard";
 
@@ -26,7 +27,8 @@ import MyBookings from "./pages/MyBookings";
 import MyVouchers from "./pages/MyVouchers";
 import SavedAddresses from "./pages/SavedAddresses";
 import SearchSalons from "./pages/SearchSalons";
-import Referrals from "./pages/Referrals";
+// Referral system disabled
+// import Referrals from "./pages/Referrals";
 import AdminDashboard from "./pages/AdminDashboard";
 import Wallet from "./pages/Wallet";
 import Favorites from "./pages/Favorites";
@@ -129,7 +131,7 @@ const App = () => {
                 <Toaster />
                 <Sonner />
                 <BrowserRouter>
-                  <ReferralRewardListener />
+                  {/* Referral system disabled */}
                   <DeepLinkHandler />
                   
                   <Routes>
@@ -146,7 +148,8 @@ const App = () => {
                     <Route path="/my-vouchers" element={<SalonOwnerRouteGuard><MyVouchers /></SalonOwnerRouteGuard>} />
                     <Route path="/saved-addresses" element={<SavedAddresses />} />
                     <Route path="/search" element={<SalonOwnerRouteGuard><SearchSalons /></SalonOwnerRouteGuard>} />
-                    <Route path="/referrals" element={<SalonOwnerRouteGuard><Referrals /></SalonOwnerRouteGuard>} />
+                    {/* Referral system disabled */}
+                    {/* <Route path="/referrals" element={<SalonOwnerRouteGuard><Referrals /></SalonOwnerRouteGuard>} /> */}
                     <Route path="/wallet" element={<Wallet />} />
                     <Route path="/favorites" element={<SalonOwnerRouteGuard><Favorites /></SalonOwnerRouteGuard>} />
                     <Route path="/payment-methods" element={<PaymentMethods />} />
