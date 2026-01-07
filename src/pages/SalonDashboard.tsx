@@ -400,6 +400,70 @@ const SalonDashboard = () => {
     fetchSalonData();
   }, [fetchSalonData]);
 
+  // Real-time subscription for bookings
+  useEffect(() => {
+    if (!selectedSalonId || !selectedSalon?.name) return;
+
+    console.log('Setting up real-time booking subscription for salon:', selectedSalon.name);
+
+    const channel = supabase
+      .channel(`salon-bookings-${selectedSalonId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'bookings',
+          filter: `salon_name=eq.${selectedSalon.name}`
+        },
+        (payload) => {
+          console.log('New booking received:', payload);
+          toast({
+            title: '🎉 New Booking!',
+            description: `${payload.new.service_name} - ${payload.new.booking_date} at ${payload.new.booking_time}`,
+          });
+          // Refresh data to get customer info
+          fetchSalonData(false);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'bookings',
+          filter: `salon_name=eq.${selectedSalon.name}`
+        },
+        (payload) => {
+          console.log('Booking updated:', payload);
+          const newStatus = payload.new.status;
+          const oldStatus = payload.old?.status;
+          
+          if (oldStatus !== newStatus) {
+            const statusEmoji = 
+              newStatus === 'completed' ? '✅' :
+              newStatus === 'cancelled' ? '❌' :
+              newStatus === 'confirmed' ? '✓' : '📋';
+            
+            toast({
+              title: `${statusEmoji} Booking ${newStatus}`,
+              description: `${payload.new.service_name} status updated`,
+            });
+          }
+          // Refresh data
+          fetchSalonData(false);
+        }
+      )
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+      });
+
+    return () => {
+      console.log('Cleaning up booking subscription...');
+      supabase.removeChannel(channel);
+    };
+  }, [selectedSalonId, selectedSalon?.name, fetchSalonData, toast]);
+
   // Pull-to-refresh handler
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
