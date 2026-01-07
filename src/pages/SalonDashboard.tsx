@@ -284,11 +284,11 @@ const SalonDashboard = () => {
 
       setStylists(stylistsData || []);
 
-      // Fetch bookings for this salon
+      // Fetch bookings for this salon - query by salon_id for reliability
       const { data: bookingsData } = await supabase
         .from('bookings')
         .select('*')
-        .eq('salon_name', salonData?.name)
+        .eq('salon_id', selectedSalonId)
         .order('booking_date', { ascending: false })
         .order('booking_time', { ascending: false });
 
