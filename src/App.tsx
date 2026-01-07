@@ -13,8 +13,10 @@ import { DeepLinkHandler } from "@/components/DeepLinkHandler";
 import { SalonOwnerRouteGuard } from "@/components/SalonOwnerRouteGuard";
 import { AppErrorBoundary } from "@/components/AppErrorBoundary";
 
-// Lazy-load pages to prevent a single route module from blanking the entire app.
-const Index = lazy(() => import("./pages/Index"));
+// Keep the home page eagerly loaded to avoid a blank screen if dynamic imports stall.
+import Index from "./pages/Index";
+
+// Lazy-load non-home pages to reduce initial bundle size.
 const Auth = lazy(() => import("./pages/Auth"));
 const Profile = lazy(() => import("./pages/Profile"));
 const EditProfile = lazy(() => import("./pages/EditProfile"));
