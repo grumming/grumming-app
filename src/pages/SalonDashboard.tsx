@@ -345,7 +345,10 @@ const SalonDashboard = () => {
       // Calculate stats
       const today = format(new Date(), 'yyyy-MM-dd');
       const todayBookings = (bookingsData || []).filter(b => b.booking_date === today);
-      const upcomingBookings = (bookingsData || []).filter(b => b.status === 'upcoming');
+      // Upcoming includes 'upcoming', 'confirmed', and 'pending_payment' statuses
+      const upcomingBookings = (bookingsData || []).filter(b => 
+        b.status === 'upcoming' || b.status === 'confirmed' || b.status === 'pending_payment'
+      );
       const completedBookings = (bookingsData || []).filter(b => b.status === 'completed');
       const totalRevenue = completedBookings.reduce((sum, b) => sum + (b.service_price || 0), 0);
 
@@ -1444,9 +1447,9 @@ const SalonDashboard = () => {
                   >
                     <Clock className="w-4 h-4 shrink-0" />
                     <span>Upcoming</span>
-                    {bookings.filter(b => b.status === 'upcoming').length > 0 && (
+                    {bookings.filter(b => b.status === 'upcoming' || b.status === 'confirmed' || b.status === 'pending_payment').length > 0 && (
                       <span className="inline-flex items-center justify-center min-w-[22px] h-5 px-1.5 text-[11px] font-bold rounded-full bg-primary/15 text-primary border border-primary/20">
-                        {bookings.filter(b => b.status === 'upcoming').length}
+                        {bookings.filter(b => b.status === 'upcoming' || b.status === 'confirmed' || b.status === 'pending_payment').length}
                       </span>
                     )}
                   </TabsTrigger>
@@ -1472,12 +1475,12 @@ const SalonDashboard = () => {
                       <CardDescription>Bookings awaiting service</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      {bookings.filter(b => b.status === 'upcoming').length === 0 ? (
+                      {bookings.filter(b => b.status === 'upcoming' || b.status === 'confirmed' || b.status === 'pending_payment').length === 0 ? (
                         <p className="text-center text-muted-foreground py-8">No upcoming bookings</p>
                       ) : (
                         <div className="space-y-3">
                           {bookings
-                            .filter(b => b.status === 'upcoming')
+                            .filter(b => b.status === 'upcoming' || b.status === 'confirmed' || b.status === 'pending_payment')
                             .sort((a, b) => {
                               const dateCompare = a.booking_date.localeCompare(b.booking_date);
                               if (dateCompare !== 0) return dateCompare;
@@ -1493,9 +1496,16 @@ const SalonDashboard = () => {
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
                                   <p className="font-medium">{booking.service_name}</p>
-                                  <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 border-blue-200">
+                                  <Badge 
+                                    variant="secondary" 
+                                    className={
+                                      booking.status === 'pending_payment' 
+                                        ? "bg-yellow-500/10 text-yellow-600 border-yellow-200"
+                                        : "bg-blue-500/10 text-blue-600 border-blue-200"
+                                    }
+                                  >
                                     <Clock className="w-3 h-3 mr-1" />
-                                    Upcoming
+                                    {booking.status === 'pending_payment' ? 'Pending Payment' : 'Confirmed'}
                                   </Badge>
                                 </div>
                                 <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
