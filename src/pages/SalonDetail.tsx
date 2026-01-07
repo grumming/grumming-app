@@ -4,22 +4,22 @@ import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { 
   ArrowLeft, Star, MapPin, Clock, Phone, Heart, Share2, 
-  ChevronRight, Calendar, Check, User, MessageSquare, CreditCard, Gift, X,
-  Tag, Loader2, Wallet, Ticket, Navigation, Car, ChevronDown, Sparkles, AlertTriangle, Scissors
+  ChevronRight, Calendar, Check, User, MessageSquare, CreditCard, X,
+  Loader2, Wallet, Navigation, Car, AlertTriangle, Scissors
 } from 'lucide-react';
 import BackToTop from '@/components/BackToTop';
 import SalonMap from '@/components/SalonMap';
 import { useLocation } from '@/contexts/LocationContext';
 import { calculateDistance, formatDistance, estimateTravelTime } from '@/lib/distance';
 import { PaymentMethodSelector, PaymentMethodType } from '@/components/PaymentMethodSelector';
-import { Input } from '@/components/ui/input';
+
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useRazorpay } from '@/hooks/useRazorpay';
