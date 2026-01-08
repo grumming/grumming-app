@@ -1,10 +1,30 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// CORS configuration with restricted origins for production
+const ALLOWED_ORIGINS = [
+  'https://grummingcom.lovable.app',
+  'https://grumming.com',
+  'https://www.grumming.com',
+  'http://localhost:5173',
+  'http://localhost:8080',
+];
+
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get('origin') || '';
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Credentials': 'true',
+  };
+}
+
+// Helper to mask phone numbers in logs for PII protection
+function maskPhone(phone: string): string {
+  if (phone.length <= 6) return '***';
+  return phone.slice(0, 5) + '***' + phone.slice(-2);
+}
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -14,6 +34,8 @@ const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes (OTP validity window)
 const MAX_VERIFY_ATTEMPTS = 5;
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -50,11 +72,11 @@ serve(async (req) => {
       .gte('attempted_at', rateLimitCutoff);
 
     if (rateLimitError) {
-      console.error('Rate limit check error:', rateLimitError);
+      console.error('Rate limit check error');
     }
 
     if (failedAttempts && failedAttempts.length >= MAX_VERIFY_ATTEMPTS) {
-      console.log(`Verification rate limit exceeded for ${phone}: ${failedAttempts.length} failed attempts`);
+      console.log(`Verification rate limit exceeded for ${maskPhone(phone)}: ${failedAttempts.length} failed attempts`);
       return new Response(
         JSON.stringify({ error: 'Too many failed attempts. Please request a new OTP.' }),
         { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -69,7 +91,7 @@ serve(async (req) => {
       .single();
 
     if (fetchError || !otpRecord) {
-      console.error('OTP not found:', fetchError);
+      console.error('OTP not found for phone');
       return new Response(
         JSON.stringify({ error: 'OTP not found. Please request a new one.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -98,18 +120,12 @@ serve(async (req) => {
           ip_address: req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown',
         });
 
-      console.log(`Invalid OTP attempt for ${phone}`);
+      console.log(`Invalid OTP attempt for ${maskPhone(phone)}`);
       return new Response(
         JSON.stringify({ error: 'Invalid OTP. Please try again.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    // Mark OTP as verified
-    await supabase
-      .from('phone_otps')
-      .update({ verified: true })
-      .eq('phone', phone);
 
     // Mark OTP as verified
     await supabase
@@ -147,7 +163,7 @@ serve(async (req) => {
     }
     
     if (existingUser) {
-      console.log(`Found existing user: ${existingUser.id}`);
+      console.log('Found existing user');
     }
 
     let userId: string;
@@ -157,7 +173,7 @@ serve(async (req) => {
     if (existingUser) {
       userId = existingUser.id;
       userEmail = existingUser.email || tempEmail;
-      console.log(`Using existing user: ${userId} with email: ${userEmail}`);
+      console.log('Using existing user for verification');
     } else {
       // Create new user with phone
       const tempPassword = crypto.randomUUID();
@@ -174,7 +190,7 @@ serve(async (req) => {
       });
 
       if (createError) {
-        console.error('Create user error:', createError);
+        console.error('Create user error');
         
         // If user already exists error, try to find them again by listing all users
         if (createError.message?.includes('already') || createError.message?.includes('duplicate') || createError.message?.includes('exists')) {
@@ -207,7 +223,7 @@ serve(async (req) => {
             userId = existingUser.id;
             userEmail = existingUser.email || tempEmail;
             isNewUser = false;
-            console.log(`Found user on retry: ${userId}`);
+            console.log('Found user on retry');
           } else {
             return new Response(
               JSON.stringify({ error: 'Failed to create account. Please try again.' }),
@@ -224,7 +240,7 @@ serve(async (req) => {
         userId = newUser.user!.id;
         userEmail = tempEmail;
         isNewUser = true;
-        console.log(`Created new user: ${userId}`);
+        console.log('New user created successfully');
       }
     }
 
@@ -238,7 +254,7 @@ serve(async (req) => {
     });
 
     if (linkError) {
-      console.error('Generate link error:', linkError);
+      console.error('Generate link error');
       return new Response(
         JSON.stringify({ error: 'Failed to create session' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -255,7 +271,7 @@ serve(async (req) => {
       .eq('phone', phone)
       .eq('attempt_type', 'verify_failed');
 
-    console.log(`OTP verified successfully for ${phone}, user: ${userId}, isNew: ${isNewUser}`);
+    console.log(`OTP verified successfully for ${maskPhone(phone)}, isNew: ${isNewUser}`);
 
     // Return the magic link token for the client to use
     return new Response(
@@ -270,7 +286,8 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error in verify-sms-otp:', error);
+    console.error('Error in verify-sms-otp');
+    const corsHeaders = getCorsHeaders(req);
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
