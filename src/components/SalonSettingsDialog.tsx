@@ -27,7 +27,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { SearchableSelect } from '@/components/SearchableSelect';
-import { indianStatesWithDistricts, getAllStates } from '@/data/indianCities';
+import { indianStatesWithDistricts, getAllStates, getDistrictsForState, getCitiesForDistrict } from '@/data/indianCities';
 // Available amenities with icons
 const AVAILABLE_AMENITIES = [
   { id: 'AC', label: 'Air Conditioning', icon: Wind },
@@ -68,6 +68,7 @@ interface SalonFormData {
   description: string;
   location: string;
   state: string;
+  district: string;
   city: string;
   phone: string;
   email: string;
@@ -127,6 +128,7 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
     description: '',
     location: '',
     state: '',
+    district: '',
     city: '',
     phone: '',
     email: '',
@@ -139,22 +141,17 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
   // Get all states
   const allStates = useMemo(() => getAllStates(), []);
 
-  // Get all cities for the selected state (flat list)
-  const citiesForState = useMemo(() => {
+  // Get districts for selected state
+  const districtsForState = useMemo(() => {
     if (!formData.state) return [];
-    const stateData = indianStatesWithDistricts.find(s => s.state === formData.state);
-    if (!stateData) return [];
-    // Flatten all cities from all districts
-    const cities: string[] = [];
-    stateData.districts.forEach(d => {
-      d.cities.forEach(city => {
-        if (!cities.includes(city)) {
-          cities.push(city);
-        }
-      });
-    });
-    return cities.sort();
+    return getDistrictsForState(formData.state);
   }, [formData.state]);
+
+  // Get cities for selected district
+  const citiesForDistrict = useMemo(() => {
+    if (!formData.state || !formData.district) return [];
+    return getCitiesForDistrict(formData.state, formData.district);
+  }, [formData.state, formData.district]);
 
   // Notification preferences
   const [notifications, setNotifications] = useState({
@@ -446,24 +443,29 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
 
   useEffect(() => {
     if (salon && open) {
-      // Extract state from city field if it contains "City, State" format
+      // Extract state and district from city field if it contains "City, State" format
       let extractedState = '';
+      let extractedDistrict = '';
       let extractedCity = salon.city || '';
       
       if (salon.city && salon.city.includes(',')) {
         const parts = salon.city.split(',').map(p => p.trim());
         extractedCity = parts[0] || '';
         extractedState = parts[1] || '';
-      } else {
-        // Try to find the state from city
+      }
+      
+      // Try to find the district from city and state
+      if (extractedCity) {
         for (const stateData of indianStatesWithDistricts) {
+          if (extractedState && stateData.state !== extractedState) continue;
           for (const district of stateData.districts) {
-            if (district.cities.includes(salon.city)) {
-              extractedState = stateData.state;
+            if (district.cities.includes(extractedCity)) {
+              if (!extractedState) extractedState = stateData.state;
+              extractedDistrict = district.district;
               break;
             }
           }
-          if (extractedState) break;
+          if (extractedDistrict) break;
         }
       }
       
@@ -472,6 +474,7 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
         description: salon.description || '',
         location: salon.location || '',
         state: extractedState,
+        district: extractedDistrict,
         city: extractedCity,
         phone: salon.phone || '',
         email: salon.email || '',
@@ -739,14 +742,15 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div className="space-y-2">
                           <Label htmlFor="state">State *</Label>
                           <SearchableSelect
                             value={formData.state}
                             onValueChange={(value) => {
                               handleInputChange('state', value);
-                              // Reset city when state changes
+                              // Reset district and city when state changes
+                              handleInputChange('district', '');
                               handleInputChange('city', '');
                             }}
                             options={allStates}
@@ -757,15 +761,32 @@ const SalonSettingsDialog = ({ open, onOpenChange, salon, onSalonUpdated }: Salo
                         </div>
 
                         <div className="space-y-2">
+                          <Label htmlFor="district">District *</Label>
+                          <SearchableSelect
+                            value={formData.district}
+                            onValueChange={(value) => {
+                              handleInputChange('district', value);
+                              // Reset city when district changes
+                              handleInputChange('city', '');
+                            }}
+                            options={districtsForState}
+                            placeholder={formData.state ? "Select district" : "Select state first"}
+                            searchPlaceholder="Search districts..."
+                            emptyMessage="No districts found"
+                            disabled={!formData.state}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
                           <Label htmlFor="city">City *</Label>
                           <SearchableSelect
                             value={formData.city}
                             onValueChange={(value) => handleInputChange('city', value)}
-                            options={citiesForState}
-                            placeholder="Select city"
+                            options={citiesForDistrict}
+                            placeholder={formData.district ? "Select city" : "Select district first"}
                             searchPlaceholder="Search cities..."
-                            emptyMessage={formData.state ? "No cities found" : "Select a state first"}
-                            disabled={!formData.state}
+                            emptyMessage="No cities found"
+                            disabled={!formData.district}
                           />
                         </div>
                       </div>
