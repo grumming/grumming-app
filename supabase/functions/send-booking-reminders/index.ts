@@ -1,12 +1,28 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// CORS configuration with restricted origins for production
+const ALLOWED_ORIGINS = [
+  'https://grummingcom.lovable.app',
+  'https://grumming.com',
+  'https://www.grumming.com',
+  'http://localhost:5173',
+  'http://localhost:8080',
+];
+
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get('origin') || '';
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Credentials': 'true',
+  };
+}
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -29,7 +45,7 @@ serve(async (req) => {
     const minTimeStr = minTime.toTimeString().slice(0, 5); // HH:MM format
     const maxTimeStr = maxTime.toTimeString().slice(0, 5);
 
-    console.log(`Current time: ${now.toTimeString().slice(0, 5)}, Looking for bookings between ${minTimeStr} and ${maxTimeStr} on ${todayStr}`);
+    console.log(`Looking for bookings between ${minTimeStr} and ${maxTimeStr} on ${todayStr}`);
 
     // Fetch upcoming bookings for today that are 1 hour away and haven't had reminders sent
     const { data: bookings, error: bookingsError } = await supabase
@@ -50,7 +66,7 @@ serve(async (req) => {
       .lte('booking_time', maxTimeStr);
 
     if (bookingsError) {
-      console.error('Error fetching bookings:', bookingsError);
+      console.error('Error fetching bookings');
       throw bookingsError;
     }
 
@@ -76,7 +92,7 @@ serve(async (req) => {
           .maybeSingle();
 
         if (profileError) {
-          console.error(`Error fetching profile for user ${booking.user_id}:`, profileError);
+          console.error('Error fetching profile for booking');
           errors.push(`Profile error for booking ${booking.id}`);
           continue;
         }
@@ -91,7 +107,7 @@ serve(async (req) => {
           .maybeSingle();
 
         if (prefs && prefs.booking_reminders === false) {
-          console.log(`User ${booking.user_id} has disabled booking reminders, skipping`);
+          console.log('User has disabled booking reminders, skipping');
           continue;
         }
 
@@ -99,7 +115,7 @@ serve(async (req) => {
         const title = '⏰ Appointment in 1 Hour!';
         const body = `Hi ${userName}! Your ${booking.service_name} at ${booking.salon_name} is in 1 hour at ${booking.booking_time}. Get ready!`;
 
-        console.log(`Sending push notification to user ${booking.user_id} for booking ${booking.id}`);
+        console.log(`Sending push notification for booking ${booking.id}`);
 
         // Get user's FCM tokens
         const { data: fcmTokens, error: fcmError } = await supabase
@@ -108,13 +124,13 @@ serve(async (req) => {
           .eq('user_id', booking.user_id);
 
         if (fcmError) {
-          console.error(`Error fetching FCM tokens for user ${booking.user_id}:`, fcmError);
+          console.error('Error fetching FCM tokens for booking');
           errors.push(`FCM token error for booking ${booking.id}`);
           continue;
         }
 
         if (!fcmTokens || fcmTokens.length === 0) {
-          console.log(`No FCM tokens for user ${booking.user_id}, skipping push notification`);
+          console.log('No FCM tokens for user, skipping push notification');
           // Still create in-app notification
         } else {
           // Send push notification via send-push-notification function
@@ -138,8 +154,7 @@ serve(async (req) => {
           });
 
           if (!pushResponse.ok) {
-            const pushError = await pushResponse.text();
-            console.error(`Push notification error for booking ${booking.id}:`, pushError);
+            console.error(`Push notification error for booking ${booking.id}`);
           } else {
             console.log(`Push notification sent for booking ${booking.id}`);
           }
@@ -157,7 +172,7 @@ serve(async (req) => {
           });
 
         if (notifError) {
-          console.error(`Error creating notification for booking ${booking.id}:`, notifError);
+          console.error('Error creating notification for booking');
           errors.push(`Notification error for booking ${booking.id}`);
         }
 
@@ -168,13 +183,13 @@ serve(async (req) => {
           .eq('id', booking.id);
 
         if (updateError) {
-          console.error(`Error updating reminder_sent for booking ${booking.id}:`, updateError);
+          console.error('Error updating reminder_sent for booking');
           errors.push(`Update error for booking ${booking.id}`);
         } else {
           sentCount++;
         }
       } catch (err) {
-        console.error(`Error processing booking ${booking.id}:`, err);
+        console.error('Error processing booking');
         errors.push(`Processing error for booking ${booking.id}`);
       }
     }
@@ -191,7 +206,8 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error in send-booking-reminders:', error);
+    console.error('Error in send-booking-reminders');
+    const corsHeaders = getCorsHeaders(req);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({ error: errorMessage }),
