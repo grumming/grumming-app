@@ -56,6 +56,7 @@ export const useSalons = () => {
         .from('salons')
         .select('*')
         .eq('is_active', true)
+        .eq('status', 'approved')
         .order('rating', { ascending: false });
 
       if (error) throw error;
@@ -143,6 +144,7 @@ export const useSalonsByCity = (city: string | null) => {
         .from('salons')
         .select('*')
         .eq('is_active', true)
+        .eq('status', 'approved')
         .order('rating', { ascending: false });
 
       if (city) {
