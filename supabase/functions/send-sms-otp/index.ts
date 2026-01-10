@@ -1,24 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// CORS configuration with restricted origins for production
-const ALLOWED_ORIGINS = [
-  'https://grummingcom.lovable.app',
-  'https://grumming.com',
-  'https://www.grumming.com',
-  'http://localhost:5173',
-  'http://localhost:8080',
-];
-
-function getCorsHeaders(req: Request) {
-  const origin = req.headers.get('origin') || '';
-  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
-  return {
-    'Access-Control-Allow-Origin': allowedOrigin,
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Allow-Credentials': 'true',
-  };
-}
+// CORS configuration - allow all origins for edge function
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
 
 // Helper to mask phone numbers in logs for PII protection
 function maskPhone(phone: string): string {
@@ -181,7 +169,6 @@ async function sendSMS(phone: string, otp: string): Promise<{ sent: boolean; pro
 }
 
 serve(async (req) => {
-  const corsHeaders = getCorsHeaders(req);
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -397,7 +384,6 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error('Error in send-sms-otp');
-    const corsHeaders = getCorsHeaders(req);
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
