@@ -15,6 +15,8 @@ function isAllowedOrigin(origin: string): boolean {
   if (ALLOWED_ORIGINS.includes(origin)) return true;
   // Allow Lovable preview URLs (e.g., id-preview--*.lovable.app)
   if (/^https:\/\/[a-z0-9-]+--[a-z0-9-]+\.lovable\.app$/.test(origin)) return true;
+  // Allow Lovable project preview URLs (e.g., uuid.lovableproject.com)
+  if (/^https:\/\/[a-z0-9-]+\.lovableproject\.com$/.test(origin)) return true;
   return false;
 }
 
