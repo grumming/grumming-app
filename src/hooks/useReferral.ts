@@ -177,18 +177,17 @@ export const useReferral = () => {
   const applyReferralCode = async (code: string) => {
     if (!user?.id) throw new Error('Must be logged in');
     
-    // Find the referrer by code
-    const { data: referrerData, error: codeError } = await supabase
-      .from('referral_codes')
-      .select('user_id')
-      .eq('code', code.toUpperCase())
-      .maybeSingle();
+    // Find the referrer by code using secure RPC function
+    const { data: referrerResult, error: codeError } = await supabase
+      .rpc('validate_referral_code', { p_code: code.toUpperCase() });
     
-    if (codeError || !referrerData) {
+    if (codeError || !referrerResult || referrerResult.length === 0 || !referrerResult[0].is_valid) {
       throw new Error('Invalid referral code');
     }
     
-    if (referrerData.user_id === user.id) {
+    const referrerId = referrerResult[0].referrer_id;
+    
+    if (referrerId === user.id) {
       throw new Error('Cannot use your own referral code');
     }
     
@@ -207,7 +206,7 @@ export const useReferral = () => {
     const { error: insertError } = await supabase
       .from('referrals')
       .insert({
-        referrer_id: referrerData.user_id,
+        referrer_id: referrerId,
         referee_id: user.id,
         status: 'pending',
       });

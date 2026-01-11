@@ -56,21 +56,20 @@ export const usePendingProfile = () => {
       try {
         console.log('Applying pending referral code:', pendingReferralCode);
         
-        // Find the referrer by code
-        const { data: referrerData, error: codeError } = await supabase
-          .from('referral_codes')
-          .select('user_id')
-          .eq('code', pendingReferralCode.toUpperCase())
-          .maybeSingle();
+        // Find the referrer by code using secure RPC function
+        const { data: referrerResult, error: codeError } = await supabase
+          .rpc('validate_referral_code', { p_code: pendingReferralCode.toUpperCase() });
 
-        if (codeError || !referrerData) {
+        if (codeError || !referrerResult || referrerResult.length === 0 || !referrerResult[0].is_valid) {
           console.log('Invalid referral code:', pendingReferralCode);
           localStorage.removeItem('pendingReferralCode');
           return;
         }
 
+        const referrerId = referrerResult[0].referrer_id;
+
         // Don't allow self-referral
-        if (referrerData.user_id === user.id) {
+        if (referrerId === user.id) {
           console.log('Cannot use own referral code');
           localStorage.removeItem('pendingReferralCode');
           return;
@@ -93,7 +92,7 @@ export const usePendingProfile = () => {
         const { error: insertError } = await supabase
           .from('referrals')
           .insert({
-            referrer_id: referrerData.user_id,
+            referrer_id: referrerId,
             referee_id: user.id,
             status: 'pending',
           });
