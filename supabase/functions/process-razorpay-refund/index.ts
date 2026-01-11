@@ -13,9 +13,64 @@ serve(async (req) => {
   }
 
   try {
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // ===== AUTHENTICATION CHECK =====
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      console.error('No authorization header provided');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Unauthorized - No authorization header' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+      console.error('Authentication failed:', authError?.message);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Unauthorized - Invalid token' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      );
+    }
+
+    console.log('User authenticated:', user.id);
+
+    // ===== ADMIN AUTHORIZATION CHECK =====
+    const { data: roleData, error: roleError } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'admin')
+      .maybeSingle();
+
+    if (roleError) {
+      console.error('Role check error:', roleError);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Failed to verify permissions' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
+
+    if (!roleData) {
+      console.error('User is not an admin:', user.id);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Forbidden - Admin access required' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+      );
+    }
+
+    console.log('Admin authorization confirmed for user:', user.id);
+
+    // ===== PROCESS REFUND REQUEST =====
     const { booking_id, refund_amount } = await req.json();
 
-    console.log('Processing refund for booking:', booking_id, 'amount:', refund_amount);
+    console.log('Processing refund for booking:', booking_id, 'amount:', refund_amount, 'initiated by admin:', user.id);
 
     if (!booking_id) {
       throw new Error('booking_id is required');
@@ -27,11 +82,6 @@ serve(async (req) => {
     if (!razorpayKeyId || !razorpayKeySecret) {
       throw new Error('Razorpay credentials not configured');
     }
-
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Fetch booking details to get payment information
     const { data: booking, error: bookingError } = await supabase
@@ -46,6 +96,25 @@ serve(async (req) => {
     }
 
     console.log('Booking found:', booking.id, 'status:', booking.status, 'payment_id:', booking.payment_id);
+
+    // ===== AUDIT LOG =====
+    // Log the refund attempt for audit trail
+    try {
+      await supabase
+        .from('refund_audit_log')
+        .insert({
+          booking_id: booking_id,
+          admin_user_id: user.id,
+          action: 'refund_initiated',
+          previous_status: booking.status,
+          new_status: 'refund_processing',
+          refund_amount: refund_amount || booking.service_price,
+          note: `Refund initiated by admin ${user.id}`
+        });
+    } catch (auditError) {
+      console.error('Failed to create audit log:', auditError);
+      // Don't fail the refund if audit log fails
+    }
 
     // Check if booking is in a refundable state
     if (!['confirmed', 'upcoming', 'pending_payment'].includes(booking.status)) {
