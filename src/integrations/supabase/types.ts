@@ -108,6 +108,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "bookings_salon_id_fkey"
+            columns: ["salon_id"]
+            isOneToOne: false
+            referencedRelation: "salons_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "bookings_stylist_id_fkey"
             columns: ["stylist_id"]
             isOneToOne: false
@@ -199,6 +206,13 @@ export type Database = {
             columns: ["collecting_salon_id"]
             isOneToOne: false
             referencedRelation: "salons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cancellation_penalties_collecting_salon_id_fkey"
+            columns: ["collecting_salon_id"]
+            isOneToOne: false
+            referencedRelation: "salons_public"
             referencedColumns: ["id"]
           },
           {
@@ -694,6 +708,13 @@ export type Database = {
             referencedRelation: "salons"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "payments_salon_id_fkey"
+            columns: ["salon_id"]
+            isOneToOne: false
+            referencedRelation: "salons_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       payout_schedule_settings: {
@@ -1068,6 +1089,13 @@ export type Database = {
             referencedRelation: "salons"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "reschedule_fees_salon_id_fkey"
+            columns: ["salon_id"]
+            isOneToOne: false
+            referencedRelation: "salons_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       response_templates: {
@@ -1201,6 +1229,13 @@ export type Database = {
             referencedRelation: "salons"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "salon_bank_accounts_salon_id_fkey"
+            columns: ["salon_id"]
+            isOneToOne: false
+            referencedRelation: "salons_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       salon_business_hours: {
@@ -1248,6 +1283,13 @@ export type Database = {
             referencedRelation: "salons"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "salon_business_hours_salon_id_fkey"
+            columns: ["salon_id"]
+            isOneToOne: false
+            referencedRelation: "salons_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       salon_images: {
@@ -1289,6 +1331,13 @@ export type Database = {
             referencedRelation: "salons"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "salon_images_salon_id_fkey"
+            columns: ["salon_id"]
+            isOneToOne: false
+            referencedRelation: "salons_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       salon_owners: {
@@ -1319,6 +1368,13 @@ export type Database = {
             columns: ["salon_id"]
             isOneToOne: false
             referencedRelation: "salons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_owners_salon_id_fkey"
+            columns: ["salon_id"]
+            isOneToOne: false
+            referencedRelation: "salons_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1386,6 +1442,13 @@ export type Database = {
             referencedRelation: "salons"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "salon_payouts_salon_id_fkey"
+            columns: ["salon_id"]
+            isOneToOne: false
+            referencedRelation: "salons_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       salon_penalty_remittances: {
@@ -1426,6 +1489,13 @@ export type Database = {
             columns: ["salon_id"]
             isOneToOne: false
             referencedRelation: "salons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_penalty_remittances_salon_id_fkey"
+            columns: ["salon_id"]
+            isOneToOne: false
+            referencedRelation: "salons_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1473,6 +1543,13 @@ export type Database = {
             columns: ["salon_id"]
             isOneToOne: false
             referencedRelation: "salons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_services_salon_id_fkey"
+            columns: ["salon_id"]
+            isOneToOne: false
+            referencedRelation: "salons_public"
             referencedColumns: ["id"]
           },
         ]
@@ -2081,9 +2158,81 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      salons_public: {
+        Row: {
+          amenities: string[] | null
+          city: string | null
+          closing_time: string | null
+          created_at: string | null
+          description: string | null
+          email: string | null
+          id: string | null
+          image_url: string | null
+          is_active: boolean | null
+          latitude: number | null
+          location: string | null
+          longitude: number | null
+          name: string | null
+          opening_time: string | null
+          phone: string | null
+          rating: number | null
+          rejection_reason: string | null
+          status: string | null
+          total_reviews: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          amenities?: string[] | null
+          city?: string | null
+          closing_time?: string | null
+          created_at?: string | null
+          description?: string | null
+          email?: never
+          id?: string | null
+          image_url?: string | null
+          is_active?: boolean | null
+          latitude?: number | null
+          location?: string | null
+          longitude?: number | null
+          name?: string | null
+          opening_time?: string | null
+          phone?: never
+          rating?: number | null
+          rejection_reason?: string | null
+          status?: string | null
+          total_reviews?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          amenities?: string[] | null
+          city?: string | null
+          closing_time?: string | null
+          created_at?: string | null
+          description?: string | null
+          email?: never
+          id?: string | null
+          image_url?: string | null
+          is_active?: boolean | null
+          latitude?: number | null
+          location?: string | null
+          longitude?: number | null
+          name?: string | null
+          opening_time?: string | null
+          phone?: never
+          rating?: number | null
+          rejection_reason?: string | null
+          status?: string | null
+          total_reviews?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      can_view_salon_contact: {
+        Args: { salon_id_param: string }
+        Returns: boolean
+      }
       generate_referral_code: { Args: never; Returns: string }
       get_salon_reviews_with_profiles: {
         Args: { p_salon_id: string; p_salon_name?: string }
