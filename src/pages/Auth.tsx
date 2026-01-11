@@ -233,13 +233,11 @@ const Auth = () => {
     const validateReferralCode = async () => {
       setReferralValidation('checking');
       try {
+        // Use secure RPC function to validate referral code
         const { data, error } = await supabase
-          .from('referral_codes')
-          .select('user_id')
-          .eq('code', referralCode.toUpperCase())
-          .maybeSingle();
+          .rpc('validate_referral_code', { p_code: referralCode.toUpperCase() });
 
-        if (error || !data) {
+        if (error || !data || data.length === 0 || !data[0].is_valid) {
           setReferralValidation('invalid');
           triggerHaptic('error');
         } else {

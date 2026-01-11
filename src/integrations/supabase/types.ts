@@ -2110,6 +2110,13 @@ export type Database = {
         Args: { _salon_id: string; _user_id: string }
         Returns: boolean
       }
+      validate_referral_code: {
+        Args: { p_code: string }
+        Returns: {
+          is_valid: boolean
+          referrer_id: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user" | "salon_owner"
