@@ -417,6 +417,7 @@ const SalonRegistration = () => {
           latitude: formData.latitude,
           longitude: formData.longitude,
           is_active: false,
+          created_by: user.id, // Track who created this salon for RLS during registration
         })
         .select()
         .single();
