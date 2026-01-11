@@ -52,8 +52,9 @@ export const useSalons = () => {
   const fetchSalons = async () => {
     try {
       setIsLoading(true);
+      // Use salons_public view to mask contact info for non-authorized users
       const { data, error } = await supabase
-        .from('salons')
+        .from('salons_public')
         .select('*')
         .eq('is_active', true)
         .eq('status', 'approved')
@@ -87,9 +88,9 @@ export const useSalonById = (salonId: string | undefined) => {
     try {
       setIsLoading(true);
       
-      // Fetch salon
+      // Fetch salon using salons_public view to mask contact info for non-authorized users
       const { data: salonData, error: salonError } = await supabase
-        .from('salons')
+        .from('salons_public')
         .select('*')
         .eq('id', id)
         .maybeSingle();
@@ -140,8 +141,9 @@ export const useSalonsByCity = (city: string | null) => {
     try {
       setIsLoading(true);
       
+      // Use salons_public view to mask contact info for non-authorized users
       let query = supabase
-        .from('salons')
+        .from('salons_public')
         .select('*')
         .eq('is_active', true)
         .eq('status', 'approved')
