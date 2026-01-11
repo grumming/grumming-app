@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { format, parseISO } from 'date-fns';
+import { useAuth } from '@/hooks/useAuth';
 
 interface Review {
   id: string;
@@ -13,7 +14,6 @@ interface Review {
   owner_response: string | null;
   owner_response_at: string | null;
   created_at: string;
-  user_id: string;
   reviewer_name: string;
   reviewer_avatar: string | null;
 }
@@ -27,23 +27,39 @@ export const SalonReviews = ({ salonId, salonName }: SalonReviewsProps) => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ average: 0, count: 0 });
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchReviews();
-  }, [salonId, salonName]);
+  }, [salonId, salonName, user]);
 
   const fetchReviews = async () => {
     setLoading(true);
     
-    // Use the database function to fetch reviews with profile data
-    const { data, error } = await supabase
-      .rpc('get_salon_reviews_with_profiles', {
-        p_salon_id: salonId,
-        p_salon_name: salonName || null
-      });
+    let data: Review[] | null = null;
+    let error = null;
+    
+    if (user) {
+      // Authenticated users can use the full function with profile data
+      const result = await supabase
+        .rpc('get_salon_reviews_with_profiles', {
+          p_salon_id: salonId,
+          p_salon_name: salonName || null
+        });
+      data = result.data as Review[] | null;
+      error = result.error;
+    } else {
+      // Anonymous users use the public function that hides user_id/booking_id
+      const result = await supabase
+        .rpc('get_reviews_public', {
+          p_salon_id: salonId
+        });
+      data = result.data as Review[] | null;
+      error = result.error;
+    }
 
     if (!error && data) {
-      setReviews(data as Review[]);
+      setReviews(data);
       
       if (data.length > 0) {
         const avg = data.reduce((sum: number, r: Review) => sum + r.rating, 0) / data.length;
