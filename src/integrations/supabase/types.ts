@@ -2115,6 +2115,26 @@ export type Database = {
         Args: { salon_id_param: string }
         Returns: boolean
       }
+      credit_wallet: {
+        Args: {
+          _amount: number
+          _category: string
+          _description?: string
+          _reference_id?: string
+          _user_id: string
+        }
+        Returns: Json
+      }
+      debit_wallet: {
+        Args: {
+          _amount: number
+          _category: string
+          _description?: string
+          _reference_id?: string
+          _user_id: string
+        }
+        Returns: Json
+      }
       generate_referral_code: { Args: never; Returns: string }
       get_reviews_public: {
         Args: { p_salon_id?: string }
