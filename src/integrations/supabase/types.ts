@@ -1483,6 +1483,7 @@ export type Database = {
           city: string
           closing_time: string | null
           created_at: string
+          created_by: string | null
           description: string | null
           email: string | null
           id: string
@@ -1505,6 +1506,7 @@ export type Database = {
           city: string
           closing_time?: string | null
           created_at?: string
+          created_by?: string | null
           description?: string | null
           email?: string | null
           id?: string
@@ -1527,6 +1529,7 @@ export type Database = {
           city?: string
           closing_time?: string | null
           created_at?: string
+          created_by?: string | null
           description?: string | null
           email?: string | null
           id?: string
