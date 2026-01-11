@@ -2,15 +2,16 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { createHmac } from "https://deno.land/std@0.177.0/node/crypto.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-razorpay-signature",
+// No CORS headers for webhook - server-to-server calls only
+// Razorpay webhooks are signed and don't require browser access
+const responseHeaders = {
+  "Content-Type": "application/json",
 };
 
 serve(async (req) => {
+  // Webhooks are server-to-server, reject browser preflight requests
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { status: 405 });
   }
 
   const razorpayKeySecret = Deno.env.get("RAZORPAY_KEY_SECRET");
@@ -21,7 +22,7 @@ serve(async (req) => {
     console.error("RAZORPAY_KEY_SECRET not configured");
     return new Response(
       JSON.stringify({ error: "Webhook secret not configured" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: responseHeaders }
     );
   }
 
@@ -45,7 +46,7 @@ serve(async (req) => {
         console.error("Invalid webhook signature");
         return new Response(JSON.stringify({ error: "Invalid signature" }), {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: responseHeaders,
         });
       }
       console.log("Webhook signature verified");
@@ -53,7 +54,7 @@ serve(async (req) => {
       console.warn("No signature provided - rejecting for security");
       return new Response(JSON.stringify({ error: "Signature required" }), {
         status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: responseHeaders,
       });
     }
 
@@ -87,7 +88,7 @@ serve(async (req) => {
       if (!payment) {
         console.log("No payment entity in payload");
         return new Response(JSON.stringify({ received: true }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: responseHeaders,
         });
       }
 
@@ -101,7 +102,7 @@ serve(async (req) => {
       if (!bookingId) {
         console.warn("No booking_id in payment notes, skipping DB update");
         return new Response(JSON.stringify({ received: true, warning: "No booking_id" }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: responseHeaders,
         });
       }
 
@@ -116,7 +117,7 @@ serve(async (req) => {
         console.error("Booking not found:", bookingId, bookingError);
         return new Response(JSON.stringify({ error: "Booking not found" }), {
           status: 404,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: responseHeaders,
         });
       }
 
@@ -124,7 +125,7 @@ serve(async (req) => {
       if (booking.status === "confirmed" && booking.payment_id === razorpayPaymentId) {
         console.log("Booking already confirmed with this payment, skipping");
         return new Response(JSON.stringify({ received: true, already_processed: true }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: responseHeaders,
         });
       }
 
@@ -263,7 +264,7 @@ serve(async (req) => {
 
       return new Response(
         JSON.stringify({ received: true, booking_confirmed: true, booking_id: bookingId }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: responseHeaders }
       );
     }
 
@@ -303,7 +304,7 @@ serve(async (req) => {
 
       return new Response(
         JSON.stringify({ received: true, event: "payment.failed" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: responseHeaders }
       );
     }
 
@@ -319,7 +320,7 @@ serve(async (req) => {
       // Just acknowledge receipt
       return new Response(
         JSON.stringify({ received: true, event: "order.paid", booking_id: bookingId }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: responseHeaders }
       );
     }
 
@@ -335,7 +336,7 @@ serve(async (req) => {
     console.log("Unhandled event type:", event);
     return new Response(
       JSON.stringify({ received: true, event }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: responseHeaders }
     );
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
@@ -352,7 +353,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ error: "Internal server error", details: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: responseHeaders }
     );
   }
 });
