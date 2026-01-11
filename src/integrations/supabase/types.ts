@@ -2116,6 +2116,21 @@ export type Database = {
         Returns: boolean
       }
       generate_referral_code: { Args: never; Returns: string }
+      get_reviews_public: {
+        Args: { p_salon_id?: string }
+        Returns: {
+          created_at: string
+          id: string
+          owner_response: string
+          owner_response_at: string
+          rating: number
+          review_text: string
+          reviewer_avatar: string
+          reviewer_name: string
+          salon_id: string
+          updated_at: string
+        }[]
+      }
       get_salon_images_public: {
         Args: { p_salon_id?: string }
         Returns: {
