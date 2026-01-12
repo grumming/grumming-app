@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import BottomNav from '@/components/BottomNav';
+
 
 interface Language {
   code: string;
@@ -271,8 +271,6 @@ const Settings = () => {
           </div>
         </DialogContent>
       </Dialog>
-
-      <BottomNav />
     </div>
   );
 };
