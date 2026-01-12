@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import BottomNav from '@/components/BottomNav';
+
 
 const PrivacySecurity = () => {
   const navigate = useNavigate();
@@ -272,8 +272,6 @@ const PrivacySecurity = () => {
           </button>
         </div>
       </motion.div>
-
-      <BottomNav />
     </div>
   );
 };

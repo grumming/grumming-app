@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import Header from "@/components/Header";
 import FirstBookingBanner from "@/components/FirstBookingBanner";
 import FeaturedSalons from "@/components/FeaturedSalons";
-import BottomNav from "@/components/BottomNav";
+
 import WelcomeBanner from "@/components/WelcomeBanner";
 import SalonApprovalBanner from "@/components/SalonApprovalBanner";
 import PenaltyWarningBanner from "@/components/PenaltyWarningBanner";
@@ -31,7 +31,7 @@ const Index = () => {
       </main>
       <Footer />
       <BackToTop />
-      <BottomNav />
+      
     </div>
   );
 };
