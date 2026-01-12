@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useCallback, ReactNode, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
@@ -15,17 +16,13 @@ const FavoritesContext = createContext<FavoritesContextType | undefined>(undefin
 
 export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
-  const [favorites, setFavorites] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const fetchFavorites = useCallback(async () => {
-    if (!user) {
-      setFavorites([]);
-      setIsLoading(false);
-      return;
-    }
-
-    try {
+  const { data: favorites = [], isLoading } = useQuery({
+    queryKey: ['favorites', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      
       const { data, error } = await supabase
         .from('favorite_salons')
         .select('salon_id')
@@ -33,18 +30,18 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) {
         console.error('Error fetching favorites:', error);
-      } else {
-        setFavorites(data?.map(f => f.salon_id) || []);
+        return [];
       }
-    } catch (err) {
-      console.error('Error fetching favorites:', err);
-    }
-    setIsLoading(false);
-  }, [user]);
+      return data?.map(f => f.salon_id) || [];
+    },
+    enabled: !!user,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    gcTime: 1000 * 60 * 15, // Keep in cache for 15 minutes
+  });
 
-  useEffect(() => {
-    fetchFavorites();
-  }, [fetchFavorites]);
+  const refetch = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ['favorites', user?.id] });
+  }, [queryClient, user?.id]);
 
   const isFavorite = useCallback((salonId: string | number) => {
     return favorites.includes(String(salonId));
@@ -68,11 +65,11 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
     const isCurrentlyFavorite = favorites.includes(salonIdStr);
 
     // Optimistic update
-    if (isCurrentlyFavorite) {
-      setFavorites(prev => prev.filter(id => id !== salonIdStr));
-    } else {
-      setFavorites(prev => [...prev, salonIdStr]);
-    }
+    queryClient.setQueryData(['favorites', user.id], (old: string[] = []) => 
+      isCurrentlyFavorite 
+        ? old.filter(id => id !== salonIdStr)
+        : [...old, salonIdStr]
+    );
 
     try {
       if (isCurrentlyFavorite) {
@@ -106,21 +103,25 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error('Error toggling favorite:', error);
       // Revert optimistic update
-      if (isCurrentlyFavorite) {
-        setFavorites(prev => [...prev, salonIdStr]);
-      } else {
-        setFavorites(prev => prev.filter(id => id !== salonIdStr));
-      }
+      queryClient.setQueryData(['favorites', user.id], favorites);
       toast({
         title: 'Error',
         description: 'Failed to update favorites.',
         variant: 'destructive',
       });
     }
-  }, [user, favorites]);
+  }, [user, favorites, queryClient]);
+
+  const contextValue = useMemo(() => ({
+    favorites,
+    isLoading,
+    isFavorite,
+    toggleFavorite,
+    refetch
+  }), [favorites, isLoading, isFavorite, toggleFavorite, refetch]);
 
   return (
-    <FavoritesContext.Provider value={{ favorites, isLoading, isFavorite, toggleFavorite, refetch: fetchFavorites }}>
+    <FavoritesContext.Provider value={contextValue}>
       {children}
     </FavoritesContext.Provider>
   );
