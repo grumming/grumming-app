@@ -171,6 +171,7 @@ const FeaturedSalons = () => {
                   />
                   <button
                     onClick={(e) => toggleFavorite(salon.id, e)}
+                    aria-label={isFavorite(salon.id) ? `Remove ${salon.name} from favorites` : `Add ${salon.name} to favorites`}
                     className="absolute top-3 right-3 w-9 h-9 rounded-full bg-card/80 backdrop-blur-sm flex items-center justify-center hover:bg-card transition-colors"
                   >
                     <Heart
