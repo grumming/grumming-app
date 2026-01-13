@@ -159,8 +159,14 @@ const FeaturedSalons = () => {
                 {/* Image */}
                 <div className="relative h-48 overflow-hidden">
                   <img
-                    src={salon.image_url || "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&auto=format&fit=crop&q=80"}
+                    src={salon.image_url 
+                      ? `${salon.image_url}?width=400&height=300&resize=cover&quality=80`
+                      : "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&h=300&auto=format&fit=crop&q=75"}
                     alt={salon.name}
+                    width={400}
+                    height={300}
+                    loading={index < 2 ? "eager" : "lazy"}
+                    fetchPriority={index === 0 ? "high" : "auto"}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <button
