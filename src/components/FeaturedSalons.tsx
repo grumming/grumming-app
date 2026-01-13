@@ -144,13 +144,20 @@ const FeaturedSalons = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {filteredSalons.map((salon, index) => (
-              <motion.div
+            {filteredSalons.map((salon, index) => {
+              // Skip animation on first card to reduce LCP render delay
+              const CardWrapper = index === 0 ? 'div' : motion.div;
+              const animationProps = index === 0 ? {} : {
+                initial: { opacity: 0, y: 20 },
+                whileInView: { opacity: 1, y: 0 },
+                viewport: { once: true },
+                transition: { duration: 0.4, delay: (index - 1) * 0.1 }
+              };
+              
+              return (
+              <CardWrapper
                 key={salon.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: index * 0.1 }}
+                {...animationProps}
               >
               <div 
                 onClick={() => handleSalonClick(salon.id)}
@@ -232,8 +239,9 @@ const FeaturedSalons = () => {
                   </Button>
                 </div>
               </div>
-            </motion.div>
-          ))}
+            </CardWrapper>
+              );
+            })}
           </div>
         )}
       </div>
