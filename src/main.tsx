@@ -28,6 +28,11 @@ if (!mountNode) {
 }
 
 try {
+  // Clear the loading timeout since React is mounting
+  if (typeof window !== 'undefined' && (window as any).__clearAppLoadTimeout) {
+    (window as any).__clearAppLoadTimeout();
+  }
+  
   createRoot(mountNode).render(
     <React.StrictMode>
       <App />
