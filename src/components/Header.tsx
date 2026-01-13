@@ -10,7 +10,7 @@ import { useLocation } from "@/contexts/LocationContext";
 import { popularCities } from "@/data/indianCities";
 import { useRecentCities } from "@/hooks/useRecentCities";
 import { supabase } from "@/integrations/supabase/client";
-import logo from "@/assets/logo.png";
+import logo from "@/assets/logo-small.png";
 
 interface MapboxSuggestion {
   city: string;
@@ -159,7 +159,7 @@ const Header = memo(() => {
       <div className="container mx-auto px-4 h-14 flex items-center gap-3">
         {/* Logo */}
         <Link to="/" className="flex-shrink-0 transition-all duration-300 hover:scale-105 hover:drop-shadow-[0_0_8px_hsl(var(--primary)/0.6)]">
-          <img src={logo} alt="Grumming" className="w-8 h-8 rounded-lg" />
+          <img src={logo} alt="Grumming" width={32} height={32} className="w-8 h-8 rounded-lg" />
         </Link>
         
         {/* Location Selector */}
