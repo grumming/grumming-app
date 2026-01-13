@@ -1,7 +1,6 @@
 import { motion } from "framer-motion";
-import { Star, MapPin, Clock, Heart } from "lucide-react";
+import { Star, MapPin, Clock, Heart, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "@/contexts/LocationContext";
@@ -85,25 +84,8 @@ const FeaturedSalons = () => {
   if (isLoading) {
     return (
       <section className="py-16 px-4 bg-secondary/30">
-        <div className="container mx-auto">
-          <div className="mb-10">
-            <Skeleton className="h-10 w-64 mb-2" />
-            <Skeleton className="h-5 w-40" />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="bg-card rounded-2xl overflow-hidden shadow-soft">
-                <Skeleton className="h-48 w-full" />
-                <div className="p-4">
-                  <Skeleton className="h-6 w-3/4 mb-3" />
-                  <Skeleton className="h-4 w-1/2 mb-3" />
-                  <Skeleton className="h-4 w-full mb-2" />
-                  <Skeleton className="h-4 w-2/3 mb-4" />
-                  <Skeleton className="h-10 w-full rounded-md" />
-                </div>
-              </div>
-            ))}
-          </div>
+        <div className="container mx-auto flex justify-center items-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
       </section>
     );
@@ -162,20 +144,13 @@ const FeaturedSalons = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {filteredSalons.map((salon, index) => {
-              // Skip animation on first card to reduce LCP render delay
-              const CardWrapper = index === 0 ? 'div' : motion.div;
-              const animationProps = index === 0 ? {} : {
-                initial: { opacity: 0, y: 20 },
-                whileInView: { opacity: 1, y: 0 },
-                viewport: { once: true },
-                transition: { duration: 0.4, delay: (index - 1) * 0.1 }
-              };
-              
-              return (
-              <CardWrapper
+            {filteredSalons.map((salon, index) => (
+              <motion.div
                 key={salon.id}
-                {...animationProps}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: index * 0.1 }}
               >
               <div 
                 onClick={() => handleSalonClick(salon.id)}
@@ -257,9 +232,8 @@ const FeaturedSalons = () => {
                   </Button>
                 </div>
               </div>
-            </CardWrapper>
-              );
-            })}
+            </motion.div>
+          ))}
           </div>
         )}
       </div>

@@ -44,43 +44,7 @@
 
   <body>
     <div id="root">
-      <!-- Critical inline styles for instant FCP -->
-      <style>
-        .loading-skeleton{display:flex;flex-direction:column;min-height:100vh;background:#fafafa;font-family:system-ui,-apple-system,sans-serif}
-        .loading-header{height:56px;background:#fff;border-bottom:1px solid #e5e5e5;display:flex;align-items:center;padding:0 16px}
-        .loading-logo{width:32px;height:32px;background:linear-gradient(135deg,#7c3aed,#a855f7);border-radius:8px}
-        .loading-main{flex:1;padding:16px 16px 64px;max-width:1280px;margin:0 auto;width:100%}
-        .loading-section{margin-top:24px}
-        .loading-title{height:32px;background:#e5e5e5;border-radius:4px;width:200px;margin-bottom:8px}
-        .loading-subtitle{height:20px;background:#e5e5e5;border-radius:4px;width:120px;margin-bottom:24px}
-        .loading-grid{display:grid;grid-template-columns:1fr;gap:16px}
-        @media(min-width:640px){.loading-grid{grid-template-columns:repeat(2,1fr)}}
-        @media(min-width:1024px){.loading-grid{grid-template-columns:repeat(4,1fr)}}
-        .loading-card{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08)}
-        .loading-img{height:192px;background:linear-gradient(90deg,#e5e5e5 25%,#f0f0f0 50%,#e5e5e5 75%);background-size:200% 100%;animation:shimmer 1.5s infinite}
-        .loading-content{padding:16px}
-        .loading-line{height:16px;background:#e5e5e5;border-radius:4px;margin-bottom:12px}
-        .loading-line.w75{width:75%}
-        .loading-line.w50{width:50%}
-        .loading-line.w66{width:66%}
-        .loading-btn{height:40px;background:#e5e5e5;border-radius:8px;margin-top:8px}
-        @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-      </style>
-      <div class="loading-skeleton">
-        <div class="loading-header"><div class="loading-logo"></div></div>
-        <div class="loading-main">
-          <div class="loading-section">
-            <div class="loading-title"></div>
-            <div class="loading-subtitle"></div>
-            <div class="loading-grid">
-              <div class="loading-card"><div class="loading-img"></div><div class="loading-content"><div class="loading-line w75"></div><div class="loading-line w50"></div><div class="loading-line"></div><div class="loading-line w66"></div><div class="loading-btn"></div></div></div>
-              <div class="loading-card"><div class="loading-img"></div><div class="loading-content"><div class="loading-line w75"></div><div class="loading-line w50"></div><div class="loading-line"></div><div class="loading-line w66"></div><div class="loading-btn"></div></div></div>
-              <div class="loading-card"><div class="loading-img"></div><div class="loading-content"><div class="loading-line w75"></div><div class="loading-line w50"></div><div class="loading-line"></div><div class="loading-line w66"></div><div class="loading-btn"></div></div></div>
-              <div class="loading-card"><div class="loading-img"></div><div class="loading-content"><div class="loading-line w75"></div><div class="loading-line w50"></div><div class="loading-line"></div><div class="loading-line w66"></div><div class="loading-btn"></div></div></div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <div style="padding:16px;font-family:system-ui">Loading…</div>
     </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -161,7 +161,7 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Auto-detect location on mount (only if permission already granted)
+  // Auto-detect location on mount (only once)
   useEffect(() => {
     const autoDetect = async () => {
       // Check if we have a cached location in localStorage
@@ -178,12 +178,10 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
-      // Only auto-detect if permission was already granted
-      // This prevents the geolocation prompt from appearing on page load
+      // Check if geolocation permission was previously denied
       if ('permissions' in navigator) {
         try {
           const permission = await navigator.permissions.query({ name: 'geolocation' });
-          
           if (permission.state === 'denied') {
             // Set default city if permission denied
             setSelectedCityInternal('Mumbai, Maharashtra');
@@ -191,38 +189,20 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
             setHasAutoDetected(true);
             return;
           }
-          
-          if (permission.state === 'prompt') {
-            // Permission not yet granted - don't auto-request, use default city
-            // User will be prompted when they click "Detect Location" button
-            setSelectedCityInternal('Mumbai, Maharashtra');
-            setCoordinates(getCityCoordinates('Mumbai'));
-            setHasAutoDetected(true);
-            return;
-          }
-          
-          // Permission already granted - safe to auto-detect
-          if (permission.state === 'granted') {
-            const location = await detectLocation({ showToast: false });
-            
-            if (location) {
-              localStorage.setItem('grumming_location', location);
-              localStorage.setItem('grumming_location_time', Date.now().toString());
-            } else if (!selectedCity) {
-              setSelectedCityInternal('Mumbai, Maharashtra');
-              setCoordinates(getCityCoordinates('Mumbai'));
-              setHasAutoDetected(true);
-            }
-            return;
-          }
         } catch {
-          // Permissions API not supported, use default city
-          setSelectedCityInternal('Mumbai, Maharashtra');
-          setCoordinates(getCityCoordinates('Mumbai'));
-          setHasAutoDetected(true);
+          // Permissions API not supported, try detecting anyway
         }
-      } else {
-        // Permissions API not available, use default city to avoid prompting
+      }
+
+      // Auto-detect location (silent)
+      const location = await detectLocation({ showToast: false });
+      
+      if (location) {
+        // Cache the location
+        localStorage.setItem('grumming_location', location);
+        localStorage.setItem('grumming_location_time', Date.now().toString());
+      } else if (!selectedCity) {
+        // Set default city if detection failed
         setSelectedCityInternal('Mumbai, Maharashtra');
         setCoordinates(getCityCoordinates('Mumbai'));
         setHasAutoDetected(true);
