@@ -37,8 +37,27 @@ export default defineConfig(({ mode }) => {
       cssMinify: 'lightningcss',
       rollupOptions: {
         output: {
-          manualChunks: {
-            vendor: ['react', 'react-dom', 'react-router-dom'],
+          manualChunks: (id) => {
+            if (id.includes('node_modules')) {
+              if (id.includes('react-dom') || id.includes('react-router') || id.includes('scheduler')) {
+                return 'vendor-react';
+              }
+              if (id.includes('@supabase') || id.includes('supabase')) {
+                return 'vendor-supabase';
+              }
+              if (id.includes('@radix-ui') || id.includes('cmdk')) {
+                return 'vendor-ui';
+              }
+              if (id.includes('framer-motion')) {
+                return 'vendor-motion';
+              }
+              if (id.includes('recharts') || id.includes('d3')) {
+                return 'vendor-charts';
+              }
+              if (id.includes('@tanstack')) {
+                return 'vendor-query';
+              }
+            }
           },
         },
       },
