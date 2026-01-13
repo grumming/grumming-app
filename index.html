@@ -65,53 +65,23 @@
         .loading-line.w66{width:66%}
         .loading-btn{height:40px;background:#e5e5e5;border-radius:8px;margin-top:8px}
         @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-        .loading-error{display:none;text-align:center;padding:40px 20px}
-        .loading-error.show{display:block}
-        .loading-error h2{font-size:18px;color:#333;margin:0 0 8px}
-        .loading-error p{font-size:14px;color:#666;margin:0 0 16px}
-        .loading-error button{background:#7c3aed;color:#fff;border:none;padding:12px 24px;border-radius:8px;font-size:14px;cursor:pointer}
-        .loading-error button:hover{background:#6d28d9}
-        .loading-content-wrapper.hidden{display:none}
       </style>
-      <div class="loading-skeleton" id="loading-skeleton">
+      <div class="loading-skeleton">
         <div class="loading-header"><div class="loading-logo"></div></div>
         <div class="loading-main">
-          <div class="loading-error" id="loading-error">
-            <h2>Taking longer than expected</h2>
-            <p>Please check your internet connection and try again.</p>
-            <button onclick="location.reload()">Refresh Page</button>
-          </div>
-          <div class="loading-content-wrapper" id="loading-content">
-            <div class="loading-section">
-              <div class="loading-title"></div>
-              <div class="loading-subtitle"></div>
-              <div class="loading-grid">
-                <div class="loading-card"><div class="loading-img"></div><div class="loading-content"><div class="loading-line w75"></div><div class="loading-line w50"></div><div class="loading-line"></div><div class="loading-line w66"></div><div class="loading-btn"></div></div></div>
-                <div class="loading-card"><div class="loading-img"></div><div class="loading-content"><div class="loading-line w75"></div><div class="loading-line w50"></div><div class="loading-line"></div><div class="loading-line w66"></div><div class="loading-btn"></div></div></div>
-                <div class="loading-card"><div class="loading-img"></div><div class="loading-content"><div class="loading-line w75"></div><div class="loading-line w50"></div><div class="loading-line"></div><div class="loading-line w66"></div><div class="loading-btn"></div></div></div>
-                <div class="loading-card"><div class="loading-img"></div><div class="loading-content"><div class="loading-line w75"></div><div class="loading-line w50"></div><div class="loading-line"></div><div class="loading-line w66"></div><div class="loading-btn"></div></div></div>
-              </div>
+          <div class="loading-section">
+            <div class="loading-title"></div>
+            <div class="loading-subtitle"></div>
+            <div class="loading-grid">
+              <div class="loading-card"><div class="loading-img"></div><div class="loading-content"><div class="loading-line w75"></div><div class="loading-line w50"></div><div class="loading-line"></div><div class="loading-line w66"></div><div class="loading-btn"></div></div></div>
+              <div class="loading-card"><div class="loading-img"></div><div class="loading-content"><div class="loading-line w75"></div><div class="loading-line w50"></div><div class="loading-line"></div><div class="loading-line w66"></div><div class="loading-btn"></div></div></div>
+              <div class="loading-card"><div class="loading-img"></div><div class="loading-content"><div class="loading-line w75"></div><div class="loading-line w50"></div><div class="loading-line"></div><div class="loading-line w66"></div><div class="loading-btn"></div></div></div>
+              <div class="loading-card"><div class="loading-img"></div><div class="loading-content"><div class="loading-line w75"></div><div class="loading-line w50"></div><div class="loading-line"></div><div class="loading-line w66"></div><div class="loading-btn"></div></div></div>
             </div>
           </div>
         </div>
       </div>
     </div>
-    <script>
-      // Show error message if app doesn't load within 15 seconds
-      window.__appLoadTimeout = setTimeout(function() {
-        var skeleton = document.getElementById('loading-skeleton');
-        if (skeleton) {
-          var errorEl = document.getElementById('loading-error');
-          var contentEl = document.getElementById('loading-content');
-          if (errorEl) errorEl.classList.add('show');
-          if (contentEl) contentEl.classList.add('hidden');
-        }
-      }, 15000);
-      // Clear timeout when app loads
-      window.__clearAppLoadTimeout = function() {
-        if (window.__appLoadTimeout) clearTimeout(window.__appLoadTimeout);
-      };
-    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
