@@ -34,6 +34,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
+      sourcemap: true,
       cssMinify: 'lightningcss',
       rollupOptions: {
         output: {
