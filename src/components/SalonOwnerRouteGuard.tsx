@@ -21,6 +21,15 @@ export const SalonOwnerRouteGuard = ({ children }: SalonOwnerRouteGuardProps) =>
   const [shouldRedirect, setShouldRedirect] = useState(false);
 
   useEffect(() => {
+    // Add timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      if (isChecking) {
+        console.warn('SalonOwnerRouteGuard: Timeout reached, showing content');
+        setIsChecking(false);
+        setShouldRedirect(false);
+      }
+    }, 5000);
+
     const checkSalonOwnerStatus = async () => {
       // Wait for auth to finish loading
       if (authLoading) return;
@@ -107,7 +116,9 @@ export const SalonOwnerRouteGuard = ({ children }: SalonOwnerRouteGuardProps) =>
     };
 
     checkSalonOwnerStatus();
-  }, [user, authLoading, navigate]);
+
+    return () => clearTimeout(timeout);
+  }, [user, authLoading, navigate, isChecking]);
 
   // Show loading while auth is initializing or checking owner status
   if (authLoading || isChecking) {
