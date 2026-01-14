@@ -57,6 +57,15 @@ function generateOTP(): string {
   return otp.toString();
 }
 
+// Hash OTP using SHA-256 for secure storage
+async function hashOTP(otp: string, phone: string): Promise<string> {
+  // Use phone as salt to prevent rainbow table attacks
+  const data = new TextEncoder().encode(otp + phone);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 // Check if phone is in test whitelist (dynamic from database)
 async function getTestPhoneOtp(supabase: any, phone: string): Promise<string | null> {
   try {
@@ -320,12 +329,15 @@ serve(async (req) => {
       // Delete any existing OTP for this phone first
       await supabase.from('phone_otps').delete().eq('phone', phone);
       
-      // Store test OTP in database
+      // Hash the test OTP before storing
+      const hashedOtp = await hashOTP(testOtp, phone);
+      
+      // Store hashed test OTP in database
       const { error: dbError } = await supabase
         .from('phone_otps')
         .insert({
           phone,
-          otp_code: testOtp,
+          otp_code: hashedOtp,
           expires_at: expiresAt.toISOString(),
           verified: false,
         });
@@ -357,12 +369,15 @@ serve(async (req) => {
     // Delete any existing OTP for this phone first
     await supabase.from('phone_otps').delete().eq('phone', phone);
 
-    // Store OTP in database
+    // Hash OTP before storing (never store plaintext OTPs)
+    const hashedOtp = await hashOTP(otp, phone);
+
+    // Store hashed OTP in database
     const { error: dbError } = await supabase
       .from('phone_otps')
       .insert({
         phone,
-        otp_code: otp,
+        otp_code: hashedOtp,
         expires_at: expiresAt.toISOString(),
         verified: false,
       });
@@ -385,6 +400,12 @@ serve(async (req) => {
       .from('otp_rate_limits')
       .delete()
       .lt('attempted_at', cleanupCutoff);
+
+    // Cleanup expired OTPs (automatic garbage collection)
+    await supabase
+      .from('phone_otps')
+      .delete()
+      .lt('expires_at', new Date().toISOString());
 
     // If SMS failed, return error
     if (!smsSent) {
