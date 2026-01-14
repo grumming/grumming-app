@@ -2,22 +2,17 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Grumming</title>
     <meta name="description" content="Book salon and spa appointments instantly. Discover top-rated beauty services, read reviews, and find the perfect beauty experience near you.">
     <meta name="theme-color" content="#7c3aed" />
 
-    <!-- Performance: Preconnect to critical origins -->
-    <link rel="preconnect" href="https://bxrvutconietinhrngvg.supabase.co" crossorigin />
-    <link rel="dns-prefetch" href="https://bxrvutconietinhrngvg.supabase.co" />
-    <link rel="preconnect" href="https://images.unsplash.com" crossorigin />
-    <link rel="dns-prefetch" href="https://images.unsplash.com" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Performance: speed up Razorpay checkout (especially on mobile) -->
     <link rel="dns-prefetch" href="https://checkout.razorpay.com" />
-    
-    <!-- Preload critical fonts to reduce render blocking -->
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" />
+    <link rel="preconnect" href="https://checkout.razorpay.com" crossorigin />
+    <link rel="dns-prefetch" href="https://api.razorpay.com" />
+    <link rel="preconnect" href="https://api.razorpay.com" crossorigin />
+    <link rel="preload" as="script" href="https://checkout.razorpay.com/v1/checkout.js" crossorigin />
 
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="/favicon.png" />

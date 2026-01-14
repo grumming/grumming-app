@@ -33,16 +33,6 @@ export default defineConfig(({ mode }) => {
         "@": path.resolve(__dirname, "./src"),
       },
     },
-    build: {
-      cssMinify: 'lightningcss',
-      rollupOptions: {
-        output: {
-          manualChunks: {
-            vendor: ['react', 'react-dom', 'react-router-dom'],
-          },
-        },
-      },
-    },
     define: {
       "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(VITE_SUPABASE_URL),
       "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(VITE_SUPABASE_PUBLISHABLE_KEY),

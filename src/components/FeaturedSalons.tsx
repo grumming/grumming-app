@@ -159,19 +159,12 @@ const FeaturedSalons = () => {
                 {/* Image */}
                 <div className="relative h-48 overflow-hidden">
                   <img
-                    src={salon.image_url 
-                      ? `${salon.image_url}?width=400&height=300&resize=cover&quality=80`
-                      : "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&h=300&auto=format&fit=crop&q=75"}
+                    src={salon.image_url || "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&auto=format&fit=crop&q=80"}
                     alt={salon.name}
-                    width={400}
-                    height={300}
-                    loading={index < 2 ? "eager" : "lazy"}
-                    fetchPriority={index === 0 ? "high" : "auto"}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <button
                     onClick={(e) => toggleFavorite(salon.id, e)}
-                    aria-label={isFavorite(salon.id) ? `Remove ${salon.name} from favorites` : `Add ${salon.name} to favorites`}
                     className="absolute top-3 right-3 w-9 h-9 rounded-full bg-card/80 backdrop-blur-sm flex items-center justify-center hover:bg-card transition-colors"
                   >
                     <Heart
