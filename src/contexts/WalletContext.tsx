@@ -275,10 +275,19 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   );
 };
 
-export const useWalletContext = () => {
+export const useWalletContext = (): WalletContextType => {
   const context = useContext(WalletContext);
   if (context === undefined) {
-    throw new Error('useWalletContext must be used within a WalletProvider');
+    // Return safe defaults instead of crashing
+    console.warn('useWalletContext called outside of WalletProvider, returning defaults');
+    return {
+      wallet: null,
+      transactions: [],
+      isLoading: false,
+      addCredits: async () => ({ success: false, error: 'Not initialized' }),
+      useCredits: async () => ({ success: false, error: 'Not initialized' }),
+      refetchWallet: () => {},
+    };
   }
   return context;
 };

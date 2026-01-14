@@ -127,10 +127,18 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-export const useFavorites = () => {
+export const useFavorites = (): FavoritesContextType => {
   const context = useContext(FavoritesContext);
   if (context === undefined) {
-    throw new Error('useFavorites must be used within a FavoritesProvider');
+    // Return safe defaults instead of crashing
+    console.warn('useFavorites called outside of FavoritesProvider, returning defaults');
+    return {
+      favorites: [],
+      isLoading: false,
+      isFavorite: () => false,
+      toggleFavorite: async () => {},
+      refetch: async () => {},
+    };
   }
   return context;
 };
