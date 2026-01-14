@@ -43,6 +43,15 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes (OTP validity window)
 const MAX_VERIFY_ATTEMPTS = 5;
 
+// Hash OTP using SHA-256 for comparison (must match send-sms-otp hashing)
+async function hashOTP(otp: string, phone: string): Promise<string> {
+  // Use phone as salt to prevent rainbow table attacks
+  const data = new TextEncoder().encode(otp + phone);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
   
@@ -116,9 +125,10 @@ serve(async (req) => {
       );
     }
 
-    // Verify OTP (constant-time comparison to prevent timing attacks)
-    const isValidOtp = otp.length === otpRecord.otp_code.length &&
-      otp.split('').every((char: string, i: number) => char === otpRecord.otp_code[i]);
+    // Hash the input OTP and compare with stored hash (constant-time comparison)
+    const hashedInputOtp = await hashOTP(otp, phone);
+    const isValidOtp = hashedInputOtp.length === otpRecord.otp_code.length &&
+      hashedInputOtp.split('').every((char: string, i: number) => char === otpRecord.otp_code[i]);
 
     if (!isValidOtp) {
       // Record failed attempt for rate limiting
@@ -280,6 +290,12 @@ serve(async (req) => {
       .delete()
       .eq('phone', phone)
       .eq('attempt_type', 'verify_failed');
+
+    // Cleanup expired OTPs (automatic garbage collection)
+    await supabase
+      .from('phone_otps')
+      .delete()
+      .lt('expires_at', new Date().toISOString());
 
     console.log(`OTP verified successfully for ${maskPhone(phone)}, isNew: ${isNewUser}`);
 
