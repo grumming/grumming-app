@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
 import { ArrowUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const BackToTop = () => {
+const BackToTop = memo(() => {
   const [isVisible, setIsVisible] = useState(false);
   const lastScrollY = useRef(0);
 
@@ -30,9 +30,10 @@ const BackToTop = () => {
   };
 
   return (
-    <AnimatePresence>
+    <AnimatePresence mode="wait">
       {isVisible && (
         <motion.button
+          key="back-to-top"
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.8 }}
@@ -46,6 +47,8 @@ const BackToTop = () => {
       )}
     </AnimatePresence>
   );
-};
+});
+
+BackToTop.displayName = 'BackToTop';
 
 export default BackToTop;
