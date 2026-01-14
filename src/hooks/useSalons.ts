@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface DbSalon {
@@ -40,112 +40,132 @@ export interface SalonWithServices extends DbSalon {
   services: DbSalonService[];
 }
 
-const fetchSalonsData = async (): Promise<DbSalon[]> => {
-  const { data, error } = await supabase
-    .from('salons_public')
-    .select('*')
-    .eq('is_active', true)
-    .eq('status', 'approved')
-    .order('rating', { ascending: false });
-
-  if (error) throw error;
-  return data || [];
-};
-
 export const useSalons = () => {
-  const { data: salons = [], isLoading, error, refetch } = useQuery({
-    queryKey: ['salons'],
-    queryFn: fetchSalonsData,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes cache
-  });
+  const [salons, setSalons] = useState<DbSalon[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  return { 
-    salons, 
-    isLoading, 
-    error: error?.message || null, 
-    refetch 
+  useEffect(() => {
+    fetchSalons();
+  }, []);
+
+  const fetchSalons = async () => {
+    try {
+      setIsLoading(true);
+      // Use salons_public view to mask contact info for non-authorized users
+      const { data, error } = await supabase
+        .from('salons_public')
+        .select('*')
+        .eq('is_active', true)
+        .eq('status', 'approved')
+        .order('rating', { ascending: false });
+
+      if (error) throw error;
+      setSalons(data || []);
+    } catch (err: any) {
+      console.error('Error fetching salons:', err);
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
-};
 
-const fetchSalonByIdData = async (id: string): Promise<SalonWithServices | null> => {
-  // Fetch salon using salons_public view
-  const { data: salonData, error: salonError } = await supabase
-    .from('salons_public')
-    .select('*')
-    .eq('id', id)
-    .maybeSingle();
-
-  if (salonError) throw salonError;
-  
-  if (!salonData) {
-    return null;
-  }
-
-  // Fetch services for this salon
-  const { data: servicesData, error: servicesError } = await supabase
-    .from('salon_services')
-    .select('*')
-    .eq('salon_id', id)
-    .eq('is_active', true)
-    .order('category', { ascending: true });
-
-  if (servicesError) throw servicesError;
-
-  return {
-    ...salonData,
-    services: servicesData || []
-  };
+  return { salons, isLoading, error, refetch: fetchSalons };
 };
 
 export const useSalonById = (salonId: string | undefined) => {
-  const { data: salon, isLoading, error, refetch } = useQuery({
-    queryKey: ['salon', salonId],
-    queryFn: () => fetchSalonByIdData(salonId!),
-    enabled: !!salonId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes cache
-  });
+  const [salon, setSalon] = useState<SalonWithServices | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  return { 
-    salon: salon ?? null, 
-    isLoading, 
-    error: error?.message || (salon === null && !isLoading ? 'Salon not found' : null), 
-    refetch 
+  useEffect(() => {
+    if (salonId) {
+      fetchSalon(salonId);
+    }
+  }, [salonId]);
+
+  const fetchSalon = async (id: string) => {
+    try {
+      setIsLoading(true);
+      
+      // Fetch salon using salons_public view to mask contact info for non-authorized users
+      const { data: salonData, error: salonError } = await supabase
+        .from('salons_public')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (salonError) throw salonError;
+      
+      if (!salonData) {
+        setError('Salon not found');
+        setSalon(null);
+        return;
+      }
+
+      // Fetch services for this salon
+      const { data: servicesData, error: servicesError } = await supabase
+        .from('salon_services')
+        .select('*')
+        .eq('salon_id', id)
+        .eq('is_active', true)
+        .order('category', { ascending: true });
+
+      if (servicesError) throw servicesError;
+
+      setSalon({
+        ...salonData,
+        services: servicesData || []
+      });
+    } catch (err: any) {
+      console.error('Error fetching salon:', err);
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
-};
 
-const fetchSalonsByCityData = async (city: string | null): Promise<DbSalon[]> => {
-  let query = supabase
-    .from('salons_public')
-    .select('*')
-    .eq('is_active', true)
-    .eq('status', 'approved')
-    .order('rating', { ascending: false });
-
-  if (city) {
-    const cityName = city.split(',')[0].trim();
-    query = query.ilike('city', `%${cityName}%`);
-  }
-
-  const { data, error } = await query;
-
-  if (error) throw error;
-  return data || [];
+  return { salon, isLoading, error, refetch: () => salonId && fetchSalon(salonId) };
 };
 
 export const useSalonsByCity = (city: string | null) => {
-  const { data: salons = [], isLoading, error, refetch } = useQuery({
-    queryKey: ['salons', 'city', city],
-    queryFn: () => fetchSalonsByCityData(city),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes cache
-  });
+  const [salons, setSalons] = useState<DbSalon[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  return { 
-    salons, 
-    isLoading, 
-    error: error?.message || null, 
-    refetch 
+  useEffect(() => {
+    fetchSalons();
+  }, [city]);
+
+  const fetchSalons = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Use salons_public view to mask contact info for non-authorized users
+      let query = supabase
+        .from('salons_public')
+        .select('*')
+        .eq('is_active', true)
+        .eq('status', 'approved')
+        .order('rating', { ascending: false });
+
+      if (city) {
+        // Try to match city name (handle formats like "Mumbai, Maharashtra")
+        const cityName = city.split(',')[0].trim();
+        query = query.ilike('city', `%${cityName}%`);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      setSalons(data || []);
+    } catch (err: any) {
+      console.error('Error fetching salons:', err);
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  return { salons, isLoading, error, refetch: fetchSalons };
 };

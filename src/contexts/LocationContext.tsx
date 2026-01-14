@@ -167,23 +167,12 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
       // Check if we have a cached location in localStorage
       const cachedLocation = localStorage.getItem('grumming_location');
       const cachedTime = localStorage.getItem('grumming_location_time');
-      const cachedCoords = localStorage.getItem('grumming_coords');
       
       if (cachedLocation && cachedTime) {
         const cacheAge = Date.now() - parseInt(cachedTime, 10);
-        // Use cache if less than 30 minutes old (longer cache for faster loading)
-        if (cacheAge < 30 * 60 * 1000) {
-          setSelectedCityInternal(cachedLocation);
-          if (cachedCoords) {
-            try {
-              const coords = JSON.parse(cachedCoords);
-              setCoordinates(coords);
-            } catch {
-              // Fallback to city coordinates
-              const cityCoords = getCityCoordinates(cachedLocation.split(',')[0].trim());
-              if (cityCoords) setCoordinates(cityCoords);
-            }
-          }
+        // Use cache if less than 5 minutes old (shorter cache for accuracy)
+        if (cacheAge < 5 * 60 * 1000) {
+          setSelectedCity(cachedLocation);
           setHasAutoDetected(true);
           return;
         }
@@ -209,12 +198,9 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
       const location = await detectLocation({ showToast: false });
       
       if (location) {
-        // Cache the location and coordinates
+        // Cache the location
         localStorage.setItem('grumming_location', location);
         localStorage.setItem('grumming_location_time', Date.now().toString());
-        if (coordinates) {
-          localStorage.setItem('grumming_coords', JSON.stringify(coordinates));
-        }
       } else if (!selectedCity) {
         // Set default city if detection failed
         setSelectedCityInternal('Mumbai, Maharashtra');
