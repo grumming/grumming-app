@@ -248,10 +248,19 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-export const useLocation = () => {
+export const useLocation = (): LocationContextType => {
   const context = useContext(LocationContext);
   if (context === undefined) {
-    throw new Error('useLocation must be used within a LocationProvider');
+    // Return safe defaults instead of crashing - helps during SSR/initial render
+    console.warn('useLocation called outside of LocationProvider, returning defaults');
+    return {
+      selectedCity: 'Mumbai, Maharashtra',
+      setSelectedCity: () => {},
+      isDetecting: false,
+      coordinates: null,
+      detectLocation: async () => null,
+      hasAutoDetected: false,
+    };
   }
   return context;
 };

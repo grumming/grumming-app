@@ -47,10 +47,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-export const useAuth = () => {
+export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    // Return safe defaults instead of crashing during SSR/initial render
+    console.warn('useAuth called outside of AuthProvider, returning defaults');
+    return {
+      user: null,
+      session: null,
+      loading: true,
+      signOut: async () => {},
+    };
   }
   return context;
 };
