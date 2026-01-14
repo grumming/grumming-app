@@ -83,8 +83,6 @@ export const useNotifications = () => {
       return data as Notification[];
     },
     enabled: !!user,
-    staleTime: 1000 * 60 * 2, // Cache for 2 minutes
-    gcTime: 1000 * 60 * 10, // Keep in cache for 10 minutes
   });
 
   const markAsReadMutation = useMutation({

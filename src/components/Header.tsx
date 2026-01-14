@@ -1,6 +1,6 @@
-import { memo, useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { MapPin, Locate, Loader2, ChevronDown, Search, Clock, X } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import UserMenu from "@/components/UserMenu";
 import NotificationCenter from "@/components/NotificationCenter";
@@ -23,7 +23,7 @@ interface GroupedMapboxSuggestion {
   cities: { city: string; coordinates: { latitude: number; longitude: number } }[];
 }
 
-const Header = memo(() => {
+const Header = () => {
   const [showSearchModal, setShowSearchModal] = useState(false);
   const { selectedCity, setSelectedCity, isDetecting, detectLocation } = useLocation();
   const { recentCities, addRecentCity, clearRecentCities } = useRecentCities();
@@ -112,16 +112,16 @@ const Header = memo(() => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const handleDetectLocation = useCallback(async () => {
+  const handleDetectLocation = async () => {
     await detectLocation({ forceFresh: true });
-  }, [detectLocation]);
+  };
 
-  const handleLocationChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLocationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setLocationInput(e.target.value);
     setShowSuggestions(true);
-  }, []);
+  };
 
-  const handleSelectCity = useCallback((city: string, state: string, coordinates?: { latitude: number; longitude: number }) => {
+  const handleSelectCity = (city: string, state: string, coordinates?: { latitude: number; longitude: number }) => {
     const fullCity = `${city}, ${state}`;
     setLocationInput(fullCity);
     // Pass coordinates to LocationContext for distance filtering
@@ -129,28 +129,35 @@ const Header = memo(() => {
     setSelectedCity(fullCity, coords);
     addRecentCity(fullCity);
     setShowSuggestions(false);
-  }, [setSelectedCity, addRecentCity]);
+  };
 
-  const handleSelectPopularCity = useCallback((city: string) => {
+  const handleSelectPopularCity = (city: string) => {
     setLocationInput(city);
     setSelectedCity(city);
     addRecentCity(city);
     setShowSuggestions(false);
-  }, [setSelectedCity, addRecentCity]);
+  };
 
-  const handleSelectRecentCity = useCallback((city: string) => {
+  const handleSelectRecentCity = (city: string) => {
     setLocationInput(city);
     setSelectedCity(city);
     setShowSuggestions(false);
-  }, [setSelectedCity]);
+  };
 
   const showPopular = locationInput.length < 2;
 
   return (
-    <header
+    <motion.header
+      initial={{ opacity: 0, y: -50 }}
+      animate={{ 
+        opacity: 1, 
+        y: isHidden ? -100 : 0 
+      }}
+      transition={{ 
+        duration: 0.3, 
+        ease: [0.22, 1, 0.36, 1]
+      }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isHidden ? '-translate-y-full' : 'translate-y-0'
-      } ${
         isScrolled 
           ? 'bg-gradient-to-r from-background/95 via-background/90 to-background/95 backdrop-blur-xl border-b border-border/50 shadow-sm' 
           : 'bg-transparent'
@@ -176,6 +183,7 @@ const Header = memo(() => {
               className={`w-3 h-3 text-muted-foreground transition-transform duration-200 ${showSuggestions ? 'rotate-180' : ''}`} 
             />
           </button>
+          
           {/* Hidden input for search within dropdown */}
           {showSuggestions && (
             <motion.input
@@ -384,10 +392,8 @@ const Header = memo(() => {
         onClose={() => setShowSearchModal(false)} 
         onOpenLocationPicker={() => setShowSuggestions(true)}
       />
-    </header>
+    </motion.header>
   );
-});
-
-Header.displayName = 'Header';
+};
 
 export default Header;
