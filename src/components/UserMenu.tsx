@@ -1,40 +1,14 @@
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserData } from '@/hooks/useUserData';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { supabase } from '@/integrations/supabase/client';
 
 const UserMenu = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [fullName, setFullName] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (user) {
-      fetchProfile();
-    } else {
-      setAvatarUrl(null);
-      setFullName(null);
-    }
-  }, [user]);
-
-  const fetchProfile = async () => {
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('avatar_url, full_name')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if (!error && data) {
-      setAvatarUrl(data.avatar_url);
-      setFullName(data.full_name);
-    }
-  };
+  const { data: userData } = useUserData();
 
   if (!user) {
     return (
@@ -49,6 +23,8 @@ const UserMenu = () => {
     );
   }
 
+  const avatarUrl = userData?.profile?.avatar_url;
+  const fullName = userData?.profile?.full_name;
   const displayName = fullName || user.user_metadata?.full_name;
 
   return (

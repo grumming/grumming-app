@@ -1,7 +1,9 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useCallback, ReactNode } from 'react';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
+import { QUERY_STALE_TIMES, QUERY_KEYS } from '@/lib/queryConfig';
 
 interface FavoritesContextType {
   favorites: string[];
@@ -13,38 +15,100 @@ interface FavoritesContextType {
 
 const FavoritesContext = createContext<FavoritesContextType | undefined>(undefined);
 
+async function fetchFavorites(userId: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('favorite_salons')
+    .select('salon_id')
+    .eq('user_id', userId);
+
+  if (error) {
+    console.error('Error fetching favorites:', error);
+    return [];
+  }
+
+  return data?.map(f => f.salon_id) || [];
+}
+
 export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
-  const [favorites, setFavorites] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const fetchFavorites = useCallback(async () => {
-    if (!user) {
-      setFavorites([]);
-      setIsLoading(false);
-      return;
-    }
+  const { data: favorites = [], isLoading } = useQuery({
+    queryKey: QUERY_KEYS.favorites(user?.id),
+    queryFn: () => fetchFavorites(user!.id),
+    enabled: !!user,
+    staleTime: QUERY_STALE_TIMES.favorites,
+  });
 
-    try {
-      const { data, error } = await supabase
-        .from('favorite_salons')
-        .select('salon_id')
-        .eq('user_id', user.id);
-
-      if (error) {
-        console.error('Error fetching favorites:', error);
+  const toggleMutation = useMutation({
+    mutationFn: async (salonId: string) => {
+      if (!user) throw new Error('Must be logged in');
+      
+      const isFav = favorites.includes(salonId);
+      
+      if (isFav) {
+        const { error } = await supabase
+          .from('favorite_salons')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('salon_id', salonId);
+        if (error) throw error;
+        return { action: 'removed' as const, salonId };
       } else {
-        setFavorites(data?.map(f => f.salon_id) || []);
+        const { error } = await supabase
+          .from('favorite_salons')
+          .insert({ user_id: user.id, salon_id: salonId });
+        if (error) throw error;
+        return { action: 'added' as const, salonId };
       }
-    } catch (err) {
-      console.error('Error fetching favorites:', err);
-    }
-    setIsLoading(false);
-  }, [user]);
-
-  useEffect(() => {
-    fetchFavorites();
-  }, [fetchFavorites]);
+    },
+    onMutate: async (salonId) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: QUERY_KEYS.favorites(user?.id) });
+      
+      // Snapshot previous value
+      const previousFavorites = queryClient.getQueryData<string[]>(QUERY_KEYS.favorites(user?.id));
+      
+      // Optimistically update
+      queryClient.setQueryData<string[]>(QUERY_KEYS.favorites(user?.id), (old = []) => {
+        if (old.includes(salonId)) {
+          return old.filter(id => id !== salonId);
+        }
+        return [...old, salonId];
+      });
+      
+      return { previousFavorites };
+    },
+    onError: (error, _salonId, context) => {
+      // Rollback on error
+      if (context?.previousFavorites) {
+        queryClient.setQueryData(QUERY_KEYS.favorites(user?.id), context.previousFavorites);
+      }
+      console.error('Error toggling favorite:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update favorites.',
+        variant: 'destructive',
+      });
+    },
+    onSuccess: (result) => {
+      if (result.action === 'added') {
+        toast({
+          title: 'Added to favorites',
+          description: 'Salon saved to your favorites.',
+        });
+      } else {
+        toast({
+          title: 'Removed from favorites',
+          description: 'Salon removed from your favorites.',
+        });
+      }
+    },
+    onSettled: () => {
+      // Refetch to ensure server state
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.favorites(user?.id) });
+    },
+  });
 
   const isFavorite = useCallback((salonId: string | number) => {
     return favorites.includes(String(salonId));
@@ -63,64 +127,18 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
       });
       return;
     }
+    
+    await toggleMutation.mutateAsync(String(salonId));
+  }, [user, toggleMutation]);
 
-    const salonIdStr = String(salonId);
-    const isCurrentlyFavorite = favorites.includes(salonIdStr);
-
-    // Optimistic update
-    if (isCurrentlyFavorite) {
-      setFavorites(prev => prev.filter(id => id !== salonIdStr));
-    } else {
-      setFavorites(prev => [...prev, salonIdStr]);
+  const refetch = useCallback(async () => {
+    if (user?.id) {
+      await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.favorites(user.id) });
     }
-
-    try {
-      if (isCurrentlyFavorite) {
-        const { error } = await supabase
-          .from('favorite_salons')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('salon_id', salonIdStr);
-
-        if (error) throw error;
-
-        toast({
-          title: 'Removed from favorites',
-          description: 'Salon removed from your favorites.',
-        });
-      } else {
-        const { error } = await supabase
-          .from('favorite_salons')
-          .insert({
-            user_id: user.id,
-            salon_id: salonIdStr,
-          });
-
-        if (error) throw error;
-
-        toast({
-          title: 'Added to favorites',
-          description: 'Salon saved to your favorites.',
-        });
-      }
-    } catch (error) {
-      console.error('Error toggling favorite:', error);
-      // Revert optimistic update
-      if (isCurrentlyFavorite) {
-        setFavorites(prev => [...prev, salonIdStr]);
-      } else {
-        setFavorites(prev => prev.filter(id => id !== salonIdStr));
-      }
-      toast({
-        title: 'Error',
-        description: 'Failed to update favorites.',
-        variant: 'destructive',
-      });
-    }
-  }, [user, favorites]);
+  }, [user?.id, queryClient]);
 
   return (
-    <FavoritesContext.Provider value={{ favorites, isLoading, isFavorite, toggleFavorite, refetch: fetchFavorites }}>
+    <FavoritesContext.Provider value={{ favorites, isLoading, isFavorite, toggleFavorite, refetch }}>
       {children}
     </FavoritesContext.Provider>
   );

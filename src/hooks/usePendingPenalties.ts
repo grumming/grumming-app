@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { QUERY_STALE_TIMES, QUERY_KEYS } from '@/lib/queryConfig';
 
 interface PendingPenalty {
   id: string;
@@ -10,40 +11,35 @@ interface PendingPenalty {
   created_at: string;
 }
 
+async function fetchPenalties(userId: string): Promise<PendingPenalty[]> {
+  const { data, error } = await supabase
+    .from('cancellation_penalties')
+    .select('id, penalty_amount, salon_name, service_name, created_at')
+    .eq('user_id', userId)
+    .eq('is_paid', false)
+    .eq('is_waived', false)
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching penalties:', error);
+    return [];
+  }
+  
+  return data || [];
+}
+
 export function usePendingPenalties() {
   const { user } = useAuth();
-  const [penalties, setPenalties] = useState<PendingPenalty[]>([]);
-  const [totalPenalty, setTotalPenalty] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    if (user) {
-      fetchPenalties();
-    } else {
-      setPenalties([]);
-      setTotalPenalty(0);
-      setLoading(false);
-    }
-  }, [user]);
+  const { data: penalties = [], isLoading: loading } = useQuery({
+    queryKey: QUERY_KEYS.penalties(user?.id),
+    queryFn: () => fetchPenalties(user!.id),
+    enabled: !!user,
+    staleTime: QUERY_STALE_TIMES.penalties,
+  });
 
-  const fetchPenalties = async () => {
-    if (!user) return;
-
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('cancellation_penalties')
-      .select('id, penalty_amount, salon_name, service_name, created_at')
-      .eq('user_id', user.id)
-      .eq('is_paid', false)
-      .eq('is_waived', false)
-      .order('created_at', { ascending: true });
-
-    if (!error && data) {
-      setPenalties(data);
-      setTotalPenalty(data.reduce((sum, p) => sum + Number(p.penalty_amount), 0));
-    }
-    setLoading(false);
-  };
+  const totalPenalty = penalties.reduce((sum, p) => sum + Number(p.penalty_amount), 0);
 
   const markPenaltiesAsPaid = async (bookingId: string, collectingSalonId?: string, paymentMethod?: 'upi' | 'salon') => {
     if (!user || penalties.length === 0) {
@@ -87,8 +83,14 @@ export function usePendingPenalties() {
       }
     }
 
-    // Refresh penalties
-    fetchPenalties();
+    // Invalidate cache to refetch
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.penalties(user.id) });
+  };
+
+  const refetch = () => {
+    if (user?.id) {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.penalties(user.id) });
+    }
   };
 
   return {
@@ -97,6 +99,6 @@ export function usePendingPenalties() {
     loading,
     hasPenalties: penalties.length > 0,
     markPenaltiesAsPaid,
-    refetch: fetchPenalties,
+    refetch,
   };
 }
