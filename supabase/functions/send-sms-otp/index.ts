@@ -57,6 +57,14 @@ function generateOTP(): string {
   return otp.toString();
 }
 
+// Hash OTP using SHA-256 with phone as salt for secure storage
+async function hashOTP(otp: string, phone: string): Promise<string> {
+  const data = new TextEncoder().encode(otp + phone);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 // Check if phone is in test whitelist (dynamic from database)
 async function getTestPhoneOtp(supabase: any, phone: string): Promise<string | null> {
   try {
@@ -320,12 +328,15 @@ serve(async (req) => {
       // Delete any existing OTP for this phone first
       await supabase.from('phone_otps').delete().eq('phone', phone);
       
-      // Store test OTP in database
+      // Hash the test OTP before storing
+      const hashedTestOtp = await hashOTP(testOtp, phone);
+      
+      // Store hashed test OTP in database
       const { error: dbError } = await supabase
         .from('phone_otps')
         .insert({
           phone,
-          otp_code: testOtp,
+          otp_code: hashedTestOtp,
           expires_at: expiresAt.toISOString(),
           verified: false,
         });
@@ -338,7 +349,7 @@ serve(async (req) => {
         );
       }
 
-      console.log(`Test mode: OTP stored for ${maskPhone(phone)}, no SMS sent`);
+      console.log(`Test mode: Hashed OTP stored for ${maskPhone(phone)}, no SMS sent`);
       return new Response(
         JSON.stringify({ 
           success: true, 
@@ -357,12 +368,15 @@ serve(async (req) => {
     // Delete any existing OTP for this phone first
     await supabase.from('phone_otps').delete().eq('phone', phone);
 
-    // Store OTP in database
+    // Hash OTP before storing (plaintext never stored in database)
+    const hashedOtp = await hashOTP(otp, phone);
+
+    // Store hashed OTP in database
     const { error: dbError } = await supabase
       .from('phone_otps')
       .insert({
         phone,
-        otp_code: otp,
+        otp_code: hashedOtp,
         expires_at: expiresAt.toISOString(),
         verified: false,
       });
