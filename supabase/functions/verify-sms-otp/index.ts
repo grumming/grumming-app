@@ -43,6 +43,24 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes (OTP validity window)
 const MAX_VERIFY_ATTEMPTS = 5;
 
+// Hash OTP using SHA-256 with phone as salt (must match send-sms-otp)
+async function hashOTP(otp: string, phone: string): Promise<string> {
+  const data = new TextEncoder().encode(otp + phone);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Constant-time string comparison to prevent timing attacks
+function secureCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return result === 0;
+}
+
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
   
@@ -116,9 +134,9 @@ serve(async (req) => {
       );
     }
 
-    // Verify OTP (constant-time comparison to prevent timing attacks)
-    const isValidOtp = otp.length === otpRecord.otp_code.length &&
-      otp.split('').every((char: string, i: number) => char === otpRecord.otp_code[i]);
+    // Hash the user-provided OTP and compare with stored hash
+    const hashedInputOtp = await hashOTP(otp, phone);
+    const isValidOtp = secureCompare(hashedInputOtp, otpRecord.otp_code);
 
     if (!isValidOtp) {
       // Record failed attempt for rate limiting
