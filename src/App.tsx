@@ -47,16 +47,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const AppLoading = () => <div className="min-h-screen bg-background" />;
 
 const App = () => {
-  const [queryClient] = useState(() => new QueryClient({
-    defaultOptions: {
-      queries: {
-        staleTime: 1000 * 60 * 1, // 1 minute default
-        gcTime: 1000 * 60 * 10, // 10 minute garbage collection
-        retry: 2,
-        refetchOnWindowFocus: false,
-      },
-    },
-  }));
+  const [queryClient] = useState(() => new QueryClient());
 
   useEffect(() => {
     const shouldSuppressExtensionError = (opts: {

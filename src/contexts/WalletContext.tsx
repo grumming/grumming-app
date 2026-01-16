@@ -27,19 +27,12 @@ interface WalletTransaction {
   created_at: string;
 }
 
-interface WalletOperationResult {
-  success: boolean;
-  error?: string;
-  transaction_id?: string;
-  new_balance?: number;
-}
-
 interface WalletContextType {
   wallet: Wallet | null | undefined;
   transactions: WalletTransaction[];
   isLoading: boolean;
-  addCredits: (params: { amount: number; category: WalletTransaction['category']; description?: string; referenceId?: string }) => Promise<WalletOperationResult>;
-  useCredits: (params: { amount: number; category: WalletTransaction['category']; description?: string; referenceId?: string }) => Promise<WalletOperationResult>;
+  addCredits: (params: { amount: number; category: WalletTransaction['category']; description?: string; referenceId?: string }) => Promise<void>;
+  useCredits: (params: { amount: number; category: WalletTransaction['category']; description?: string; referenceId?: string }) => Promise<void>;
   refetchWallet: () => void;
 }
 
@@ -173,25 +166,31 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       description?: string;
       referenceId?: string;
     }) => {
-      if (!user) throw new Error('No user found');
+      if (!user || !wallet) throw new Error('No wallet found');
 
-      // Use atomic database function with row-level locking
-      const { data, error } = await supabase.rpc('credit_wallet', {
-        _user_id: user.id,
-        _amount: amount,
-        _category: category,
-        _description: description || null,
-        _reference_id: referenceId || null,
-      });
+      const { error: txError } = await supabase
+        .from('wallet_transactions')
+        .insert({
+          wallet_id: wallet.id,
+          user_id: user.id,
+          amount,
+          type: 'credit',
+          category,
+          description,
+          reference_id: referenceId,
+        });
 
-      if (error) throw error;
-      
-      const result = data as { success: boolean; error?: string; transaction_id?: string; new_balance?: number };
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to credit wallet');
-      }
-      
-      return result;
+      if (txError) throw txError;
+
+      const { error: walletError } = await supabase
+        .from('wallets')
+        .update({
+          balance: wallet.balance + amount,
+          total_earned: wallet.total_earned + amount,
+        })
+        .eq('id', wallet.id);
+
+      if (walletError) throw walletError;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wallet'] });
@@ -223,25 +222,32 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       description?: string;
       referenceId?: string;
     }) => {
-      if (!user) throw new Error('No user found');
+      if (!user || !wallet) throw new Error('No wallet found');
+      if (wallet.balance < amount) throw new Error('Insufficient balance');
 
-      // Use atomic database function with row-level locking
-      const { data, error } = await supabase.rpc('debit_wallet', {
-        _user_id: user.id,
-        _amount: amount,
-        _category: category,
-        _description: description || null,
-        _reference_id: referenceId || null,
-      });
+      const { error: txError } = await supabase
+        .from('wallet_transactions')
+        .insert({
+          wallet_id: wallet.id,
+          user_id: user.id,
+          amount,
+          type: 'debit',
+          category,
+          description,
+          reference_id: referenceId,
+        });
 
-      if (error) throw error;
-      
-      const result = data as { success: boolean; error?: string; transaction_id?: string; new_balance?: number };
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to debit wallet');
-      }
-      
-      return result;
+      if (txError) throw txError;
+
+      const { error: walletError } = await supabase
+        .from('wallets')
+        .update({
+          balance: wallet.balance - amount,
+          total_spent: wallet.total_spent + amount,
+        })
+        .eq('id', wallet.id);
+
+      if (walletError) throw walletError;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wallet'] });

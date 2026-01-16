@@ -127,6 +127,10 @@ const UserMenu = () => {
           <Calendar className="mr-2 h-4 w-4" />
           <span>My Bookings</span>
         </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => navigate('/referrals')}>
+          <Gift className="mr-2 h-4 w-4 text-primary" />
+          <span>Refer & Earn ₹100</span>
+        </DropdownMenuItem>
         {isAdmin && (
           <>
             <DropdownMenuSeparator />
