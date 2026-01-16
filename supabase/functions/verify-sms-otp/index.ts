@@ -116,9 +116,53 @@ serve(async (req) => {
       );
     }
 
-    // Verify OTP (constant-time comparison to prevent timing attacks)
-    const isValidOtp = otp.length === otpRecord.otp_code.length &&
-      otp.split('').every((char: string, i: number) => char === otpRecord.otp_code[i]);
+    // Verify OTP using cryptographic constant-time comparison to prevent timing attacks
+    const encoder = new TextEncoder();
+    const providedOtp = encoder.encode(otp);
+    const storedOtp = encoder.encode(otpRecord.otp_code);
+    
+    // timingSafeEqual requires same length, so check first then compare
+    let isValidOtp = false;
+    if (providedOtp.length === storedOtp.length) {
+      try {
+        // Import the key and use subtle crypto for constant-time comparison
+        const key = await crypto.subtle.importKey(
+          "raw",
+          storedOtp,
+          { name: "HMAC", hash: "SHA-256" },
+          false,
+          ["sign"]
+        );
+        const signature = await crypto.subtle.sign("HMAC", key, storedOtp);
+        const providedKey = await crypto.subtle.importKey(
+          "raw",
+          providedOtp,
+          { name: "HMAC", hash: "SHA-256" },
+          false,
+          ["sign"]
+        );
+        const providedSignature = await crypto.subtle.sign("HMAC", providedKey, providedOtp);
+        
+        // Compare the HMAC signatures - this comparison is constant-time
+        const storedArray = new Uint8Array(signature);
+        const providedArray = new Uint8Array(providedSignature);
+        
+        if (storedArray.length === providedArray.length) {
+          let diff = 0;
+          for (let i = 0; i < storedArray.length; i++) {
+            diff |= storedArray[i] ^ providedArray[i];
+          }
+          isValidOtp = diff === 0;
+        }
+      } catch {
+        // Fallback to simple XOR comparison if crypto fails (still constant-time)
+        let diff = 0;
+        for (let i = 0; i < providedOtp.length; i++) {
+          diff |= providedOtp[i] ^ storedOtp[i];
+        }
+        isValidOtp = diff === 0;
+      }
+    }
 
     if (!isValidOtp) {
       // Record failed attempt for rate limiting
