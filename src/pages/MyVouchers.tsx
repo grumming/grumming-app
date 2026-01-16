@@ -217,6 +217,16 @@ const MyVouchers = () => {
         {icon}
         <h3 className="mt-4 font-semibold text-foreground">{title}</h3>
         <p className="mt-1 text-sm text-muted-foreground max-w-xs">{description}</p>
+        {type === 'active' && (
+          <Button 
+            variant="outline" 
+            className="mt-4"
+            onClick={() => navigate('/referrals')}
+          >
+            <Gift className="w-4 h-4 mr-2" />
+            Refer & Earn
+          </Button>
+        )}
       </div>
     );
   };
