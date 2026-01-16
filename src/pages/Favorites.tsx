@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, Heart, MapPin, Star, Clock, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useFavorites } from '@/contexts/FavoritesContext';
-
+import BottomNav from '@/components/BottomNav';
 import { useSalons } from '@/hooks/useSalons';
 
 const formatTime = (time: string | null): string => {
@@ -126,6 +126,8 @@ const Favorites = () => {
           </div>
         )}
       </div>
+
+      <BottomNav />
     </div>
   );
 };

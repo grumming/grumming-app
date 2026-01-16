@@ -8,7 +8,7 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-
+import BottomNav from '@/components/BottomNav';
 
 declare global {
   interface Window {
@@ -454,6 +454,8 @@ const Wallet = () => {
           </div>
         )}
       </motion.div>
+
+      <BottomNav />
 
       {/* Top-up Modal */}
       <Dialog open={showTopupModal} onOpenChange={setShowTopupModal}>

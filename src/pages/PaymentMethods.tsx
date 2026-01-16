@@ -24,7 +24,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
+import BottomNav from '@/components/BottomNav';
 
 interface PaymentMethod {
   id: string;
@@ -635,6 +635,8 @@ const PaymentMethods = () => {
           </Tabs>
         </DialogContent>
       </Dialog>
+
+      <BottomNav />
     </div>
   );
 };
