@@ -6,12 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Mask phone numbers for logging to protect PII
-function maskPhone(phone: string): string {
-  if (!phone || phone.length <= 6) return '***';
-  return phone.slice(0, 5) + '***' + phone.slice(-2);
-}
-
 // Create JWT for Firebase Admin SDK
 async function createServiceAccountJWT(): Promise<string> {
   const clientEmail = Deno.env.get('FIREBASE_CLIENT_EMAIL')!;
@@ -148,7 +142,7 @@ serve(async (req) => {
 
     // Verify the Firebase token
     const firebaseUser = await verifyFirebaseToken(idToken);
-    console.log('Firebase user verified:', maskPhone(firebaseUser.phone));
+    console.log('Firebase user verified:', firebaseUser.uid, firebaseUser.phone);
 
     if (!firebaseUser.phone) {
       return new Response(
@@ -175,11 +169,11 @@ serve(async (req) => {
     let isNewUser = false;
 
     if (existingUser) {
-      console.log('Existing user found');
+      console.log('Existing user found:', existingUser.id);
       userId = existingUser.id;
     } else {
       // Create new user
-      console.log('Creating new user for phone:', maskPhone(firebaseUser.phone));
+      console.log('Creating new user for phone:', firebaseUser.phone);
       
       const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
         phone: firebaseUser.phone,
@@ -197,7 +191,7 @@ serve(async (req) => {
 
       userId = newUser.user.id;
       isNewUser = true;
-      console.log('New user created');
+      console.log('New user created:', userId);
     }
 
     // Generate magic link for seamless login
