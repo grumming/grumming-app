@@ -1,12 +1,13 @@
 import { motion } from "framer-motion";
-import { Star, MapPin, Clock, Heart, Loader2 } from "lucide-react";
+import { Star, MapPin, Clock, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useMemo, useState } from "react";
+import { useMemo, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "@/contexts/LocationContext";
 import { useFavorites } from "@/contexts/FavoritesContext";
 import { useSalons, SalonWithDistance } from "@/hooks/useSalons";
 import { calculateDistance, formatDistance } from "@/lib/distance";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const formatTime = (time: string | null): string => {
   if (!time) return '';
@@ -81,11 +82,28 @@ const FeaturedSalons = () => {
     navigate(`/salon/${id}`);
   };
 
+  // Skeleton loading cards for better perceived performance
   if (isLoading) {
     return (
       <section className="py-16 px-4 bg-secondary/30">
-        <div className="container mx-auto flex justify-center items-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <div className="container mx-auto">
+          <div className="mb-10">
+            <Skeleton className="h-10 w-48 mb-2" />
+            <Skeleton className="h-5 w-32" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="bg-card rounded-2xl overflow-hidden shadow-soft">
+                <Skeleton className="h-48 w-full" />
+                <div className="p-4 space-y-3">
+                  <Skeleton className="h-6 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
     );
@@ -234,4 +252,4 @@ const FeaturedSalons = () => {
   );
 };
 
-export default FeaturedSalons;
+export default memo(FeaturedSalons);

@@ -1,11 +1,11 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, X, Scissors, Clock, Sparkles, History, MapPin, ChevronDown, Locate, Loader2 } from "lucide-react";
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { getSearchResults, SalonBasic, ServiceResult, allSalonsList } from "@/data/salonsData";
 import { useRecentSearches } from "@/hooks/useRecentSearches";
 import { useLocation } from "@/contexts/LocationContext";
+import { useSalonsByCity, useSearchSalons, DbSalon, DbSalonService } from "@/hooks/useSalons";
 import { popularCities } from "@/data/indianCities";
 
 interface SearchModalProps {
@@ -14,27 +14,38 @@ interface SearchModalProps {
   onOpenLocationPicker?: () => void;
 }
 
+// Debounce hook for search
+const useDebounce = (value: string, delay: number) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+
+  return debouncedValue;
+};
+
 const SearchModal = ({ isOpen, onClose, onOpenLocationPicker }: SearchModalProps) => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const [salonResults, setSalonResults] = useState<SalonBasic[]>([]);
-  const [serviceResults, setServiceResults] = useState<ServiceResult[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const { recentSearches, addRecentSearch, clearRecentSearches, searchHistory, addSearchQuery, clearSearchHistory } = useRecentSearches();
   const { selectedCity, setSelectedCity, isDetecting, detectLocation } = useLocation();
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const locationDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Get nearby/popular salons based on selected city - ONLY show city salons
-  const nearbySalons = useMemo(() => {
-    if (!selectedCity) return [];
-    // Extract just the city name (before comma) for matching
-    const cityName = selectedCity.split(',')[0].trim().toLowerCase();
-    const citySalons = allSalonsList.filter(
-      (salon) => salon.city.toLowerCase() === cityName
-    );
-    return citySalons.slice(0, 5);
-  }, [selectedCity]);
+  // Debounce search query for performance
+  const debouncedQuery = useDebounce(searchQuery, 200);
+
+  // Fetch nearby salons from database
+  const { salons: nearbySalons, isLoading: isLoadingNearby } = useSalonsByCity(selectedCity);
+
+  // Search salons and services from database
+  const { salons: salonResults, services: serviceResults, isLoading: isSearching } = useSearchSalons(debouncedQuery);
 
   useEffect(() => {
     if (isOpen && inputRef.current) {
@@ -43,21 +54,8 @@ const SearchModal = ({ isOpen, onClose, onOpenLocationPicker }: SearchModalProps
   }, [isOpen]);
 
   useEffect(() => {
-    if (searchQuery.length >= 2) {
-      const { salons, services } = getSearchResults(searchQuery);
-      setSalonResults(salons);
-      setServiceResults(services);
-    } else {
-      setSalonResults([]);
-      setServiceResults([]);
-    }
-  }, [searchQuery]);
-
-  useEffect(() => {
     if (!isOpen) {
       setSearchQuery("");
-      setSalonResults([]);
-      setServiceResults([]);
       setShowLocationDropdown(false);
     }
   }, [isOpen]);
@@ -75,28 +73,34 @@ const SearchModal = ({ isOpen, onClose, onOpenLocationPicker }: SearchModalProps
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showLocationDropdown]);
 
-  const handleSelectCity = (city: string) => {
+  const handleSelectCity = useCallback((city: string) => {
     setSelectedCity(city);
     setShowLocationDropdown(false);
-  };
+  }, [setSelectedCity]);
 
-  const handleDetectLocation = async () => {
+  const handleDetectLocation = useCallback(async () => {
     await detectLocation({ forceFresh: true });
     setShowLocationDropdown(false);
-  };
+  }, [detectLocation]);
 
-  const handleSelectSalon = (salon: SalonBasic) => {
-    addRecentSearch(salon);
+  const handleSelectSalon = useCallback((salon: DbSalon) => {
+    addRecentSearch({
+      id: salon.id,
+      name: salon.name,
+      location: salon.location,
+      city: salon.city,
+      image: salon.image_url || "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=100&h=100&fit=crop",
+    });
     onClose();
     navigate(`/salon/${salon.id}`);
-  };
+  }, [addRecentSearch, navigate, onClose]);
 
-  const handleSelectService = (service: ServiceResult) => {
+  const handleSelectService = useCallback((service: DbSalonService & { salon_name: string }) => {
     onClose();
-    navigate(`/salon/${service.salonId}?service=${encodeURIComponent(service.serviceName)}`);
-  };
+    navigate(`/salon/${service.salon_id}?service=${encodeURIComponent(service.name)}`);
+  }, [navigate, onClose]);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && searchQuery.trim()) {
       addSearchQuery(searchQuery.trim());
       onClose();
@@ -105,19 +109,19 @@ const SearchModal = ({ isOpen, onClose, onOpenLocationPicker }: SearchModalProps
     if (e.key === 'Escape') {
       onClose();
     }
-  };
+  }, [addSearchQuery, navigate, onClose, searchQuery]);
 
-  const handleSearchHistoryClick = (query: string) => {
+  const handleSearchHistoryClick = useCallback((query: string) => {
     addSearchQuery(query);
     onClose();
     navigate(`/search?q=${encodeURIComponent(query)}`);
-  };
+  }, [addSearchQuery, navigate, onClose]);
 
   const hasResults = salonResults.length > 0 || serviceResults.length > 0;
   const hasRecentSearches = searchQuery === '' && recentSearches.length > 0;
   const hasSearchHistory = searchQuery === '' && searchHistory.length > 0;
   const showNearbySuggestions = searchQuery === '' && nearbySalons.length > 0;
-  const showNoNearbySalons = searchQuery === '' && nearbySalons.length === 0 && selectedCity && !hasRecentSearches;
+  const showNoNearbySalons = searchQuery === '' && nearbySalons.length === 0 && selectedCity && !hasRecentSearches && !isLoadingNearby;
 
   const portalRoot = typeof document !== "undefined" ? document.body : null;
 
@@ -156,6 +160,7 @@ const SearchModal = ({ isOpen, onClose, onOpenLocationPicker }: SearchModalProps
                 placeholder="Search salons or services..."
                 className="flex-1 bg-transparent outline-none text-foreground placeholder:text-muted-foreground font-body"
               />
+              {isSearching && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
               <button
                 onClick={onClose}
                 className="p-1.5 rounded-lg hover:bg-muted transition-colors"
@@ -274,7 +279,10 @@ const SearchModal = ({ isOpen, onClose, onOpenLocationPicker }: SearchModalProps
                   {recentSearches.map((salon) => (
                     <button
                       key={`recent-${salon.id}`}
-                      onClick={() => handleSelectSalon(salon)}
+                      onClick={() => {
+                        onClose();
+                        navigate(`/salon/${salon.id}`);
+                      }}
                       className="w-full px-4 py-3 text-left hover:bg-muted transition-colors flex items-center gap-3"
                     >
                       <img 
@@ -304,19 +312,17 @@ const SearchModal = ({ isOpen, onClose, onOpenLocationPicker }: SearchModalProps
                   </div>
                   {serviceResults.slice(0, 4).map((service, index) => (
                     <button
-                      key={`${service.salonId}-${service.serviceName}-${index}`}
+                      key={`${service.salon_id}-${service.name}-${index}`}
                       onClick={() => handleSelectService(service)}
                       className="w-full px-4 py-3 text-left hover:bg-muted transition-colors flex items-center gap-3"
                     >
-                      <img 
-                        src={service.image} 
-                        alt={service.serviceName}
-                        className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
-                      />
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <Scissors className="w-5 h-5 text-primary" />
+                      </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-foreground">{service.serviceName}</p>
+                        <p className="text-sm font-semibold text-foreground">{service.name}</p>
                         <p className="text-xs text-muted-foreground truncate">
-                          {service.salonName}
+                          {service.salon_name}
                         </p>
                       </div>
                       <div className="text-right flex-shrink-0">
@@ -345,7 +351,7 @@ const SearchModal = ({ isOpen, onClose, onOpenLocationPicker }: SearchModalProps
                       className="w-full px-4 py-3 text-left hover:bg-muted transition-colors flex items-center gap-3"
                     >
                       <img 
-                        src={salon.image} 
+                        src={salon.image_url || "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=100&h=100&fit=crop"} 
                         alt={salon.name}
                         className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
                       />
@@ -374,9 +380,9 @@ const SearchModal = ({ isOpen, onClose, onOpenLocationPicker }: SearchModalProps
               )}
 
               {/* Empty state */}
-              {!hasResults && !hasRecentSearches && !hasSearchHistory && searchQuery.length >= 2 && (
+              {!hasResults && !hasRecentSearches && !hasSearchHistory && debouncedQuery.length >= 2 && !isSearching && (
                 <div className="px-4 py-8 text-center">
-                  <p className="text-muted-foreground text-sm">No results found for "{searchQuery}"</p>
+                  <p className="text-muted-foreground text-sm">No results found for "{debouncedQuery}"</p>
                 </div>
               )}
 
@@ -388,17 +394,17 @@ const SearchModal = ({ isOpen, onClose, onOpenLocationPicker }: SearchModalProps
                       <MapPin className="w-3 h-3" /> Popular Nearby
                     </span>
                     {selectedCity && (
-                      <span className="text-xs text-muted-foreground">{selectedCity}</span>
+                      <span className="text-xs text-muted-foreground">{selectedCity.split(',')[0]}</span>
                     )}
                   </div>
-                  {nearbySalons.map((salon) => (
+                  {nearbySalons.slice(0, 5).map((salon) => (
                     <button
                       key={salon.id}
                       onClick={() => handleSelectSalon(salon)}
                       className="w-full px-4 py-3 text-left hover:bg-muted transition-colors flex items-center gap-3"
                     >
                       <img 
-                        src={salon.image} 
+                        src={salon.image_url || "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=100&h=100&fit=crop"} 
                         alt={salon.name}
                         className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
                       />
