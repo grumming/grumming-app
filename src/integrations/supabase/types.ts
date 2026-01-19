@@ -2084,44 +2084,6 @@ export type Database = {
       }
     }
     Views: {
-      salon_images_public: {
-        Row: {
-          created_at: string | null
-          display_order: number | null
-          id: string | null
-          image_url: string | null
-          is_primary: boolean | null
-          salon_id: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          display_order?: number | null
-          id?: string | null
-          image_url?: string | null
-          is_primary?: boolean | null
-          salon_id?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          display_order?: number | null
-          id?: string | null
-          image_url?: string | null
-          is_primary?: boolean | null
-          salon_id?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "salon_images_salon_id_fkey"
-            columns: ["salon_id"]
-            isOneToOne: false
-            referencedRelation: "salons"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       salons_public: {
         Row: {
           amenities: string[] | null
@@ -2153,7 +2115,42 @@ export type Database = {
         Args: { salon_id_param: string }
         Returns: boolean
       }
+      credit_wallet: {
+        Args: {
+          _amount: number
+          _category: string
+          _description?: string
+          _reference_id?: string
+          _user_id: string
+        }
+        Returns: Json
+      }
+      debit_wallet: {
+        Args: {
+          _amount: number
+          _category: string
+          _description?: string
+          _reference_id?: string
+          _user_id: string
+        }
+        Returns: Json
+      }
       generate_referral_code: { Args: never; Returns: string }
+      get_reviews_public: {
+        Args: { p_salon_id?: string }
+        Returns: {
+          created_at: string
+          id: string
+          owner_response: string
+          owner_response_at: string
+          rating: number
+          review_text: string
+          reviewer_avatar: string
+          reviewer_name: string
+          salon_id: string
+          updated_at: string
+        }[]
+      }
       get_salon_images_public: {
         Args: { p_salon_id?: string }
         Returns: {
